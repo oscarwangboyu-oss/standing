@@ -25,11 +25,11 @@ test('/team rejects a wrong passphrase and shows the gates with the right one', 
   for (const gate of ['Finish rate', 'Highest skip rate of one question', 'Retest correlation', 'Back on day 7', 'Back on day 30', 'Payday Check share']) {
     await expect(gates.getByRole('heading', { name: gate })).toBeVisible();
   }
-  await expect(gates.getByText('70% or more')).toBeVisible();
-  await expect(gates.getByText('10% or less')).toBeVisible();
-  await expect(gates.getByText('0.75 or more')).toBeVisible();
-  await expect(gates.getByText('25% or more')).toBeVisible();
-  await expect(gates.getByText('12% or more')).toBeVisible();
+  await expect(gates.getByText('70% or more', { exact: true })).toBeVisible();
+  await expect(gates.getByText('10% or less', { exact: true })).toBeVisible();
+  await expect(gates.getByText('0.75 or more', { exact: true })).toBeVisible();
+  await expect(gates.getByText('25% or more', { exact: true })).toBeVisible();
+  await expect(gates.getByText('12% or more', { exact: true })).toBeVisible();
   // Every gate carries a verdict in words.
   expect(await gates.getByText(/^(Met|Not met|No data yet)$/).count()).toBe(6);
   // At least one real person has finished a check by now.

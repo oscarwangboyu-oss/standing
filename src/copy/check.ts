@@ -123,6 +123,9 @@ export const start = {
   offline: 'No connection. Nothing was lost. Try again when you are back online.',
   failed: 'That did not work. Nothing was lost. Try again.',
   retry: 'Try again',
+  /** The server computes with a newer question bank than the one in this page. */
+  stale: 'Standing was updated after this page was opened. Reload it to start your check with the current questions.',
+  reload: 'Reload',
 
   /** The picture next to the steps, read aloud. */
   plot: (lots: number) =>

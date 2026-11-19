@@ -15,6 +15,9 @@ async function threeTaps(page: Page, sleep: string, exercise: string, state: str
   await page.getByRole('radio', { name: state, exact: true }).click();
 }
 
+/** The streak count: a figure and its words, in one paragraph. */
+const streak = (page: Page) => page.getByRole('paragraph').filter({ hasText: /days? in a row$/ });
+
 const posts = (page: Page, path: string): Request[] => {
   const seen: Request[] = [];
   page.on('request', (request) => {
@@ -37,7 +40,7 @@ test.describe('Daily Open', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Daily Open');
     await threeTaps(page, 'Under 5 hours', 'None', 'Bad');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText("Today's open");
-    await expect(page.getByText('1 day in a row')).toBeVisible();
+    await expect(streak(page)).toHaveText(/^1\s*day in a row$/);
     expect(sent).toHaveLength(1);
     expect(sent[0].postDataJSON()).toEqual({ localDate: utcDay(), day: utcDay(), sleep: 0, exercise: 0, state: 1 });
     // One day of records does not replace a check answer: the price stands.
@@ -46,7 +49,7 @@ test.describe('Daily Open', () => {
     // Yesterday can be filled in today.
     await page.getByRole('button', { name: 'Fill in yesterday' }).click();
     await threeTaps(page, 'Under 5 hours', 'None', 'Bad');
-    await expect(page.getByText('2 days in a row')).toBeVisible();
+    await expect(streak(page)).toHaveText(/^2\s*days in a row$/);
     expect(sent[1].postDataJSON()).toMatchObject({ localDate: utcDay(), day: utcDay(-1) });
 
     // A second entry for a day is not stored: the first one stands.
@@ -95,12 +98,12 @@ test.describe('Daily Open', () => {
     // The screen says the same: a change pill on the rows that moved, and the rule.
     await expect(page.getByRole('heading', { level: 1 })).toHaveText("Today's open");
     const board = page.getByRole('list', { name: 'Body and Mind prices' });
-    await expect(board.getByText(/^(up|down)$/).first()).toBeAttached();
+    await expect(board).toContainText(/(up|down)\s*[+−-]\d+\.\d\d/);
     const shown = (await board.innerText()).match(/[+−-]\d+\.\d\d/g) ?? [];
     expect(shown.length).toBeGreaterThan(0);
     for (const figure of shown) expect(Math.abs(Number(figure.replace('−', '-')))).toBeLessThanOrEqual(LIMIT);
     await expect(page.getByText(/Prices move at most 2 points a day/)).toBeVisible();
-    await expect(page.getByText('4 days in a row')).toBeVisible();
+    await expect(streak(page)).toHaveText(/^4\s*days in a row$/);
 
     // The market home shows the move too.
     await page.goto('/market');

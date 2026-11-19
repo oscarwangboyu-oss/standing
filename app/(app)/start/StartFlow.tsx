@@ -88,7 +88,7 @@ export function StartFlow() {
   const [tickerError, setTickerError] = useState(false);
   const [health, setHealth] = useState<boolean | null>(plan.healthKnown ? true : null);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<'offline' | 'failed' | null>(null);
+  const [problem, setProblem] = useState<'offline' | 'failed' | 'stale' | null>(null);
 
   const stepsFor = (r: RoleId | null): StepId[] => [
     'intro',
@@ -140,7 +140,9 @@ export function StartFlow() {
         go(error.field === 'age' ? 'age' : error.field === 'role' ? 'role' : error.field === 'usState' ? 'state' : error.field === 'ticker' ? 'ticker' : `q:${error.questionId ?? ''}`);
         return;
       }
-      setProblem(errorCodeOf(error) === 'network' ? 'offline' : 'failed');
+      const code = errorCodeOf(error);
+      // The page holds an older question bank than the server: only a reload brings the new one.
+      setProblem(code === 'network' ? 'offline' : code === 'bank_version_mismatch' ? 'stale' : 'failed');
     }
   };
 
@@ -187,10 +189,15 @@ export function StartFlow() {
       )}
       {problem && (
         <Note tone="info">
-          <p role="alert">{problem === 'offline' ? copy.offline : copy.failed}</p>
+          <p role="alert">{problem === 'offline' ? copy.offline : problem === 'stale' ? copy.stale : copy.failed}</p>
         </Note>
       )}
-      {problem && at === 'health' && health !== null && (
+      {problem === 'stale' && (
+        <Button variant="secondary" onClick={() => window.location.reload()}>
+          {copy.reload}
+        </Button>
+      )}
+      {problem && problem !== 'stale' && at === 'health' && health !== null && (
         <Button variant="secondary" onClick={() => void submit(health)}>
           {copy.retry}
         </Button>

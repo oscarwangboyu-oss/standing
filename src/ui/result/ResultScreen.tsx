@@ -555,10 +555,15 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
         <Rate report={report} sections={S.cross} />
       </Block>
 
-      <div ref={report.mark(S.norm)}>
-        <BaselineNote className={styles.baseline} />
-      </div>
-      <Rate report={report} sections={S.norm} />
+      {/* The note stays until a real norm replaces the provisional one. */}
+      {result.normProvisional && (
+        <>
+          <div ref={report.mark(S.norm)}>
+            <BaselineNote className={styles.baseline} />
+          </div>
+          <Rate report={report} sections={S.norm} />
+        </>
+      )}
 
       {compared && (
         <div className={styles.compared} role="status">

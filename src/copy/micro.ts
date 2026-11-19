@@ -49,7 +49,7 @@ export const open = {
   dayLabel: 'Which day',
   today: 'Today',
   yesterday: 'Yesterday',
-  yesterdayOpen: 'Yesterday was missed. It can still be filled in today.',
+  yesterdayOpen: 'Yesterday is still open. It can be filled in today.',
   fillYesterday: 'Fill in yesterday',
   skip: 'Skip this one',
   needOne: 'Answer at least one of the three.',

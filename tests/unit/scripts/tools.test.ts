@@ -93,11 +93,21 @@ describe('applying migrations', () => {
       '0003_compare.sql',
       '0004_version_log.sql',
       '0005_micro_apps.sql',
+      '0006_row_level_security.sql',
     ]);
     const now = () => '2026-03-01T00:00:00.000Z';
     expect(await migrate(db, files, now)).toEqual(files.map((f) => f.name));
     expect(await migrate(db, files, now)).toEqual([]);
     expect((await db.query<{ name: string }>('select name from _migrations order by name')).map((r) => r.name)).toEqual(files.map((f) => f.name));
+    // Every table has row level security on, so the Supabase Data API serves none of them.
+    const open = await db.query<{ relname: string }>(
+      `select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity order by c.relname`,
+    );
+    expect(open.map((r) => r.relname)).toEqual([]);
+    // The app is the owner of the tables and still reads and writes them.
+    await db.query(`insert into version_log (kind, version, effective_day, logged_at) values ('algo', '2', '2026-03-01', $1)`, [now()]);
+    expect(await db.query('select kind from version_log')).toHaveLength(1);
     // A database that stopped at 0001 gets only what is new.
     const old = new PGlite();
     await old.waitReady;

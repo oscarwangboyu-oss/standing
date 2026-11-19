@@ -10,7 +10,7 @@ Standing is a whole-person check. It prices five sectors of a person like stocks
 2. `PROMPT.md` (in Chinese). It gives the detailed rules for each feature: scoring, skips, daily open, payday, privacy, copy. Follow it wherever the deck is silent or only summarises. Its requirement for a Chinese interface no longer applies.
 3. `reference/`. The verified question bank, the reference engine and 335 golden vectors. It is the authority on the scoring algorithm. Read-only.
 
-The visual design is new and is specified in `DESIGN.md`.
+The visual design is new and is specified in `DESIGN.md`. `README.md` is the team's handbook: running, deploying, the tables, changing a question, changing the algorithm, how each dashboard number is computed, and the open decisions.
 
 ## Scope
 
@@ -35,7 +35,7 @@ Node lives in `~/.local/node/bin`. If `node` or `npm` is not found, run `export 
 | `npm run dev` | Local development at http://localhost:3000 |
 | `npm run preview` | Production build, then serve it at http://localhost:3000 |
 | `npm test` | Unit tests |
-| `npm run test:e2e` | Flow tests |
+| `npm run test:e2e` | Flow tests. Builds the app and serves it on port 8799 with its own database (`.data/e2e`, emptied first) |
 | `npm run typecheck` | Engine purity check plus the whole project |
 | `npm run db:migrate` | Apply `supabase/migrations/` to the database in `DATABASE_URL` |
 | `npm run seed:demo` | Generate demo data, clearly marked as simulated. Local only |
@@ -56,7 +56,8 @@ src/styles/           Design tokens and base styles
 supabase/migrations/  Schema and changes, applied in file-name order
 scripts/              Migrate, re-score, eval, demo data
 tests/unit/           Vitest
-tests/e2e/            Playwright
+tests/e2e/            Playwright. support.ts has the fixture (a console error or a request to another origin fails the test) and the helpers
+design/shots/         Screenshots. final/ is every screen at 390 wide, light and dark
 docs/                 The roadmap text and research background
 reference/            Read-only
 ```
@@ -68,6 +69,7 @@ Rules:
 - Server SQL is PostgreSQL with `$1` placeholders. Timestamps are ISO 8601 text, days are `YYYY-MM-DD` text, aggregates are cast (`count(*)::int`, `avg(x)::float8`), so local and hosted return identical rows.
 - Environment variables are read only in `src/server/env.ts`.
 - Raw records (question events, daily inputs) are append-only. Results are derived and can be recomputed.
+- A new table that holds data of a person has a `user_id` column and an entry in `USER_TABLES` (`src/server/tables.ts`). Every new table enables row level security in its migration, as `0006_row_level_security.sql` does for the first fifteen. Unit tests check both.
 - Every scored input carries a `source`: `questionnaire`, `daily_open`, `payday`, `weekly_win`, `people_nudge`, `connected`.
 - The server receives the minimum needed for scoring and the dashboard. No IP addresses. Payday amounts stay on the device; the server receives bands only.
 - Fonts are bundled from `node_modules`. No remote fonts.

@@ -76,16 +76,17 @@ test('leaving in the middle resumes at the same question', async ({ page, contex
 });
 
 test('without the Body and Mind consent the check has three sectors and two are not listed', async ({ page }) => {
+  test.setTimeout(120_000);
   await startCheck(page, { role: 'free', health: false });
   const first = await questionOnScreen(page);
   // Capability, Wealth, Network and the closing question: no Body and Mind questions.
   expect(first.total).toBeLessThanOrEqual(24);
   expect(first.total).toBeGreaterThanOrEqual(20);
 
-  await answer(page, 2);
-  await answer(page, 'skip');
-  await answer(page, 'na');
-  await helperToTheEnd(page);
+  // By taps, so the three sectors are priced the same way on every run: one skip in
+  // Capability, one "Not applicable" in Wealth, an option everywhere else.
+  const asked = await tapToTheEnd(page, (q) => (q.current === 2 ? 'skip' : q.current === 9 ? 'na' : q.current * 3));
+  expect(asked).toHaveLength(first.total);
   await expectResult(page);
 
   const board = page.getByRole('list', { name: 'Sector prices' });
@@ -98,6 +99,12 @@ test('without the Body and Mind consent the check has three sectors and two are 
   }
   await expect(page.getByText('BODY and MIND are not listed: you did not agree to share body and mind answers.')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Overall\s*\d+\.\d\d/);
+
+  // The market home says the same, and a sector without a price is not a button.
+  await page.goto('/market');
+  const marketBoard = page.getByRole('list', { name: /^Sector prices/ });
+  await expect(marketBoard.getByText('Not listed')).toHaveCount(2);
+  await expect(marketBoard.getByRole('button')).toHaveCount(3);
 
   // The Daily Open stays closed without that consent.
   await page.goto('/open');

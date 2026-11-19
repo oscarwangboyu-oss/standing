@@ -3,11 +3,34 @@
  * `watch` fixture), and the share sheet makes the 1080 by 1350 image.
  */
 import { readFile } from 'node:fs/promises';
-import { expect, personWithCheck, test } from './support';
+import { expect, expectResult, personWithCheck, startCheck, tapToTheEnd, test } from './support';
 
 test('the result shows every section', async ({ page }) => {
-  await personWithCheck(page, { role: 'emp', ticker: 'RSLT' });
+  test.setTimeout(120_000);
+  // Every question is answered by a tap, so every section has something to show. Both mood
+  // questions get "Nearly every day", which is what the mind notice is for, and the taps come
+  // faster than a question can be read, which is what the timing note is for.
+  await startCheck(page, { role: 'emp', ticker: 'RSLT' });
+  await tapToTheEnd(page, (q) => {
+    const mood = q.options.findIndex((option) => /nearly every day/i.test(option));
+    return mood >= 0 ? mood : q.current * 3;
+  });
+  await expectResult(page);
   const main = page.getByRole('main');
+
+  // The mind notice comes first, with the number to call. MIND is not tagged as the laggard
+  // and the market comment does not say it trails.
+  const notice = page.getByRole('note').filter({ hasText: 'A note about mood' });
+  await expect(notice).toBeVisible();
+  await expect(notice.getByRole('link', { name: '988' })).toHaveAttribute('href', 'tel:988');
+  const noticeBox = await notice.boundingBox();
+  const priceBox = await page.getByRole('heading', { level: 1 }).boundingBox();
+  expect(noticeBox && priceBox && noticeBox.y + noticeBox.height <= priceBox.y).toBe(true);
+  await expect(page.getByRole('list', { name: 'Sector prices' }).getByRole('listitem').filter({ hasText: 'MIND' })).not.toContainText('Laggard');
+  await expect(main).not.toContainText('MIND is the laggard');
+
+  // The timing note.
+  await expect(main.getByRole('note').filter({ hasText: 'Answer timing' })).toContainText(/answers? came faster than the question could be read/);
 
   // Head and key figures.
   await expect(main.getByText('RSLT', { exact: true }).first()).toBeVisible();

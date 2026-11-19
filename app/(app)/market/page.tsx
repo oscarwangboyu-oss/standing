@@ -262,7 +262,8 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                   tag={tags[code]}
                   history={history}
                   domain={domain}
-                  onSelect={() => select(area)}
+                  // A sector without a price has no move to explain: the row says why and is not a button.
+                  onSelect={sector.price === null ? undefined : () => select(area)}
                 >
                   {line}
                 </SectorRow>
