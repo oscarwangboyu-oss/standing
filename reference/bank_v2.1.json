@@ -1,0 +1,5930 @@
+{
+ "name": "Standing Check",
+ "bank_version": "2.1",
+ "status": "design draft, not yet piloted",
+ "areas": {
+  "C": {
+   "zh": "能力",
+   "en": "Capability",
+   "tick": "SKIL"
+  },
+  "W": {
+   "zh": "财富",
+   "en": "Wealth",
+   "tick": "WLTH"
+  },
+  "N": {
+   "zh": "人脉",
+   "en": "Network",
+   "tick": "NETW"
+  },
+  "B": {
+   "zh": "身体",
+   "en": "Body",
+   "tick": "BODY"
+  },
+  "M": {
+   "zh": "心理",
+   "en": "Mind",
+   "tick": "MIND"
+  }
+ },
+ "order": [
+  "C",
+  "W",
+  "N",
+  "B",
+  "M"
+ ],
+ "section": {
+  "C": {
+   "zh": "学习、工作与能力",
+   "en": "Study, work and capability"
+  },
+  "W": {
+   "zh": "财务",
+   "en": "Money"
+  },
+  "N": {
+   "zh": "人脉",
+   "en": "People"
+  },
+  "B": {
+   "zh": "身体",
+   "en": "Body"
+  },
+  "M": {
+   "zh": "状态",
+   "en": "State of mind"
+  },
+  "G": {
+   "zh": "位置",
+   "en": "Position"
+  }
+ },
+ "roles": [
+  {
+   "id": "ug4",
+   "zh": "本科在读",
+   "en": "Bachelor's student"
+  },
+  {
+   "id": "cc",
+   "zh": "大专或社区学院在读",
+   "en": "Community college or associate student"
+  },
+  {
+   "id": "grad",
+   "zh": "研究生在读（硕士、博士、专业学位）",
+   "en": "Graduate student (master's, doctorate, professional degree)"
+  },
+  {
+   "id": "emp",
+   "zh": "全职受雇",
+   "en": "Employed full-time"
+  },
+  {
+   "id": "gig",
+   "zh": "兼职、零工或同时做几份工作",
+   "en": "Part-time, gig work or several jobs"
+  },
+  {
+   "id": "free",
+   "zh": "自由职业或个体经营（没有雇员）",
+   "en": "Freelance or sole proprietor (no employees)"
+  },
+  {
+   "id": "owner",
+   "zh": "公司创始人或企业主（有雇员或合伙人）",
+   "en": "Founder or business owner (with employees or partners)"
+  },
+  {
+   "id": "seek",
+   "zh": "正在找工作，或处在两份工作之间",
+   "en": "Looking for work, or between jobs"
+  },
+  {
+   "id": "care",
+   "zh": "全职照顾家庭",
+   "en": "Caring for family full-time"
+  },
+  {
+   "id": "ret",
+   "zh": "已退休",
+   "en": "Retired"
+  },
+  {
+   "id": "oth",
+   "zh": "其他",
+   "en": "Other"
+  }
+ ],
+ "ages": [
+  {
+   "zh": "18 至 20",
+   "en": "18 to 20"
+  },
+  {
+   "zh": "21 至 24",
+   "en": "21 to 24"
+  },
+  {
+   "zh": "25 至 29",
+   "en": "25 to 29"
+  },
+  {
+   "zh": "30 至 34",
+   "en": "30 to 34"
+  },
+  {
+   "zh": "35 至 44",
+   "en": "35 to 44"
+  },
+  {
+   "zh": "45 以上",
+   "en": "45 or over"
+  }
+ ],
+ "baseQ": {
+  "age": {
+   "zh": "你的年龄段",
+   "en": "Your age group"
+  },
+  "role": {
+   "zh": "下面哪一项最符合你现在的主要状态？",
+   "en": "Which best describes your main situation now?"
+  }
+ },
+ "extra": {
+  "ug4": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你学的专业属于哪一类？",
+     "en": "Which area is your subject in?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "year",
+    "q": {
+     "zh": "你现在读几年级？",
+     "en": "Which year are you in?"
+    },
+    "opts": [
+     {
+      "zh": "一年级",
+      "en": "First year"
+     },
+     {
+      "zh": "二年级",
+      "en": "Second year"
+     },
+     {
+      "zh": "三年级",
+      "en": "Third year"
+     },
+     {
+      "zh": "四年级或以上",
+      "en": "Fourth year or later"
+     }
+    ]
+   },
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "cc": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你学的专业属于哪一类？",
+     "en": "Which area is your subject in?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "year",
+    "q": {
+     "zh": "你现在读第几年？",
+     "en": "Which year are you in?"
+    },
+    "opts": [
+     {
+      "zh": "第一年",
+      "en": "First year"
+     },
+     {
+      "zh": "第二年或以上",
+      "en": "Second year or later"
+     }
+    ]
+   },
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "grad": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你学的专业属于哪一类？",
+     "en": "Which area is your subject in?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "year",
+    "q": {
+     "zh": "你正在攻读哪一级学位？",
+     "en": "Which degree are you studying for?"
+    },
+    "opts": [
+     {
+      "zh": "硕士",
+      "en": "Master's"
+     },
+     {
+      "zh": "专业学位（MBA、JD、MD）",
+      "en": "Professional degree (MBA, JD, MD)"
+     },
+     {
+      "zh": "博士，尚未通过资格考试",
+      "en": "Doctorate, before candidacy"
+     },
+     {
+      "zh": "博士候选人",
+      "en": "Doctoral candidate"
+     }
+    ]
+   },
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "emp": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你工作的主要领域是什么？",
+     "en": "What is your main field of work?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "stage",
+    "q": {
+     "zh": "你在这个领域工作了多少年？",
+     "en": "How many years have you worked in this field?"
+    },
+    "opts": [
+     {
+      "zh": "不到 2 年",
+      "en": "Under 2 years"
+     },
+     {
+      "zh": "2 至 5 年",
+      "en": "2 to 5 years"
+     },
+     {
+      "zh": "6 至 10 年",
+      "en": "6 to 10 years"
+     },
+     {
+      "zh": "11 至 20 年",
+      "en": "11 to 20 years"
+     },
+     {
+      "zh": "20 年以上",
+      "en": "More than 20 years"
+     }
+    ]
+   }
+  ],
+  "free": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你工作的主要领域是什么？",
+     "en": "What is your main field of work?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "stage",
+    "q": {
+     "zh": "你在这个领域工作了多少年？",
+     "en": "How many years have you worked in this field?"
+    },
+    "opts": [
+     {
+      "zh": "不到 2 年",
+      "en": "Under 2 years"
+     },
+     {
+      "zh": "2 至 5 年",
+      "en": "2 to 5 years"
+     },
+     {
+      "zh": "6 至 10 年",
+      "en": "6 to 10 years"
+     },
+     {
+      "zh": "11 至 20 年",
+      "en": "11 to 20 years"
+     },
+     {
+      "zh": "20 年以上",
+      "en": "More than 20 years"
+     }
+    ]
+   }
+  ],
+  "owner": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你工作的主要领域是什么？",
+     "en": "What is your main field of work?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "stage",
+    "q": {
+     "zh": "你在这个领域工作了多少年？",
+     "en": "How many years have you worked in this field?"
+    },
+    "opts": [
+     {
+      "zh": "不到 2 年",
+      "en": "Under 2 years"
+     },
+     {
+      "zh": "2 至 5 年",
+      "en": "2 to 5 years"
+     },
+     {
+      "zh": "6 至 10 年",
+      "en": "6 to 10 years"
+     },
+     {
+      "zh": "11 至 20 年",
+      "en": "11 to 20 years"
+     },
+     {
+      "zh": "20 年以上",
+      "en": "More than 20 years"
+     }
+    ]
+   }
+  ],
+  "gig": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你工作的主要领域是什么？",
+     "en": "What is your main field of work?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "stage",
+    "q": {
+     "zh": "你在这个领域工作了多少年？",
+     "en": "How many years have you worked in this field?"
+    },
+    "opts": [
+     {
+      "zh": "不到 2 年",
+      "en": "Under 2 years"
+     },
+     {
+      "zh": "2 至 5 年",
+      "en": "2 to 5 years"
+     },
+     {
+      "zh": "6 至 10 年",
+      "en": "6 to 10 years"
+     },
+     {
+      "zh": "11 至 20 年",
+      "en": "11 to 20 years"
+     },
+     {
+      "zh": "20 年以上",
+      "en": "More than 20 years"
+     }
+    ]
+   },
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "seek": [
+   {
+    "id": "field",
+    "q": {
+     "zh": "你最近一份工作，或者正在找的工作，属于哪个领域？",
+     "en": "Which field is your most recent job, or the job you are looking for, in?"
+    },
+    "opts": [
+     {
+      "zh": "科技与工程",
+      "en": "Technology and engineering"
+     },
+     {
+      "zh": "商业、金融与咨询",
+      "en": "Business, finance and consulting"
+     },
+     {
+      "zh": "法律",
+      "en": "Law"
+     },
+     {
+      "zh": "医疗与健康",
+      "en": "Health care"
+     },
+     {
+      "zh": "教育与科研",
+      "en": "Education and research"
+     },
+     {
+      "zh": "艺术、设计与媒体",
+      "en": "Arts, design and media"
+     },
+     {
+      "zh": "体育与健身",
+      "en": "Sports and fitness"
+     },
+     {
+      "zh": "销售、零售、餐饮与服务",
+      "en": "Sales, retail, food and hospitality"
+     },
+     {
+      "zh": "技工、建筑与制造",
+      "en": "Skilled trades, construction and manufacturing"
+     },
+     {
+      "zh": "运输与物流",
+      "en": "Transport and logistics"
+     },
+     {
+      "zh": "政府、军队与公共安全",
+      "en": "Government, military and public safety"
+     },
+     {
+      "zh": "公益与社会服务",
+      "en": "Nonprofit and social services"
+     },
+     {
+      "zh": "农业与自然资源",
+      "en": "Agriculture and natural resources"
+     },
+     {
+      "zh": "其他或尚未确定",
+      "en": "Other or undecided"
+     }
+    ]
+   },
+   {
+    "id": "exp",
+    "q": {
+     "zh": "你一共有多少年的工作经验？",
+     "en": "How many years of work experience do you have in all?"
+    },
+    "opts": [
+     {
+      "zh": "还没有工作过",
+      "en": "None yet"
+     },
+     {
+      "zh": "不到 2 年",
+      "en": "Under 2 years"
+     },
+     {
+      "zh": "2 至 5 年",
+      "en": "2 to 5 years"
+     },
+     {
+      "zh": "6 至 10 年",
+      "en": "6 to 10 years"
+     },
+     {
+      "zh": "11 至 20 年",
+      "en": "11 to 20 years"
+     },
+     {
+      "zh": "20 年以上",
+      "en": "More than 20 years"
+     }
+    ]
+   },
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "care": [
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "ret": [
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ],
+  "oth": [
+   {
+    "id": "money",
+    "q": {
+     "zh": "你的日常开支主要靠什么？",
+     "en": "What mainly pays for your day-to-day living?"
+    },
+    "opts": [
+     {
+      "zh": "我自己的工作或经营收入",
+      "en": "My own earnings"
+     },
+     {
+      "zh": "家人的支持",
+      "en": "Support from family"
+     },
+     {
+      "zh": "伴侣或配偶的收入",
+      "en": "A partner's or spouse's income"
+     },
+     {
+      "zh": "奖学金、助学金或学生贷款",
+      "en": "Scholarships, grants or student loans"
+     },
+     {
+      "zh": "存款、退休金、补助或其他",
+      "en": "Savings, a pension, benefits or other"
+     }
+    ]
+   }
+  ]
+ },
+ "fieldIds": [
+  "tech",
+  "biz",
+  "law",
+  "health",
+  "edu",
+  "arts",
+  "sport",
+  "sales",
+  "trade",
+  "move",
+  "gov",
+  "care",
+  "agri",
+  "oth"
+ ],
+ "moneyIds": [
+  "own",
+  "sup",
+  "hh",
+  "sup",
+  "own"
+ ],
+ "items": {
+  "B1": {
+   "area": "B",
+   "load": {
+    "B": 1,
+    "M": 0.5,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "总的来说，你觉得自己的健康状况怎么样？",
+      "en": "Would you say that in general your health is:"
+     },
+     "opts": [
+      {
+       "zh": "差",
+       "en": "Poor"
+      },
+      {
+       "zh": "一般",
+       "en": "Fair"
+      },
+      {
+       "zh": "好",
+       "en": "Good"
+      },
+      {
+       "zh": "很好",
+       "en": "Very good"
+      },
+      {
+       "zh": "非常好",
+       "en": "Excellent"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "B2": {
+   "area": "B",
+   "load": {
+    "B": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "平常一周里，你做中等强度以上运动（快走、跑步、骑车、球类、健身）的时间合计多少分钟？",
+      "en": "In a typical week, how many minutes of moderate or vigorous activity do you do (brisk walking, running, cycling, sports, gym)?"
+     },
+     "opts": [
+      {
+       "zh": "不到 30 分钟",
+       "en": "Under 30"
+      },
+      {
+       "zh": "30 至 89 分钟",
+       "en": "30 to 89"
+      },
+      {
+       "zh": "90 至 149 分钟",
+       "en": "90 to 149"
+      },
+      {
+       "zh": "150 至 299 分钟",
+       "en": "150 to 299"
+      },
+      {
+       "zh": "300 分钟以上",
+       "en": "300 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "B3": {
+   "area": "B",
+   "load": {
+    "B": 1,
+    "M": 0.5
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "平均每 24 小时你睡多少小时？",
+      "en": "On average, how many hours of sleep do you get in a 24-hour period?"
+     },
+     "opts": [
+      {
+       "zh": "不到 5 小时",
+       "en": "Under 5"
+      },
+      {
+       "zh": "5 至 6 小时",
+       "en": "5 to 6"
+      },
+      {
+       "zh": "6 至 7 小时",
+       "en": "6 to 7"
+      },
+      {
+       "zh": "7 至 9 小时",
+       "en": "7 to 9"
+      },
+      {
+       "zh": "9 小时以上",
+       "en": "More than 9"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.625,
+      1.0,
+      0.625
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "B4": {
+   "area": "B",
+   "load": {
+    "B": 1
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "下面这些事，你今天不停下来能做到的最难的一项是哪个？",
+      "en": "Which is the hardest of these you could do today without stopping?"
+     },
+     "opts": [
+      {
+       "zh": "都做不到",
+       "en": "None of these"
+      },
+      {
+       "zh": "正常速度走 1 英里（约 1.6 公里）",
+       "en": "Walk 1 mile at a normal pace"
+      },
+      {
+       "zh": "快走 1 英里",
+       "en": "Walk 1 mile briskly"
+      },
+      {
+       "zh": "慢跑 1 英里",
+       "en": "Jog 1 mile"
+      },
+      {
+       "zh": "跑 5 公里",
+       "en": "Run 3 miles (5 km)"
+      },
+      {
+       "zh": "跑 10 公里以上",
+       "en": "Run 6 miles (10 km) or more"
+      },
+      {
+       "zh": "因伤病或身体条件，这道题不适用",
+       "en": "Not applicable because of an injury or a physical condition"
+      }
+     ],
+     "s": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0,
+      null
+     ],
+     "pin": [
+      6
+     ]
+    }
+   ]
+  },
+  "B5": {
+   "area": "B",
+   "load": {
+    "B": 1,
+    "M": 0.75,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去 30 天里，大约有多少天你因为身体或情绪不好，没法正常工作、学习或生活？",
+      "en": "During the past 30 days, for about how many days did poor physical or mental health keep you from your usual activities, such as work, study or recreation?"
+     },
+     "opts": [
+      {
+       "zh": "15 天以上",
+       "en": "15 or more"
+      },
+      {
+       "zh": "8 至 14 天",
+       "en": "8 to 14"
+      },
+      {
+       "zh": "3 至 7 天",
+       "en": "3 to 7"
+      },
+      {
+       "zh": "1 至 2 天",
+       "en": "1 to 2"
+      },
+      {
+       "zh": "0 天",
+       "en": "None"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "W1": {
+   "area": "W",
+   "load": {
+    "W": 1,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "sup",
+     "when": {
+      "money": [
+       "sup"
+      ]
+     },
+     "q": {
+      "zh": "平均每个月，你可以支配的钱一共有多少？把家人或伴侣给的、奖学金和自己挣的加在一起，包含房租，不含学费。",
+      "en": "In an average month, how much money do you have to live on? Add up what family or a partner gives you, scholarships and what you earn; include rent and leave out tuition."
+     },
+     "opts": [
+      {
+       "zh": "不到 $500",
+       "en": "Under $500"
+      },
+      {
+       "zh": "$500 至 $999",
+       "en": "$500 to $999"
+      },
+      {
+       "zh": "$1,000 至 $1,499",
+       "en": "$1,000 to $1,499"
+      },
+      {
+       "zh": "$1,500 至 $2,499",
+       "en": "$1,500 to $2,499"
+      },
+      {
+       "zh": "$2,500 至 $3,999",
+       "en": "$2,500 to $3,999"
+      },
+      {
+       "zh": "$4,000 以上",
+       "en": "$4,000 or more"
+      }
+     ],
+     "s": [
+      0.06732576697424127,
+      0.2994516925447948,
+      0.48808395038036906,
+      0.6616418958920284,
+      0.8409250626457663,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "W": 1
+     },
+     "tier": [
+      "sup",
+      "sup",
+      "sup",
+      "sup",
+      "sup",
+      "sup"
+     ]
+    },
+    {
+     "key": "hh",
+     "when": {
+      "money": [
+       "hh"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你所在家庭的税前总收入是多少？",
+      "en": "What was the total income of your household before taxes in the past 12 months?"
+     },
+     "opts": [
+      {
+       "zh": "低于 $25,000",
+       "en": "Under $25,000"
+      },
+      {
+       "zh": "$25,000 至 $49,999",
+       "en": "$25,000 to $49,999"
+      },
+      {
+       "zh": "$50,000 至 $74,999",
+       "en": "$50,000 to $74,999"
+      },
+      {
+       "zh": "$75,000 至 $124,999",
+       "en": "$75,000 to $124,999"
+      },
+      {
+       "zh": "$125,000 至 $199,999",
+       "en": "$125,000 to $199,999"
+      },
+      {
+       "zh": "$200,000 以上",
+       "en": "$200,000 or more"
+      }
+     ],
+     "s": [
+      0.060860430821362145,
+      0.3058653605207225,
+      0.47638314285911953,
+      0.6332742086579154,
+      0.7953406990675267,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "W": 1
+     },
+     "tier": [
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "mid",
+      "high"
+     ]
+    },
+    {
+     "key": "owner",
+     "when": {
+      "role": [
+       "owner"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你个人从公司得到的税前收入是多少？工资、分红和提款合计。",
+      "en": "In the past 12 months, how much did you personally receive from your business before taxes? Count salary, dividends and drawings together."
+     },
+     "opts": [
+      {
+       "zh": "低于 $30,000",
+       "en": "Under $30,000"
+      },
+      {
+       "zh": "$30,000 至 $59,999",
+       "en": "$30,000 to $59,999"
+      },
+      {
+       "zh": "$60,000 至 $99,999",
+       "en": "$60,000 to $99,999"
+      },
+      {
+       "zh": "$100,000 至 $199,999",
+       "en": "$100,000 to $199,999"
+      },
+      {
+       "zh": "$200,000 至 $499,999",
+       "en": "$200,000 to $499,999"
+      },
+      {
+       "zh": "$500,000 至 $999,999",
+       "en": "$500,000 to $999,999"
+      },
+      {
+       "zh": "$1,000,000 以上",
+       "en": "$1,000,000 or more"
+      }
+     ],
+     "s": [
+      0.17507249712655634,
+      0.3300141253780899,
+      0.43994696012293255,
+      0.5600530398770676,
+      0.7219433079632334,
+      0.8675627685018119,
+      1.0
+     ],
+     "pin": [],
+     "tier": [
+      "low",
+      "mid",
+      "mid",
+      "high",
+      "high",
+      "high",
+      "high"
+     ]
+    },
+    {
+     "key": "free",
+     "when": {
+      "role": [
+       "free"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，扣除经营成本之后，你的税前净收入是多少？",
+      "en": "In the past 12 months, what was your net income before taxes, after business costs?"
+     },
+     "opts": [
+      {
+       "zh": "低于 $15,000",
+       "en": "Under $15,000"
+      },
+      {
+       "zh": "$15,000 至 $34,999",
+       "en": "$15,000 to $34,999"
+      },
+      {
+       "zh": "$35,000 至 $59,999",
+       "en": "$35,000 to $59,999"
+      },
+      {
+       "zh": "$60,000 至 $99,999",
+       "en": "$60,000 to $99,999"
+      },
+      {
+       "zh": "$100,000 至 $159,999",
+       "en": "$100,000 to $159,999"
+      },
+      {
+       "zh": "$160,000 至 $299,999",
+       "en": "$160,000 to $299,999"
+      },
+      {
+       "zh": "$300,000 以上",
+       "en": "$300,000 or more"
+      }
+     ],
+     "s": [
+      0.05537327331370912,
+      0.2827516440175151,
+      0.4420282641894514,
+      0.5713885654839999,
+      0.6918677674187504,
+      0.8334489881154329,
+      1.0
+     ],
+     "pin": [],
+     "tier": [
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "mid",
+      "high",
+      "high"
+     ]
+    },
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你个人的税前总收入是多少？退休金、社保和投资收益合计。",
+      "en": "What was your total personal income before taxes in the past 12 months? Count pensions, Social Security and investment income together."
+     },
+     "opts": [
+      {
+       "zh": "低于 $15,000",
+       "en": "Under $15,000"
+      },
+      {
+       "zh": "$15,000 至 $34,999",
+       "en": "$15,000 to $34,999"
+      },
+      {
+       "zh": "$35,000 至 $59,999",
+       "en": "$35,000 to $59,999"
+      },
+      {
+       "zh": "$60,000 至 $99,999",
+       "en": "$60,000 to $99,999"
+      },
+      {
+       "zh": "$100,000 至 $159,999",
+       "en": "$100,000 to $159,999"
+      },
+      {
+       "zh": "$160,000 至 $299,999",
+       "en": "$160,000 to $299,999"
+      },
+      {
+       "zh": "$300,000 以上",
+       "en": "$300,000 or more"
+      }
+     ],
+     "s": [
+      0.05537327331370912,
+      0.2827516440175151,
+      0.4420282641894514,
+      0.5713885654839999,
+      0.6918677674187504,
+      0.8334489881154329,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "W": 1
+     },
+     "tier": [
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "mid",
+      "high",
+      "high"
+     ]
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去 12 个月，你个人的税前总收入是多少？工资、奖金等合计。",
+      "en": "What was your total personal income before taxes in the past 12 months? Count wages, bonuses and similar together."
+     },
+     "opts": [
+      {
+       "zh": "低于 $15,000",
+       "en": "Under $15,000"
+      },
+      {
+       "zh": "$15,000 至 $34,999",
+       "en": "$15,000 to $34,999"
+      },
+      {
+       "zh": "$35,000 至 $59,999",
+       "en": "$35,000 to $59,999"
+      },
+      {
+       "zh": "$60,000 至 $99,999",
+       "en": "$60,000 to $99,999"
+      },
+      {
+       "zh": "$100,000 至 $159,999",
+       "en": "$100,000 to $159,999"
+      },
+      {
+       "zh": "$160,000 至 $299,999",
+       "en": "$160,000 to $299,999"
+      },
+      {
+       "zh": "$300,000 以上",
+       "en": "$300,000 or more"
+      }
+     ],
+     "s": [
+      0.05537327331370912,
+      0.2827516440175151,
+      0.4420282641894514,
+      0.5713885654839999,
+      0.6918677674187504,
+      0.8334489881154329,
+      1.0
+     ],
+     "pin": [],
+     "tier": [
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "mid",
+      "high",
+      "high"
+     ]
+    }
+   ]
+  },
+  "W2": {
+   "area": "W",
+   "load": {
+    "W": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "400s",
+     "when": {
+      "tier": [
+       "sup"
+      ]
+     },
+     "q": {
+      "zh": "假如你突然需要支付一笔 $400 的紧急开支，你会怎么付？",
+      "en": "Suppose you had an emergency expense of $400. How would you pay for it?"
+     },
+     "opts": [
+      {
+       "zh": "现在付不出来",
+       "en": "I could not pay for it right now"
+      },
+      {
+       "zh": "卖东西或者借贷款",
+       "en": "By selling something or taking a loan"
+      },
+      {
+       "zh": "向家人或朋友借",
+       "en": "By borrowing from family or friends"
+      },
+      {
+       "zh": "刷信用卡，分期慢慢还",
+       "en": "With a credit card that I pay off over time"
+      },
+      {
+       "zh": "用现金、存款，或者下个账单全额还清的信用卡",
+       "en": "With cash, money in my account, or a credit card I pay off in full"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "400",
+     "when": {
+      "tier": [
+       "low"
+      ]
+     },
+     "q": {
+      "zh": "假如你突然需要支付一笔 $400 的紧急开支，你会怎么付？",
+      "en": "Suppose you had an emergency expense of $400. How would you pay for it?"
+     },
+     "opts": [
+      {
+       "zh": "现在付不出来",
+       "en": "I could not pay for it right now"
+      },
+      {
+       "zh": "卖东西或者借贷款",
+       "en": "By selling something or taking a loan"
+      },
+      {
+       "zh": "向家人或朋友借",
+       "en": "By borrowing from family or friends"
+      },
+      {
+       "zh": "刷信用卡，分期慢慢还",
+       "en": "With a credit card that I pay off over time"
+      },
+      {
+       "zh": "用现金、存款，或者下个账单全额还清的信用卡",
+       "en": "With cash, money in my account, or a credit card I pay off in full"
+      }
+     ],
+     "s": [
+      0.0,
+      0.2,
+      0.4,
+      0.6000000000000001,
+      0.8
+     ],
+     "pin": []
+    },
+    {
+     "key": "2000",
+     "when": {
+      "tier": [
+       "mid"
+      ]
+     },
+     "q": {
+      "zh": "假如你突然需要支付一笔 $2,000 的紧急开支，你会怎么付？",
+      "en": "Suppose you had an emergency expense of $2,000. How would you pay for it?"
+     },
+     "opts": [
+      {
+       "zh": "现在付不出来",
+       "en": "I could not pay for it right now"
+      },
+      {
+       "zh": "卖东西或者借贷款",
+       "en": "By selling something or taking a loan"
+      },
+      {
+       "zh": "向家人或朋友借",
+       "en": "By borrowing from family or friends"
+      },
+      {
+       "zh": "刷信用卡，分期慢慢还",
+       "en": "With a credit card that I pay off over time"
+      },
+      {
+       "zh": "用现金、存款，或者下个账单全额还清的信用卡",
+       "en": "With cash, money in my account, or a credit card I pay off in full"
+      }
+     ],
+     "s": [
+      0.1,
+      0.30000000000000004,
+      0.5,
+      0.7000000000000001,
+      0.9
+     ],
+     "pin": []
+    },
+    {
+     "key": "10000",
+     "when": {
+      "tier": [
+       "high"
+      ]
+     },
+     "q": {
+      "zh": "假如你突然需要支付一笔 $10,000 的紧急开支，你会怎么付？",
+      "en": "Suppose you had an emergency expense of $10,000. How would you pay for it?"
+     },
+     "opts": [
+      {
+       "zh": "现在付不出来",
+       "en": "I could not pay for it right now"
+      },
+      {
+       "zh": "卖东西或者借贷款",
+       "en": "By selling something or taking a loan"
+      },
+      {
+       "zh": "向家人或朋友借",
+       "en": "By borrowing from family or friends"
+      },
+      {
+       "zh": "刷信用卡，分期慢慢还",
+       "en": "With a credit card that I pay off over time"
+      },
+      {
+       "zh": "用现金、存款，或者下个账单全额还清的信用卡",
+       "en": "With cash, money in my account, or a credit card I pay off in full"
+      }
+     ],
+     "s": [
+      0.2,
+      0.4,
+      0.6000000000000001,
+      0.8,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "W3": {
+   "area": "W",
+   "load": {
+    "W": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "按现在的开支水平，不算退休金和社保，你的存款和投资够用多少年？",
+      "en": "At your present level of spending, and leaving pensions and Social Security aside, how many years would your savings and investments last?"
+     },
+     "opts": [
+      {
+       "zh": "不到 1 年",
+       "en": "Less than 1 year"
+      },
+      {
+       "zh": "1 至 3 年",
+       "en": "1 to 3 years"
+      },
+      {
+       "zh": "3 至 10 年",
+       "en": "3 to 10 years"
+      },
+      {
+       "zh": "10 至 20 年",
+       "en": "10 to 20 years"
+      },
+      {
+       "zh": "20 年以上",
+       "en": "More than 20 years"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "sup",
+     "when": {
+      "money": [
+       "sup",
+       "hh"
+      ]
+     },
+     "q": {
+      "zh": "如果你主要的经济来源（包括家人或伴侣的支持）中断，你自己的存款够维持多久的开支？",
+      "en": "If your main source of money stopped, including support from family or a partner, how long could you cover your expenses from your own savings?"
+     },
+     "opts": [
+      {
+       "zh": "不到 2 周",
+       "en": "Less than 2 weeks"
+      },
+      {
+       "zh": "2 周至 1 个月",
+       "en": "2 weeks to 1 month"
+      },
+      {
+       "zh": "1 至 3 个月",
+       "en": "1 to 3 months"
+      },
+      {
+       "zh": "3 至 6 个月",
+       "en": "3 to 6 months"
+      },
+      {
+       "zh": "6 个月以上",
+       "en": "More than 6 months"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "seek",
+     "when": {
+      "role": [
+       "seek"
+      ]
+     },
+     "q": {
+      "zh": "按现在的开支，你的存款还能维持多久？",
+      "en": "At your present level of spending, how long will your savings last?"
+     },
+     "opts": [
+      {
+       "zh": "不到 2 周",
+       "en": "Less than 2 weeks"
+      },
+      {
+       "zh": "2 周至 1 个月",
+       "en": "2 weeks to 1 month"
+      },
+      {
+       "zh": "1 至 3 个月",
+       "en": "1 to 3 months"
+      },
+      {
+       "zh": "3 至 6 个月",
+       "en": "3 to 6 months"
+      },
+      {
+       "zh": "6 个月以上",
+       "en": "More than 6 months"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "如果失去主要收入来源，你的存款够维持多久的开支？",
+      "en": "If you lost your main source of income, how long could you cover your expenses from savings?"
+     },
+     "opts": [
+      {
+       "zh": "不到 2 周",
+       "en": "Less than 2 weeks"
+      },
+      {
+       "zh": "2 周至 1 个月",
+       "en": "2 weeks to 1 month"
+      },
+      {
+       "zh": "1 至 3 个月",
+       "en": "1 to 3 months"
+      },
+      {
+       "zh": "3 至 6 个月",
+       "en": "3 to 6 months"
+      },
+      {
+       "zh": "6 个月以上",
+       "en": "More than 6 months"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "W4": {
+   "area": "W",
+   "load": {
+    "W": 1
+   },
+   "versions": [
+    {
+     "key": "stu",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "把你名下的存款和投资加起来，减去信用卡欠款和私人借款，最接近哪个区间？学生贷款不算在内，另有一题单独问。",
+      "en": "Add up the savings and investments in your name and subtract credit card balances and personal loans. Which range is closest? Leave out student loans, which are asked about separately."
+     },
+     "opts": [
+      {
+       "zh": "负数",
+       "en": "Negative"
+      },
+      {
+       "zh": "$0 至 $999",
+       "en": "$0 to $999"
+      },
+      {
+       "zh": "$1,000 至 $4,999",
+       "en": "$1,000 to $4,999"
+      },
+      {
+       "zh": "$5,000 至 $19,999",
+       "en": "$5,000 to $19,999"
+      },
+      {
+       "zh": "$20,000 至 $49,999",
+       "en": "$20,000 to $49,999"
+      },
+      {
+       "zh": "$50,000 以上",
+       "en": "$50,000 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.0,
+      0.3575912761679507,
+      0.6424087238320493,
+      0.8478955247561358,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "low",
+     "when": {
+      "tier": [
+       "sup",
+       "low"
+      ]
+     },
+     "q": {
+      "zh": "把你拥有的（存款、投资、房产净值、车）加起来，减去你欠的（贷款、信用卡），最接近哪个区间？",
+      "en": "Add up what you own (savings, investments, home equity, vehicles) and subtract what you owe (loans, credit cards). Which range is closest?"
+     },
+     "opts": [
+      {
+       "zh": "负数",
+       "en": "Negative"
+      },
+      {
+       "zh": "$0 至 $4,999",
+       "en": "$0 to $4,999"
+      },
+      {
+       "zh": "$5,000 至 $19,999",
+       "en": "$5,000 to $19,999"
+      },
+      {
+       "zh": "$20,000 至 $49,999",
+       "en": "$20,000 to $49,999"
+      },
+      {
+       "zh": "$50,000 至 $149,999",
+       "en": "$50,000 to $149,999"
+      },
+      {
+       "zh": "$150,000 以上",
+       "en": "$150,000 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.16737421693559287,
+      0.33474843387118575,
+      0.4418241665608332,
+      0.5510008888513374,
+      0.6353339400861899
+     ],
+     "pin": []
+    },
+    {
+     "key": "mid",
+     "when": {
+      "tier": [
+       "mid"
+      ]
+     },
+     "q": {
+      "zh": "把你拥有的（存款、投资、房产净值、车）加起来，减去你欠的（贷款、信用卡），最接近哪个区间？",
+      "en": "Add up what you own (savings, investments, home equity, vehicles) and subtract what you owe (loans, credit cards). Which range is closest?"
+     },
+     "opts": [
+      {
+       "zh": "负数",
+       "en": "Negative"
+      },
+      {
+       "zh": "$0 至 $9,999",
+       "en": "$0 to $9,999"
+      },
+      {
+       "zh": "$10,000 至 $49,999",
+       "en": "$10,000 to $49,999"
+      },
+      {
+       "zh": "$50,000 至 $149,999",
+       "en": "$50,000 to $149,999"
+      },
+      {
+       "zh": "$150,000 至 $499,999",
+       "en": "$150,000 to $499,999"
+      },
+      {
+       "zh": "$500,000 以上",
+       "en": "$500,000 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.23945836859564346,
+      0.42579319753317074,
+      0.5510008888513374,
+      0.6735756433825935,
+      0.7605416314043566
+     ],
+     "pin": []
+    },
+    {
+     "key": "high",
+     "when": {
+      "tier": [
+       "high"
+      ]
+     },
+     "q": {
+      "zh": "把你拥有的（存款、投资、房产净值、车）加起来，减去你欠的（贷款、信用卡），最接近哪个区间？",
+      "en": "Add up what you own (savings, investments, home equity, vehicles) and subtract what you owe (loans, credit cards). Which range is closest?"
+     },
+     "opts": [
+      {
+       "zh": "低于 $100,000",
+       "en": "Under $100,000"
+      },
+      {
+       "zh": "$100,000 至 $249,999",
+       "en": "$100,000 to $249,999"
+      },
+      {
+       "zh": "$250,000 至 $499,999",
+       "en": "$250,000 to $499,999"
+      },
+      {
+       "zh": "$500,000 至 $999,999",
+       "en": "$500,000 to $999,999"
+      },
+      {
+       "zh": "$1,000,000 至 $4,999,999",
+       "en": "$1,000,000 to $4,999,999"
+      },
+      {
+       "zh": "$5,000,000 以上",
+       "en": "$5,000,000 or more"
+      }
+     ],
+     "s": [
+      0.4789167371912869,
+      0.609198383496426,
+      0.6884574797443059,
+      0.7605416314043566,
+      0.9047099347244576,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "W5": {
+   "area": "W",
+   "load": {
+    "W": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "你每月的固定收入（退休金、社保、年金）能覆盖多大比例的日常开支？",
+      "en": "How much of your day-to-day spending does your regular monthly income (pension, Social Security, annuities) cover?"
+     },
+     "opts": [
+      {
+       "zh": "不到一半",
+       "en": "Less than half"
+      },
+      {
+       "zh": "一半左右",
+       "en": "About half"
+      },
+      {
+       "zh": "大部分",
+       "en": "Most of it"
+      },
+      {
+       "zh": "全部",
+       "en": "All of it"
+      },
+      {
+       "zh": "全部，并且有结余",
+       "en": "All of it, with money left over"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "loans",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "到毕业时，你预计一共要背多少学生贷款？",
+      "en": "How much student loan debt do you expect to have in total when you graduate?"
+     },
+     "opts": [
+      {
+       "zh": "$60,000 以上",
+       "en": "$60,000 or more"
+      },
+      {
+       "zh": "$30,000 至 $59,999",
+       "en": "$30,000 to $59,999"
+      },
+      {
+       "zh": "$10,000 至 $29,999",
+       "en": "$10,000 to $29,999"
+      },
+      {
+       "zh": "低于 $10,000",
+       "en": "Under $10,000"
+      },
+      {
+       "zh": "没有贷款",
+       "en": "None"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "save",
+     "when": {
+      "tier": [
+       "high"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你的税后收入里大约有多大比例存了下来或用于投资？",
+      "en": "In the past 12 months, about what share of your after-tax income did you save or invest?"
+     },
+     "opts": [
+      {
+       "zh": "不到 5%",
+       "en": "Under 5%"
+      },
+      {
+       "zh": "5% 至 9%",
+       "en": "5% to 9%"
+      },
+      {
+       "zh": "10% 至 19%",
+       "en": "10% to 19%"
+      },
+      {
+       "zh": "20% 至 34%",
+       "en": "20% to 34%"
+      },
+      {
+       "zh": "35% 以上",
+       "en": "35% or more"
+      }
+     ],
+     "s": [
+      0.35,
+      0.5,
+      0.65,
+      0.8,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "hh",
+     "when": {
+      "money": [
+       "hh"
+      ],
+      "tier": [
+       "low",
+       "mid"
+      ]
+     },
+     "q": {
+      "zh": "你家每月的收入里，大约有多大比例用来还债（房贷、车贷、信用卡、学生贷款）？",
+      "en": "About what share of your household's monthly income goes to debt payments (mortgage, car loan, credit cards, student loans)?"
+     },
+     "opts": [
+      {
+       "zh": "36% 以上",
+       "en": "36% or more"
+      },
+      {
+       "zh": "20% 至 35%",
+       "en": "20% to 35%"
+      },
+      {
+       "zh": "10% 至 19%",
+       "en": "10% to 19%"
+      },
+      {
+       "zh": "不到 10%",
+       "en": "Under 10%"
+      },
+      {
+       "zh": "没有需要还的债",
+       "en": "No debt payments"
+      }
+     ],
+     "s": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.75
+     ],
+     "pin": []
+    },
+    {
+     "key": "debt",
+     "when": {},
+     "q": {
+      "zh": "你每月的收入里，大约有多大比例用来还债（房贷、车贷、信用卡、学生贷款）？",
+      "en": "About what share of your monthly income goes to debt payments (mortgage, car loan, credit cards, student loans)?"
+     },
+     "opts": [
+      {
+       "zh": "36% 以上",
+       "en": "36% or more"
+      },
+      {
+       "zh": "20% 至 35%",
+       "en": "20% to 35%"
+      },
+      {
+       "zh": "10% 至 19%",
+       "en": "10% to 19%"
+      },
+      {
+       "zh": "不到 10%",
+       "en": "Under 10%"
+      },
+      {
+       "zh": "没有需要还的债",
+       "en": "No debt payments"
+      }
+     ],
+     "s": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.75
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "W6": {
+   "area": "W",
+   "load": {
+    "W": 0.75,
+    "M": 0.75
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "“我担心我现有的钱不够用到最后。”这句话在多大程度上符合你？",
+      "en": "\"I am concerned that the money I have will not last.\" How well does this describe you?"
+     },
+     "opts": [
+      {
+       "zh": "完全符合",
+       "en": "Completely"
+      },
+      {
+       "zh": "很符合",
+       "en": "Very well"
+      },
+      {
+       "zh": "有些符合",
+       "en": "Somewhat"
+      },
+      {
+       "zh": "不太符合",
+       "en": "Very little"
+      },
+      {
+       "zh": "完全不符合",
+       "en": "Not at all"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "high",
+     "when": {
+      "tier": [
+       "high"
+      ]
+     },
+     "q": {
+      "zh": "你多久会觉得，是钱在左右你的生活？",
+      "en": "How often do you feel that your finances control your life?"
+     },
+     "opts": [
+      {
+       "zh": "总是",
+       "en": "Always"
+      },
+      {
+       "zh": "经常",
+       "en": "Often"
+      },
+      {
+       "zh": "有时",
+       "en": "Sometimes"
+      },
+      {
+       "zh": "很少",
+       "en": "Rarely"
+      },
+      {
+       "zh": "从不",
+       "en": "Never"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "“我在经济上只是勉强维持。”这句话在多大程度上符合你？",
+      "en": "\"I am just getting by financially.\" How well does this describe you?"
+     },
+     "opts": [
+      {
+       "zh": "完全符合",
+       "en": "Completely"
+      },
+      {
+       "zh": "很符合",
+       "en": "Very well"
+      },
+      {
+       "zh": "有些符合",
+       "en": "Somewhat"
+      },
+      {
+       "zh": "不太符合",
+       "en": "Very little"
+      },
+      {
+       "zh": "完全不符合",
+       "en": "Not at all"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N1": {
+   "area": "N",
+   "load": {
+    "N": 1,
+    "W": 0.25,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "stu",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "在你熟到可以请对方帮个小忙的人里，下面十类人覆盖了几类？教授或老师、已经工作的学长学姐、在你想进的行业里工作的人、创业者或企业主、公司里负责招聘的人、医生、律师、工程师或程序员、政府或公共部门的工作人员、博士生或科研人员。",
+      "en": "Among people you know well enough to ask a small favour, how many of these ten kinds are covered? A professor or teacher, a graduate of your school who is now working, someone working in the industry you want to enter, a founder or business owner, someone who hires for a company, a doctor, a lawyer, an engineer or programmer, someone working in government or the public sector, a doctoral student or researcher."
+     },
+     "opts": [
+      {
+       "zh": "0 至 1 类",
+       "en": "0 to 1"
+      },
+      {
+       "zh": "2 至 3 类",
+       "en": "2 to 3"
+      },
+      {
+       "zh": "4 至 5 类",
+       "en": "4 to 5"
+      },
+      {
+       "zh": "6 至 7 类",
+       "en": "6 to 7"
+      },
+      {
+       "zh": "8 至 10 类",
+       "en": "8 to 10"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "在你熟到可以请对方帮个小忙的人里，下面十种职业覆盖了几种？医生、律师、软件工程师、护士、教师、警察或消防员、电工或水管工、雇有员工的企业主、公司高管、教授或科研人员。",
+      "en": "Among people you know well enough to ask a small favour, how many of these ten occupations are covered? Doctor, lawyer, software engineer, nurse, teacher, police officer or firefighter, electrician or plumber, owner of a business with employees, senior executive, professor or scientist."
+     },
+     "opts": [
+      {
+       "zh": "0 至 1 种",
+       "en": "0 to 1"
+      },
+      {
+       "zh": "2 至 3 种",
+       "en": "2 to 3"
+      },
+      {
+       "zh": "4 至 5 种",
+       "en": "4 to 5"
+      },
+      {
+       "zh": "6 至 7 种",
+       "en": "6 to 7"
+      },
+      {
+       "zh": "8 至 10 种",
+       "en": "8 to 10"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N2": {
+   "area": "N",
+   "load": {
+    "N": 1,
+    "M": 0.5,
+    "B": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "如果凌晨三点遇到严重的麻烦，你可以打电话给几个人？",
+      "en": "How many people could you call at 3 a.m. if you had a serious problem?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 个",
+       "en": "1"
+      },
+      {
+       "zh": "2 个",
+       "en": "2"
+      },
+      {
+       "zh": "3 至 5 个",
+       "en": "3 to 5"
+      },
+      {
+       "zh": "6 个以上",
+       "en": "6 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N3": {
+   "area": "N",
+   "load": {
+    "N": 1,
+    "W": 0.25,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "stu",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：推荐一份实习或工作；借给你 $500；帮你修改简历或准备面试；把你介绍给你想进的行业里的人。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: recommend you for an internship or a job; lend you $500; help with your résumé or prepare you for an interview; introduce you to someone in the industry you want to enter? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "biz",
+     "when": {
+      "role": [
+       "owner",
+       "free"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：介绍一位客户或投资人；在你周转困难时借给你 $25,000；提供法律或税务方面的专业意见；加入你的团队，或者把合适的人推荐给你。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: introduce a client or an investor; lend you $25,000 in a cash squeeze; give you professional advice on law or tax; join your team, or recommend the right person for it? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：在你生病时照顾你几天；借给你 $5,000；提供法律、医疗或理财方面的建议；开车送你去医院或机场。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: look after you for a few days if you were ill; lend you $5,000; give you advice on law, health or money; drive you to a hospital or an airport? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "care",
+     "when": {
+      "role": [
+       "care",
+       "oth"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：临时替你照看家人几个小时；借给你 $1,000；提供法律或医疗方面的建议；在你想工作的时候给你介绍机会。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: look after your family for a few hours at short notice; lend you $1,000; give you legal or medical advice; point you to an opening when you want to work? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "1000",
+     "when": {
+      "tier": [
+       "sup",
+       "low"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：推荐一份工作；借给你 $1,000；提供法律或医疗方面的建议；把你引荐给你所在领域里能做决定的人。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: recommend you for a job; lend you $1,000; give you legal or medical advice; introduce you to a senior decision-maker in your field? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "5000",
+     "when": {
+      "tier": [
+       "mid"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：推荐一份工作；借给你 $5,000；提供法律或医疗方面的建议；把你引荐给你所在领域里能做决定的人。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: recommend you for a job; lend you $5,000; give you legal or medical advice; introduce you to a senior decision-maker in your field? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "25000",
+     "when": {
+      "tier": [
+       "high"
+      ]
+     },
+     "q": {
+      "zh": "如果你开口，是否有认识的人能帮你做下面四件事：推荐一份工作；借给你 $25,000；提供法律或医疗方面的建议；把你引荐给你所在领域里能做决定的人。四件里有几件？",
+      "en": "Do you personally know someone who would do each of these if you asked: recommend you for a job; lend you $25,000; give you legal or medical advice; introduce you to a senior decision-maker in your field? How many of the four?"
+     },
+     "opts": [
+      {
+       "zh": "都没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 件",
+       "en": "1"
+      },
+      {
+       "zh": "2 件",
+       "en": "2"
+      },
+      {
+       "zh": "3 件",
+       "en": "3"
+      },
+      {
+       "zh": "4 件都有",
+       "en": "All 4"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N4": {
+   "area": "N",
+   "load": {
+    "N": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你积极参与的团体有几个（社团、球队、行业或学生组织、宗教或志愿团体）？",
+      "en": "How many groups do you take an active part in (clubs, teams, professional or student organizations, faith or volunteer groups)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 个",
+       "en": "1"
+      },
+      {
+       "zh": "2 个",
+       "en": "2"
+      },
+      {
+       "zh": "3 个",
+       "en": "3"
+      },
+      {
+       "zh": "4 个以上",
+       "en": "4 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N5": {
+   "area": "N",
+   "load": {
+    "N": 1,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "你现在有没有在指导或帮助比你年轻的人，例如带徒弟、辅导功课、给人做顾问或在社区里做志愿者？",
+      "en": "Do you now guide or help people younger than you, for example by training someone, tutoring, advising or volunteering in your community?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "No"
+      },
+      {
+       "zh": "偶尔",
+       "en": "Occasionally"
+      },
+      {
+       "zh": "每月有几次",
+       "en": "A few times a month"
+      },
+      {
+       "zh": "每周都有",
+       "en": "Every week"
+      },
+      {
+       "zh": "这是我现在生活的重要部分",
+       "en": "It is an important part of my life now"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "N": 1,
+      "M": 0.25
+     }
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你有没有导师或顾问，也就是比你有经验、并且在学业或事业上实际帮助你的人？",
+      "en": "Do you have a mentor or an advisor: someone more experienced who actively helps your studies or career?"
+     },
+     "opts": [
+      {
+       "zh": "从来没有",
+       "en": "No, never"
+      },
+      {
+       "zh": "现在没有，以前有过",
+       "en": "Not now, but in the past"
+      },
+      {
+       "zh": "有，一年联系几次",
+       "en": "Yes, we talk a few times a year"
+      },
+      {
+       "zh": "有，至少每月联系",
+       "en": "Yes, we talk at least monthly"
+      },
+      {
+       "zh": "有不止一位",
+       "en": "Yes, more than one"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "N6": {
+   "area": "N",
+   "load": {
+    "N": 0.75,
+    "M": 0.75
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你多久会感到孤独？",
+      "en": "How often do you feel lonely?"
+     },
+     "opts": [
+      {
+       "zh": "经常或总是",
+       "en": "Often or always"
+      },
+      {
+       "zh": "有些时候",
+       "en": "Some of the time"
+      },
+      {
+       "zh": "偶尔",
+       "en": "Occasionally"
+      },
+      {
+       "zh": "几乎没有",
+       "en": "Hardly ever"
+      },
+      {
+       "zh": "从不",
+       "en": "Never"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_exp": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "到目前为止，你最有分量的一段实践经历是什么？",
+      "en": "What is the most substantial practical experience you have had so far?"
+     },
+     "opts": [
+      {
+       "zh": "还没有",
+       "en": "None yet"
+      },
+      {
+       "zh": "校内兼职、助教或志愿服务",
+       "en": "Campus job, teaching assistant or volunteering"
+      },
+      {
+       "zh": "一段实习或研究助理",
+       "en": "One internship or research assistantship"
+      },
+      {
+       "zh": "多段实习，或在学生组织、项目里担任负责人",
+       "en": "Several internships, or a leading role in a student organization or project"
+      },
+      {
+       "zh": "创办过有用户或有收入的项目，或已拿到全职录用",
+       "en": "Founded a project with users or revenue, or hold a full-time offer"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_lvl": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.5,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "下面哪一项最符合你现在的工作？",
+      "en": "Which best describes your current work?"
+     },
+     "opts": [
+      {
+       "zh": "初级、服务或辅助性工作",
+       "en": "Entry-level, service or support work"
+      },
+      {
+       "zh": "技工、技术员或助理专业人员",
+       "en": "Skilled trade, technician or associate professional"
+      },
+      {
+       "zh": "专业人员（如工程师、分析师、护士、教师）",
+       "en": "Professional (for example engineer, analyst, nurse, teacher)"
+      },
+      {
+       "zh": "经理或资深专业人员",
+       "en": "Manager or senior professional"
+      },
+      {
+       "zh": "高管，或雇有员工的创始人",
+       "en": "Executive, or founder with employees"
+      }
+     ],
+     "s": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+     ],
+     "pin": [],
+     "mgr": [
+      0,
+      0,
+      0,
+      1,
+      1
+     ]
+    }
+   ]
+  },
+  "C_stage": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.5,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你的自由职业或个体经营现在处在什么阶段？",
+      "en": "What stage is your freelance work or your own practice at?"
+     },
+     "opts": [
+      {
+       "zh": "刚起步，还没有稳定的收入",
+       "en": "Just starting, with no steady income yet"
+      },
+      {
+       "zh": "有收入，但还不够生活",
+       "en": "Earning, but not enough to live on"
+      },
+      {
+       "zh": "是我的主要收入，够我生活",
+       "en": "My main income, and enough to live on"
+      },
+      {
+       "zh": "收入稳定，可以挑选项目或客户",
+       "en": "Steady income, and I can choose my projects or clients"
+      },
+      {
+       "zh": "业务超出我一个人能接的量，已经开始外包或与人合作",
+       "en": "More work than I can take on alone, so I subcontract or work with partners"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_biz": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.5,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你的公司现在处在什么阶段？",
+      "en": "What stage is your company at?"
+     },
+     "opts": [
+      {
+       "zh": "还没有收入",
+       "en": "No revenue yet"
+      },
+      {
+       "zh": "有收入，尚未盈利",
+       "en": "Revenue, not yet profitable"
+      },
+      {
+       "zh": "盈亏基本平衡",
+       "en": "About breaking even"
+      },
+      {
+       "zh": "稳定盈利",
+       "en": "Consistently profitable"
+      },
+      {
+       "zh": "盈利并且在扩张（新市场、新产品或新一轮融资）",
+       "en": "Profitable and expanding (new markets, new products or a new round of funding)"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_last": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.25,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "退休前，你的主要工作属于哪一类？",
+      "en": "Which best describes your main job before you retired?"
+     },
+     "opts": [
+      {
+       "zh": "没有正式工作过",
+       "en": "I did not have a regular job"
+      },
+      {
+       "zh": "初级、服务或辅助性工作",
+       "en": "Entry-level, service or support work"
+      },
+      {
+       "zh": "技工、技术员或助理专业人员",
+       "en": "Skilled trade, technician or associate professional"
+      },
+      {
+       "zh": "专业人员（如工程师、分析师、护士、教师）",
+       "en": "Professional (for example engineer, analyst, nurse, teacher)"
+      },
+      {
+       "zh": "经理或资深专业人员",
+       "en": "Manager or senior professional"
+      },
+      {
+       "zh": "高管，或雇有员工的创始人",
+       "en": "Executive, or founder with employees"
+      }
+     ],
+     "s": [
+      0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你最近一份工作属于哪一类？",
+      "en": "Which best describes your most recent job?"
+     },
+     "opts": [
+      {
+       "zh": "还没有工作过",
+       "en": "I have not had a job yet"
+      },
+      {
+       "zh": "初级、服务或辅助性工作",
+       "en": "Entry-level, service or support work"
+      },
+      {
+       "zh": "技工、技术员或助理专业人员",
+       "en": "Skilled trade, technician or associate professional"
+      },
+      {
+       "zh": "专业人员（如工程师、分析师、护士、教师）",
+       "en": "Professional (for example engineer, analyst, nurse, teacher)"
+      },
+      {
+       "zh": "经理或资深专业人员",
+       "en": "Manager or senior professional"
+      },
+      {
+       "zh": "高管，或雇有员工的创始人",
+       "en": "Executive, or founder with employees"
+      }
+     ],
+     "s": [
+      0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_mast": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "stu",
+     "when": {
+      "role": [
+       "ug4",
+       "cc"
+      ]
+     },
+     "q": {
+      "zh": "在你的专业课里，你大致处在什么水平？",
+      "en": "Where do you stand in the courses of your subject?"
+     },
+     "opts": [
+      {
+       "zh": "跟得比较吃力",
+       "en": "I struggle to keep up"
+      },
+      {
+       "zh": "基本能跟上",
+       "en": "I keep up"
+      },
+      {
+       "zh": "成绩中上",
+       "en": "Above the middle of the class"
+      },
+      {
+       "zh": "名列前茅",
+       "en": "Near the top"
+      },
+      {
+       "zh": "名列前茅，并且在竞赛、科研或作品上有成果",
+       "en": "Near the top, with results in competitions, research or a portfolio"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "C": 1
+     }
+    },
+    {
+     "key": "grad",
+     "when": {
+      "role": [
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "在你的研究或专业方向上，你现在处在什么水平？",
+      "en": "Where do you stand in your area of research or professional study?"
+     },
+     "opts": [
+      {
+       "zh": "刚入门，主要在上课",
+       "en": "Starting out, mainly taking courses"
+      },
+      {
+       "zh": "能在指导下完成课题或案例",
+       "en": "I complete projects or cases under supervision"
+      },
+      {
+       "zh": "能独立完成课题或项目",
+       "en": "I complete projects on my own"
+      },
+      {
+       "zh": "有发表、获奖或被采用的成果",
+       "en": "I have work that was published, awarded or put to use"
+      },
+      {
+       "zh": "在这个方向上有一定名气：受邀报告、审稿或合作",
+       "en": "Known in the area: invited to present, review or collaborate"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "C": 1
+     }
+    },
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "退休前，你在自己这一行里达到了什么水平？",
+      "en": "What level had you reached in your line of work before you retired?"
+     },
+     "opts": [
+      {
+       "zh": "需要别人带着做",
+       "en": "I need guidance from others"
+      },
+      {
+       "zh": "能独立完成常规的工作",
+       "en": "I complete routine work on my own"
+      },
+      {
+       "zh": "能独立处理没遇到过的问题",
+       "en": "I handle problems I have not met before on my own"
+      },
+      {
+       "zh": "别人会来请教我，我带过新人",
+       "en": "Others come to me for advice, and I have trained newcomers"
+      },
+      {
+       "zh": "在行业里有一定名气：受邀分享、评审或参与制定标准",
+       "en": "Known in the field: invited to speak, judge or help set standards"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": [],
+     "load": {
+      "C": 1
+     }
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "在你的主要工作领域里，下面哪一项最符合你现在的水平？",
+      "en": "In your main field of work, which best describes your present level?"
+     },
+     "opts": [
+      {
+       "zh": "刚入门，需要别人带着做",
+       "en": "Starting out: I need guidance from others"
+      },
+      {
+       "zh": "能独立完成常规的工作",
+       "en": "I complete routine work on my own"
+      },
+      {
+       "zh": "能独立处理没遇到过的问题",
+       "en": "I handle problems I have not met before on my own"
+      },
+      {
+       "zh": "别人会来请教我，我带过新人",
+       "en": "Others come to me for advice, and I have trained newcomers"
+      },
+      {
+       "zh": "在行业里有一定名气：受邀分享、评审或参与制定标准",
+       "en": "Known in the field: invited to speak, judge or help set standards"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_deg": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.25,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你已经完成的最高学历是什么？",
+      "en": "What is the highest level of education you have completed?"
+     },
+     "opts": [
+      {
+       "zh": "高中以下",
+       "en": "Less than high school"
+      },
+      {
+       "zh": "高中或同等学历",
+       "en": "High school diploma or GED"
+      },
+      {
+       "zh": "大学肄业、副学士或职业学校证书",
+       "en": "Some college, associate degree or trade school certificate"
+      },
+      {
+       "zh": "学士",
+       "en": "Bachelor's degree"
+      },
+      {
+       "zh": "硕士或专业学位（MBA、JD、MD）",
+       "en": "Master's or professional degree (MBA, JD, MD)"
+      },
+      {
+       "zh": "博士",
+       "en": "Doctorate"
+      }
+     ],
+     "s": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_rec": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你的学业或专业成果有没有得到过正式认可（奖学金、荣誉学位、发表的论文、专利、行业奖项）？",
+      "en": "Have you received formal recognition for academic or professional work (scholarship, honours, published paper, patent, industry award)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项，校级或地方级",
+       "en": "One, at school or local level"
+      },
+      {
+       "zh": "多项，校级或地方级",
+       "en": "Several, at school or local level"
+      },
+      {
+       "zh": "一项，全国级",
+       "en": "One, at national level"
+      },
+      {
+       "zh": "多项，全国或国际级",
+       "en": "Several, at national or international level"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_lic": {
+   "area": "C",
+   "load": {
+    "C": 1
+   },
+   "versions": [
+    {
+     "key": "tech",
+     "when": {
+      "field": [
+       "tech"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如云计算或网络安全认证、PE 工程师执照、PMP）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example cloud or security certifications, a PE licence, PMP)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "biz",
+     "when": {
+      "field": [
+       "biz"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如CPA、CFA、PMP、证券从业资格）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example CPA, CFA, PMP, securities licences)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "law",
+     "when": {
+      "field": [
+       "law"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如律师执照、专利代理人资格）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example bar admission, patent agent registration)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "health",
+     "when": {
+      "field": [
+       "health"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如护士执照 RN、医师执照、专科认证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example RN, a medical licence, board certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "edu",
+     "when": {
+      "field": [
+       "edu"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如教师资格证、学科或语言教学认证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example a teaching credential, subject or language teaching certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "arts",
+     "when": {
+      "field": [
+       "arts"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如乐器或舞蹈等级证书、设计软件认证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example graded music or dance exams, design software certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "sport",
+     "when": {
+      "field": [
+       "sport"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如教练或裁判证书、私人教练认证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example coaching or referee certification, personal trainer certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "sales",
+     "when": {
+      "field": [
+       "sales"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如房地产经纪执照、保险销售执照、食品安全经理证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example a real estate licence, an insurance licence, food safety manager certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "trade",
+     "when": {
+      "field": [
+       "trade"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如电工或水管工执照、焊接认证、暖通空调执照）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example an electrician's or plumber's licence, welding certification, an HVAC licence)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "move",
+     "when": {
+      "field": [
+       "move"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如商业驾照 CDL、飞行执照、叉车操作证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example a commercial driver's licence, a pilot's licence, forklift certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "gov",
+     "when": {
+      "field": [
+       "gov"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如急救员 EMT 认证、执法或消防资格）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example EMT certification, law enforcement or firefighter certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "care",
+     "when": {
+      "field": [
+       "care"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如社工执照、心理咨询执照）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example a social work licence, a counselling licence)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "agri",
+     "when": {
+      "field": [
+       "agri"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如农药施用执照、兽医技师执照）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example a pesticide applicator's licence, a veterinary technician's licence)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "oth",
+     "when": {
+      "field": [
+       "oth"
+      ]
+     },
+     "q": {
+      "zh": "你持有几项需要通过考试才能取得的专业执照或证书（例如CPA、律师执照、护士执照、电工执照、商业驾照、云计算认证）？",
+      "en": "How many professional licences or certifications do you hold that required an exam (for example CPA, bar admission, RN, an electrician's licence, a commercial driver's licence, cloud certification)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "一项入门级的",
+       "en": "One at entry level"
+      },
+      {
+       "zh": "一项高级的或州执照",
+       "en": "One advanced or state licence"
+      },
+      {
+       "zh": "两项",
+       "en": "Two"
+      },
+      {
+       "zh": "三项以上",
+       "en": "Three or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_learn": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "M": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你参加了大约多少小时的课程、讲座或培训？兴趣班和老年大学也算。",
+      "en": "In the past 12 months, about how many hours of courses, lectures or training did you attend? Hobby classes and lifelong-learning programmes count."
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "不到 10 小时",
+       "en": "Under 10"
+      },
+      {
+       "zh": "10 至 39 小时",
+       "en": "10 to 39"
+      },
+      {
+       "zh": "40 至 99 小时",
+       "en": "40 to 99"
+      },
+      {
+       "zh": "100 小时以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "stu",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，在必修课程之外，你完成了大约多少小时的系统学习（网课、培训、工作坊）？",
+      "en": "In the past 12 months, about how many hours of structured learning did you complete beyond your required courses (online courses, training, workshops)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "不到 10 小时",
+       "en": "Under 10"
+      },
+      {
+       "zh": "10 至 39 小时",
+       "en": "10 to 39"
+      },
+      {
+       "zh": "40 至 99 小时",
+       "en": "40 to 99"
+      },
+      {
+       "zh": "100 小时以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "plain",
+     "when": {
+      "role": [
+       "seek",
+       "care",
+       "oth"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，你完成了大约多少小时的系统学习（课程、培训、工作坊）？",
+      "en": "In the past 12 months, about how many hours of structured learning did you complete (courses, training, workshops)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "不到 10 小时",
+       "en": "Under 10"
+      },
+      {
+       "zh": "10 至 39 小时",
+       "en": "10 to 39"
+      },
+      {
+       "zh": "40 至 99 小时",
+       "en": "40 to 99"
+      },
+      {
+       "zh": "100 小时以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去 12 个月，在日常工作之外，你完成了大约多少小时的系统学习（课程、培训、工作坊）？",
+      "en": "In the past 12 months, about how many hours of structured learning did you complete beyond your day-to-day work (courses, training, workshops)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "不到 10 小时",
+       "en": "Under 10"
+      },
+      {
+       "zh": "10 至 39 小时",
+       "en": "10 to 39"
+      },
+      {
+       "zh": "40 至 99 小时",
+       "en": "40 to 99"
+      },
+      {
+       "zh": "100 小时以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_lang": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你能用几种语言流利地交流，达到可以用来工作或办事的程度？",
+      "en": "In how many languages can you communicate fluently, well enough to work or handle everyday business in them?"
+     },
+     "opts": [
+      {
+       "zh": "一种",
+       "en": "One"
+      },
+      {
+       "zh": "一种，正在学另一种",
+       "en": "One, and I am learning another"
+      },
+      {
+       "zh": "两种",
+       "en": "Two"
+      },
+      {
+       "zh": "三种",
+       "en": "Three"
+      },
+      {
+       "zh": "四种以上",
+       "en": "Four or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_dig": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "不靠别人帮忙，你在电脑上能做到的最高级的事情是哪一项？",
+      "en": "What is the most advanced thing you can do on a computer without help?"
+     },
+     "opts": [
+      {
+       "zh": "用邮件、应用和搜索",
+       "en": "Use email, apps and web search"
+      },
+      {
+       "zh": "做带公式的表格，或者剪辑照片和视频",
+       "en": "Build a spreadsheet with formulas, or edit photos or video"
+      },
+      {
+       "zh": "分析数据或者把重复的工作自动化（数据透视表、SQL、无代码工具）",
+       "en": "Analyse data or automate a task (pivot tables, SQL, no-code tools)"
+      },
+      {
+       "zh": "写出能运行的代码或脚本",
+       "en": "Write working code or scripts"
+      },
+      {
+       "zh": "开发并发布软件，或者带领技术项目",
+       "en": "Build and release software, or lead a technical project"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_int": {
+   "area": "C",
+   "load": {
+    "C": 0.75,
+    "W": 0.5
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "假设你在储蓄账户里存了 $100，年利率 2%。把钱一直放着，5 年后账户里有多少钱？",
+      "en": "Suppose you had $100 in a savings account and the interest rate was 2% per year. After 5 years, how much would you have if you left the money to grow?"
+     },
+     "opts": [
+      {
+       "zh": "不知道",
+       "en": "Don't know"
+      },
+      {
+       "zh": "少于 $102",
+       "en": "Less than $102"
+      },
+      {
+       "zh": "正好 $102",
+       "en": "Exactly $102"
+      },
+      {
+       "zh": "多于 $102",
+       "en": "More than $102"
+      }
+     ],
+     "s": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "pin": [
+      0
+     ]
+    }
+   ]
+  },
+  "C_paid": {
+   "area": "C",
+   "load": {
+    "C": 0.75,
+    "W": 0.5,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "ret",
+     "when": {
+      "role": [
+       "ret"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，有没有人为你的经验或技能付过钱（顾问、兼职、授课、手艺）？",
+      "en": "In the past 12 months, has anyone paid you for your experience or a skill (consulting, part-time work, teaching, a craft)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "No"
+      },
+      {
+       "zh": "一两次",
+       "en": "Once or twice"
+      },
+      {
+       "zh": "一年有几次",
+       "en": "A few times a year"
+      },
+      {
+       "zh": "每月都有",
+       "en": "Every month"
+      },
+      {
+       "zh": "每周都有",
+       "en": "Every week"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "job",
+     "when": {
+      "role": [
+       "ug4",
+       "cc",
+       "grad",
+       "emp",
+       "gig"
+      ]
+     },
+     "q": {
+      "zh": "过去 12 个月，在正式工作或学业之外，有没有人为你的某项技能付过钱（接私活、家教、设计、编程、教练、演出）？",
+      "en": "In the past 12 months, has anyone paid you for a skill outside a regular job or your studies (freelance work, tutoring, design, coding, coaching, performing)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "No"
+      },
+      {
+       "zh": "一两次",
+       "en": "Once or twice"
+      },
+      {
+       "zh": "经常有，金额不大",
+       "en": "Regularly, small amounts"
+      },
+      {
+       "zh": "经常有，占收入的相当一部分",
+       "en": "Regularly, a meaningful part of my income"
+      },
+      {
+       "zh": "这就是我的主要收入",
+       "en": "It is my main income"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去 12 个月，有没有人为你的某项技能付过钱（接活、家教、设计、编程、教练、手艺）？",
+      "en": "In the past 12 months, has anyone paid you for a skill (odd jobs, tutoring, design, coding, coaching, a craft)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "No"
+      },
+      {
+       "zh": "一两次",
+       "en": "Once or twice"
+      },
+      {
+       "zh": "经常有，金额不大",
+       "en": "Regularly, small amounts"
+      },
+      {
+       "zh": "经常有，占收入的相当一部分",
+       "en": "Regularly, a meaningful part of my income"
+      },
+      {
+       "zh": "这就是我的主要收入",
+       "en": "It is my main income"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_team": {
+   "area": "C",
+   "load": {
+    "C": 1,
+    "N": 0.5
+   },
+   "versions": [
+    {
+     "key": "owner",
+     "when": {
+      "role": [
+       "owner"
+      ]
+     },
+     "q": {
+      "zh": "除你自己以外，你的公司现在有多少人（全职和兼职都算）？",
+      "en": "Apart from you, how many people work in your company now, full-time and part-time?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 至 4 人",
+       "en": "1 to 4"
+      },
+      {
+       "zh": "5 至 19 人",
+       "en": "5 to 19"
+      },
+      {
+       "zh": "20 至 99 人",
+       "en": "20 to 99"
+      },
+      {
+       "zh": "100 人以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    },
+    {
+     "key": "emp",
+     "when": {},
+     "q": {
+      "zh": "直接或间接向你汇报的有多少人？",
+      "en": "How many people report to you, directly or indirectly?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "1 至 4 人",
+       "en": "1 to 4"
+      },
+      {
+       "zh": "5 至 19 人",
+       "en": "5 to 19"
+      },
+      {
+       "zh": "20 至 99 人",
+       "en": "20 to 99"
+      },
+      {
+       "zh": "100 人以上",
+       "en": "100 or more"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_rep": {
+   "area": "C",
+   "load": {
+    "C": 0.75,
+    "N": 0.5
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你的客户或订单主要是怎么来的？",
+      "en": "Where do most of your clients or orders come from?"
+     },
+     "opts": [
+      {
+       "zh": "还没有稳定的客户",
+       "en": "No steady clients yet"
+      },
+      {
+       "zh": "主要靠平台或广告",
+       "en": "Mostly platforms or advertising"
+      },
+      {
+       "zh": "主要靠熟人介绍",
+       "en": "Mostly introductions from people I know"
+      },
+      {
+       "zh": "老客户的复购和转介绍占多数",
+       "en": "Mostly repeat business and referrals from clients"
+      },
+      {
+       "zh": "客户主动找来，需要排期或挑选",
+       "en": "Clients come to me, and I schedule or choose among them"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_ext": {
+   "area": "C",
+   "load": {
+    "C": 0.75,
+    "N": 0.5,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去 12 个月，有没有别的公司或机构请你担任顾问、董事、导师，或者请你去分享经验？",
+      "en": "In the past 12 months, has another company or organization asked you to act as an advisor, board member or mentor, or to speak about your experience?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "No"
+      },
+      {
+       "zh": "一两次",
+       "en": "Once or twice"
+      },
+      {
+       "zh": "经常有，没有报酬",
+       "en": "Regularly, unpaid"
+      },
+      {
+       "zh": "经常有，有报酬",
+       "en": "Regularly, paid"
+      },
+      {
+       "zh": "这是我收入的重要来源",
+       "en": "It is an important part of my income"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "C_pur": {
+   "area": "C",
+   "load": {
+    "C": 0.75,
+    "B": 0.25,
+    "M": 0.25,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "你在任何一项爱好上达到过的最高水平是什么（运动、音乐、美术、手工、棋类、烹饪、游戏）？",
+      "en": "What is the highest level you have reached in any pursuit of your own (a sport, music, art, craft, chess, cooking, a game)?"
+     },
+     "opts": [
+      {
+       "zh": "没有",
+       "en": "None"
+      },
+      {
+       "zh": "入门",
+       "en": "Beginner"
+      },
+      {
+       "zh": "中等",
+       "en": "Intermediate"
+      },
+      {
+       "zh": "高级：在本地演出、展览或比赛",
+       "en": "Advanced: I perform, exhibit or compete locally"
+      },
+      {
+       "zh": "专业：有人付费、授课，或参加全国级比赛",
+       "en": "Expert: I am paid, teach, or compete nationally"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M1": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "W": 0.25,
+    "N": 0.25,
+    "B": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "总的来说，你对现在的生活有多满意？（0 分完全不满意，10 分完全满意）",
+      "en": "Overall, how satisfied are you with your life nowadays? (0 is not at all, 10 is completely)"
+     },
+     "opts": [
+      {
+       "zh": "0 至 2",
+       "en": "0 to 2"
+      },
+      {
+       "zh": "3 至 4",
+       "en": "3 to 4"
+      },
+      {
+       "zh": "5 至 6",
+       "en": "5 to 6"
+      },
+      {
+       "zh": "7 至 8",
+       "en": "7 to 8"
+      },
+      {
+       "zh": "9 至 10",
+       "en": "9 to 10"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M2": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "总的来说，你觉得自己在生活中做的事情有多大的价值？（0 分完全没有，10 分非常有价值）",
+      "en": "Overall, to what extent do you feel that the things you do in your life are worthwhile? (0 is not at all, 10 is completely)"
+     },
+     "opts": [
+      {
+       "zh": "0 至 2",
+       "en": "0 to 2"
+      },
+      {
+       "zh": "3 至 4",
+       "en": "3 to 4"
+      },
+      {
+       "zh": "5 至 6",
+       "en": "5 to 6"
+      },
+      {
+       "zh": "7 至 8",
+       "en": "7 to 8"
+      },
+      {
+       "zh": "9 至 10",
+       "en": "9 to 10"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M3": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "B": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去两周，你有多少天感到紧张、焦虑或心神不宁？",
+      "en": "Over the last 2 weeks, how often have you been bothered by feeling nervous, anxious or on edge?"
+     },
+     "opts": [
+      {
+       "zh": "几乎每天",
+       "en": "Nearly every day"
+      },
+      {
+       "zh": "一半以上的日子",
+       "en": "More than half the days"
+      },
+      {
+       "zh": "有几天",
+       "en": "Several days"
+      },
+      {
+       "zh": "完全没有",
+       "en": "Not at all"
+      }
+     ],
+     "s": [
+      0.0,
+      0.3333333333333333,
+      0.6666666666666666,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M4": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "B": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去两周，你有多少天做什么事都提不起兴趣、感受不到乐趣？",
+      "en": "Over the last 2 weeks, how often have you been bothered by little interest or pleasure in doing things?"
+     },
+     "opts": [
+      {
+       "zh": "几乎每天",
+       "en": "Nearly every day"
+      },
+      {
+       "zh": "一半以上的日子",
+       "en": "More than half the days"
+      },
+      {
+       "zh": "有几天",
+       "en": "Several days"
+      },
+      {
+       "zh": "完全没有",
+       "en": "Not at all"
+      }
+     ],
+     "s": [
+      0.0,
+      0.3333333333333333,
+      0.6666666666666666,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M5": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "C": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "事情出了岔子之后，你通常要多久才能回到正轨？",
+      "en": "When something goes wrong, how long does it usually take you to get back on track?"
+     },
+     "opts": [
+      {
+       "zh": "往往一直陷在里面",
+       "en": "I tend to stay stuck"
+      },
+      {
+       "zh": "一个月以上",
+       "en": "A month or more"
+      },
+      {
+       "zh": "一两周",
+       "en": "A week or two"
+      },
+      {
+       "zh": "几天",
+       "en": "A few days"
+      },
+      {
+       "zh": "一天之内",
+       "en": "A day or less"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "M6": {
+   "area": "M",
+   "load": {
+    "M": 1,
+    "W": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "过去一个月，你有多经常觉得生活中重要的事情在自己的掌控之中？",
+      "en": "In the past month, how often have you felt in control of the important things in your life?"
+     },
+     "opts": [
+      {
+       "zh": "从不",
+       "en": "Never"
+      },
+      {
+       "zh": "很少",
+       "en": "Rarely"
+      },
+      {
+       "zh": "有时",
+       "en": "Sometimes"
+      },
+      {
+       "zh": "经常",
+       "en": "Often"
+      },
+      {
+       "zh": "几乎总是",
+       "en": "Almost always"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  },
+  "G1": {
+   "area": "G",
+   "load": {
+    "W": 0.5,
+    "C": 0.5,
+    "M": 0.5,
+    "N": 0.25
+   },
+   "versions": [
+    {
+     "key": "base",
+     "when": {},
+     "q": {
+      "zh": "想象一架十级的梯子，代表美国社会中人们所处的位置。最上面是境况最好的人：钱最多、学历最高、工作最好。最下面是境况最差的人。你觉得自己站在第几级？",
+      "en": "Think of a ladder with 10 rungs representing where people stand in the United States. At the top are the people who are best off: most money, most education, best jobs. At the bottom are those who are worst off. Which rung are you on?"
+     },
+     "opts": [
+      {
+       "zh": "第 1 至 2 级",
+       "en": "Rungs 1 to 2"
+      },
+      {
+       "zh": "第 3 至 4 级",
+       "en": "Rungs 3 to 4"
+      },
+      {
+       "zh": "第 5 至 6 级",
+       "en": "Rungs 5 to 6"
+      },
+      {
+       "zh": "第 7 至 8 级",
+       "en": "Rungs 7 to 8"
+      },
+      {
+       "zh": "第 9 至 10 级",
+       "en": "Rungs 9 to 10"
+      }
+     ],
+     "s": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+     ],
+     "pin": []
+    }
+   ]
+  }
+ },
+ "comp": {
+  "ug4": [
+   "C_exp",
+   "C_mast",
+   "C_rec",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "cc": [
+   "C_exp",
+   "C_mast",
+   "C_rec",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "grad": [
+   "C_exp",
+   "C_mast",
+   "C_rec",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "emp": [
+   "C_lvl",
+   [
+    "alt",
+    "mgr",
+    1,
+    "C_team",
+    "C_paid"
+   ],
+   "C_mast",
+   "C_deg",
+   "C_lic",
+   "C_learn",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "gig": [
+   "C_lvl",
+   [
+    "alt",
+    "mgr",
+    1,
+    "C_team",
+    "C_paid"
+   ],
+   "C_mast",
+   "C_deg",
+   "C_lic",
+   "C_learn",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "free": [
+   "C_stage",
+   "C_rep",
+   "C_mast",
+   "C_deg",
+   "C_lic",
+   "C_learn",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "owner": [
+   "C_biz",
+   "C_team",
+   "C_rep",
+   "C_ext",
+   "C_mast",
+   "C_learn",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "seek": [
+   [
+    "skip",
+    "nowork",
+    1,
+    "C_last"
+   ],
+   [
+    "skip",
+    "nowork",
+    1,
+    "C_mast"
+   ],
+   "C_deg",
+   "C_lic",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "care": [
+   "C_last",
+   "C_deg",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "ret": [
+   "C_last",
+   "C_mast",
+   "C_deg",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N5",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ],
+  "oth": [
+   "C_last",
+   "C_deg",
+   "C_learn",
+   "C_paid",
+   "C_lang",
+   "C_dig",
+   "C_int",
+   "C_pur",
+   "W1",
+   "W2",
+   "W3",
+   "W4",
+   "W5",
+   "W6",
+   "N1",
+   "N2",
+   "N3",
+   "N4",
+   "N6",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "B5",
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "G1"
+  ]
+ },
+ "timing": {
+  "en": 23.333333333333332,
+  "zh": 36.666666666666664,
+  "tmin": 0.6,
+  "tmax": 2.0,
+  "floor": 0.5
+ }
+}
