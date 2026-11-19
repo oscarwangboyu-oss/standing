@@ -1,63 +1,17 @@
 // Shape of the parameters of algorithm version 1. The values live in src/engine/config.ts.
 
-import type { AreaId, FlagId, TierId, TimingParams } from '../../types';
+import type {
+  AreaId,
+  DailyOpenParams,
+  FlagId,
+  PaydayParams,
+  PeopleNudgeParams,
+  TierId,
+  TimingParams,
+  WeeklyWinParams,
+} from '../../types';
 
-export interface DailyOpenParams {
-  /** Look-back window in days. */
-  windowDays: number;
-  /** Days with a record needed inside the window before daily data replaces the questionnaire answer. */
-  minDays: number;
-  sleep: {
-    /** Question whose answer the daily sleep records replace. */
-    itemId: string;
-    /** Hours assumed for each daily sleep option. */
-    midpointHours: number[];
-  };
-  exercise: {
-    /** Question whose answer the daily exercise records replace. */
-    itemId: string;
-    /** Minutes assumed for each daily exercise option. */
-    midpointMinutes: number[];
-    /** The daily mean is multiplied by this to compare with the weekly question. */
-    daysPerWeek: number;
-  };
-  state: {
-    /** Id of the synthetic item added to the mind sector. */
-    extraId: string;
-    area: AreaId;
-    load: number;
-    /** Score of each of the five state options, from very bad to very good. */
-    scores: number[];
-  };
-  /** Days without a record after which body and mind are halted. */
-  haltAfterDays: number;
-  /** Days after the last full check at which a quarterly retest is suggested. */
-  retestAfterDays: number;
-  streak: {
-    /** How many days back a missed day can still be filled in. */
-    backfillDays: number;
-    /** Missed days in a row that reset the streak. */
-    resetAfterMissedDays: number;
-  };
-  mindNotice: {
-    windowDays: number;
-    /** Days of "very bad" inside the window that show the mind notice. */
-    veryBadDays: number;
-  };
-}
-
-export interface PaydayParams {
-  /** Pay periods averaged for the saving and debt shares. */
-  averagePeriods: number;
-  /** Days without a payday check after which the wealth sector is halted. */
-  haltAfterDays: number;
-  /** What the saving and debt amounts are divided by. */
-  denominator: 'take_home';
-  /** Question replaced by cash on hand divided by essential monthly spending. */
-  runwayItemId: string;
-  /** Question replaced by the saving share (high tier) or the debt share (everyone else). */
-  shareItemId: string;
-}
+export type { DailyOpenParams, PaydayParams } from '../../types';
 
 export interface AlgoParamsV1 {
   timing: TimingParams;
@@ -155,4 +109,6 @@ export interface AlgoParamsV1 {
   dailyMoveLimitPoints: number;
   dailyOpen: DailyOpenParams;
   payday: PaydayParams;
+  weeklyWin: WeeklyWinParams;
+  peopleNudge: PeopleNudgeParams;
 }

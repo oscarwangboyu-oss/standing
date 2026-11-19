@@ -2,11 +2,43 @@
 // norms. Every result stores all three, and every old version stays registered here, so any
 // stored session can be recomputed the way it was first computed.
 //
-// To release a change:
-// - algorithm: add src/engine/algo/vN (or new parameters in config.ts), register it in ALGOS;
-// - bank: add src/engine/bank/vX_Y.json, register it in BANKS;
-// - norms: add an entry to NORMS in config.ts;
-// then point CURRENT at the new version. Never edit a version that has produced results.
+// HOW TO ADD ALGORITHM VERSION 2 NEXT TO VERSION 1
+//
+// A. Only values change (weights, thresholds, the daily limit, a micro-app rule):
+//    1. config.ts: copy the whole block ALGO_PARAMS[1] to a new key 2 and change the values
+//       there. Leave block 1 as it is.
+//    2. This file: under the line that registers version 1, add
+//         registerAlgo(createAlgoV1(2, ALGO_PARAMS[2]));
+//    3. This file: set CURRENT.algo to 2.
+//
+// B. The rules themselves change (how a sector value is built, a new check, another shape of
+//    parameters):
+//    1. Copy the folder algo/v1 to algo/v2. In algo/v2 rename createAlgoV1 to createAlgoV2,
+//       computeV1 to computeV2 and AlgoParamsV1 to AlgoParamsV2, then make the change there.
+//       Do not touch algo/v1.
+//    2. config.ts: add the parameters of version 2. When their shape differs from version 1,
+//       keep them in a table of their own (ALGO_PARAMS_V2) typed AlgoParamsV2.
+//    3. This file: import createAlgoV2 and add registerAlgo(createAlgoV2(2, ...)) under the
+//       line that registers version 1.
+//    4. This file: set CURRENT.algo to 2.
+//
+// Then, for A and B alike:
+//    5. Tests: the 335 reference cases pin version 1. Keep them running with
+//       versions: { algo: 1 } (tests/unit/engine/golden.test.ts computes with the default, so
+//       pass the version there once CURRENT moves), and add the cases that show what version 2
+//       changes.
+//    6. Run "npm run recompute" with the new version on all stored sessions and read the
+//       comparison (rank correlation, share moving more than RECOMPUTE_MOVE_POINTS) before
+//       release. versionEffectTest in evaluation.ts gives the same two numbers a verdict.
+//    7. Record the day of the switch. The timeline takes it as
+//       versionChanges: [{ day, versions: { algo: 2 } }] and marks that day on the chart; a
+//       series computed with versions: { algo: 1 } and no change still gives the old numbers.
+//
+// A new bank goes the same way: add src/engine/bank/vX_Y.json, register it in BANKS, add its
+// bands to BANK_BANDS, point CURRENT.bank at it. New norms: add an entry to NORMS in
+// config.ts and point CURRENT.norm at it. Never edit a version that has produced results.
+//
+// algo/test-variant.ts is a worked example of path A that is used by tests only.
 //
 // The tables are locked: a registered version cannot be replaced or removed at run time, and
 // the parameters, norms and banks behind them are frozen. A script that tries out an altered

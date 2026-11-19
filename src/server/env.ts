@@ -13,8 +13,12 @@ export interface Env {
   adminPassphrase: string | null;
   /** Stage switches. Default on locally, off in production. */
   flags: { dailyOpen: boolean; payday: boolean; weeklyWin: boolean; peopleNudge: boolean };
-  /** PostHog forwarding. Disabled when key is null. */
-  posthog: { key: string | null; host: string };
+  /**
+   * PostHog forwarding. Disabled when key is null. `salt` is mixed into the hash that stands
+   * in for a user id; when POSTHOG_SALT is not set the project key is used, so ids stay stable
+   * as long as the key does.
+   */
+  posthog: { key: string | null; host: string; salt: string | null };
 }
 
 type Vars = Record<string, string | undefined>;
@@ -47,6 +51,10 @@ export function readEnv(vars: Vars = process.env): Env {
       weeklyWin: flag(vars.FLAG_WEEKLY_WIN, defaultOn),
       peopleNudge: flag(vars.FLAG_PEOPLE_NUDGE, defaultOn),
     },
-    posthog: { key: vars.POSTHOG_KEY || null, host: vars.POSTHOG_HOST || 'https://us.i.posthog.com' },
+    posthog: {
+      key: vars.POSTHOG_KEY || null,
+      host: vars.POSTHOG_HOST || 'https://us.i.posthog.com',
+      salt: vars.POSTHOG_SALT || null,
+    },
   };
 }

@@ -7,13 +7,11 @@
 //
 // The engine returns data only. Every word a user reads lives in src/copy.
 
-import { CURRENT, getAlgo, getBank, getNorm } from './registry';
-import { EngineError } from './types';
+import { getAlgo, getBank } from './registry';
 import type {
   AreaId,
   Background,
   Bank,
-  ComputeInput,
   Context,
   ItemVersion,
   Lang,
@@ -22,7 +20,6 @@ import type {
   OrderDirection,
   PreviousPrices,
   Progress,
-  Result,
   SelectionOptions,
   Step,
   TimingParams,
@@ -107,22 +104,7 @@ export function multiplierFor(secs: number | null, threshold: number, params?: T
 
 // ---------------------------------------------------------------- scoring
 
-/**
- * Scores a session. The result carries the algorithm, bank and norm versions it was computed
- * with. A session that is not finished can be scored too: unreached questions have no score.
- */
-export function compute(input: ComputeInput): Result {
-  const bankVersion = input.bank.bank_version;
-  if (input.versions?.bank !== undefined && input.versions.bank !== bankVersion) {
-    throw new EngineError(`versions.bank is "${input.versions.bank}" but the bank passed in is "${bankVersion}"`);
-  }
-  const versions = {
-    algo: input.versions?.algo ?? CURRENT.algo,
-    bank: bankVersion,
-    norm: input.versions?.norm ?? CURRENT.norm,
-  };
-  return getAlgo(versions.algo).compute({ ...input, versions, norm: getNorm(versions.norm) });
-}
+export { compute } from './score';
 
 /**
  * Leader, laggard, tags and movers from sector prices alone. compute() already returns this as
@@ -145,19 +127,93 @@ export function marketOf(input: {
 
 export { ALGOS, BANKS, CURRENT, NORMS, getAlgo, getBank, getNorm, registerAlgo } from './registry';
 export { createAlgoV1 } from './algo/v1';
-export { bandOptionFor } from './bands';
+export { createTestVariantAlgo } from './algo/test-variant';
+export { bandIndexFor, bandOptionAt, bandOptionFor, bandRangeOf } from './bands';
 export type { BankBand } from './config';
 export {
   ALGO_PARAMS,
   BANK_BANDS,
+  BREAKDOWN,
   DASHBOARD_RED_LINES,
+  EVALUATION,
   GO_CRITERIA,
   RECOMPUTE_MOVE_POINTS,
   RETEST_WINDOW_DAYS,
   RETURN_RATE_DAYS,
+  TEST_VARIANT,
 } from './config';
+
+// ---------------------------------------------------------------- after the first check
+
+export { addDays, dayNumber, dayOf, daysBetween, isDay, weekOf } from './days';
+export { canLogDailyFor, dailyOpenInput, dailyStreak } from './live/daily';
+export type { DailyOpenInput, DailyReading, Streak } from './live/daily';
+export { PAY_FREQUENCIES, PAY_PERIODS_PER_YEAR, paydayBandsFor, paydayBaselineOf, paydayEligible } from './live/payday';
+export type { PayFrequency, PaydayAmounts, PaydayBaseline, PaydayLocal, PaydaySetup } from './live/payday';
+export { explainDays, timeline, timelineInputOn } from './timeline';
+export type {
+  PersonHistory,
+  ScoringVersions,
+  Timeline,
+  TimelineCheck,
+  TimelineInput,
+  TimelineMarker,
+  TimelineOptions,
+  TimelinePoint,
+  TimelineSector,
+  TimelineStatus,
+  VersionChange,
+} from './timeline';
+export { breakdown } from './breakdown';
+export type { AnswerState, Breakdown, BreakdownLine, PriceBreakdown } from './breakdown';
+export {
+  SEVEN_TESTS,
+  changedAnswers,
+  fairnessTest,
+  gamingTest,
+  mean,
+  median,
+  pearson,
+  quantile,
+  rangeTest,
+  ranks,
+  responseTest,
+  spearman,
+  stabilityTest,
+  standardDeviation,
+  validityTest,
+  versionEffectTest,
+} from './evaluation';
+export type {
+  EvalAnswer,
+  EvalPair,
+  EvalRecord,
+  EvalVersionPair,
+  FairnessTest,
+  GamingTest,
+  GroupMedian,
+  RangeTest,
+  ResponseTest,
+  StabilityTest,
+  ValidityTest,
+  Verdict,
+  VersionEffectTest,
+} from './evaluation';
 export { parseBank } from './bank';
-export { AREA_IDS, EngineError, FIELD_IDS, MONEY_IDS, ROLE_IDS, SECTION_IDS, SOURCES, TIER_IDS } from './types';
+export {
+  AREA_IDS,
+  CERTIFICATE_LEVELS,
+  EngineError,
+  FIELD_IDS,
+  MONEY_IDS,
+  NUDGE_CATEGORIES,
+  ROLE_IDS,
+  SECTION_IDS,
+  SKIP_REASONS,
+  SOURCES,
+  TIER_IDS,
+  WEEKLY_WIN_KINDS,
+} from './types';
 export type {
   Algo,
   AltSlot,
@@ -167,12 +223,14 @@ export type {
   BankItem,
   BankTiming,
   Bilingual,
+  CertificateLevel,
   CompSlot,
   ComputeInput,
   Context,
   ContextKey,
   ContextValue,
   ContrastId,
+  DailyEntry,
   Extra,
   ExtraDetail,
   ExtraQuestion,
@@ -182,6 +240,7 @@ export type {
   Grade,
   ItemVersion,
   Lang,
+  LiveParams,
   Loads,
   Market,
   MarketChange,
@@ -189,8 +248,12 @@ export type {
   MoneyId,
   NextQuestion,
   NormSet,
+  NudgeCategory,
   OrderDirection,
   Override,
+  PaydayBands,
+  PeopleNudgeEntry,
+  PeopleNudgeParams,
   PreviousPrices,
   Progress,
   Result,
@@ -202,6 +265,7 @@ export type {
   SectorStatus,
   SectorTag,
   SelectionOptions,
+  SkipReason,
   SkipSlot,
   SocialPosition,
   Source,
@@ -210,6 +274,9 @@ export type {
   TierId,
   TimingParams,
   VersionSet,
+  WeeklyWinEntry,
+  WeeklyWinKind,
+  WeeklyWinParams,
   Where,
 } from './types';
 export type { AlgoParamsV1, DailyOpenParams, PaydayParams } from './algo/v1';

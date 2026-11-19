@@ -4,14 +4,16 @@
  *
  * How each number is computed
  * - shown: checks with any event for the version (a "shown" event, or an answer).
- * - skip: of those shown, checks that skipped it.
- * - drop-off: of those shown, checks that neither answered nor skipped it, are unfinished, and
- *   have been idle for more than DROP_OFF_IDLE_MINUTES. A question cannot be passed without an
- *   answer or a skip, so "not answered" is the same as "nothing after it".
+ * - skip: of those shown, checks that skipped it. A "not applicable" is not a skip.
+ * - drop-off: of those shown, checks that neither answered nor skipped it nor marked it not
+ *   applicable, are unfinished, and have been idle for more than DROP_OFF_IDLE_MINUTES. A
+ *   question cannot be passed without one of the three, so "not answered" is the same as
+ *   "nothing after it".
  * - time: median seconds of the selections (skips are left out), compared with the median of
  *   the medians of the other versions on this table whose stems are of similar length.
  * - options: share of the selections that went to each option.
- * - not applicable: share of the selections that went to an option whose score is null.
+ * - not applicable: of those shown, checks that marked the question not applicable (action
+ *   "na") plus checks that selected an option whose score is null.
  * - retest: people who selected an option of this version in two checks RETEST_WINDOW_DAYS
  *   apart (one pair per person); share who selected a different option the second time.
  */
@@ -20,13 +22,14 @@ import { CURRENT, getAlgo, getBank, readUnits, type Bank, type Lang, type RoleId
 import { DROP_OFF_IDLE_MINUTES, MIN_SIMILAR_STEMS, SIMILAR_STEM_BAND } from '../config';
 import type { Db } from '../db';
 import { csv, type CsvCell } from '../http';
-import { median, rate, RED_LINES, RETEST_WINDOW, retestPairsCte } from './shared';
+import { demoCounts, median, rate, RED_LINES, RETEST_WINDOW, retestPairsCte } from './shared';
 
 interface CountRow {
   item_id: string;
   version_key: string;
   shown: number;
   skipped: number;
+  marked_na: number;
   answered: number;
   dropped: number;
   median_seconds: number | null;
@@ -70,6 +73,7 @@ export async function teamItems(
     `with per as (
        select e.session_id, e.seq, e.item_id, e.version_key,
          bool_or(e.action = 'skip') as skipped,
+         bool_or(e.action = 'na') as marked_na,
          bool_or(e.action = 'select') as selected,
          max(e.seconds) filter (where e.action = 'select') as seconds,
          max(e.at) as last_at,
@@ -81,8 +85,10 @@ export async function teamItems(
      select item_id, version_key,
        count(*)::int as shown,
        (count(*) filter (where skipped))::int as skipped,
+       (count(*) filter (where marked_na))::int as marked_na,
        (count(*) filter (where selected))::int as answered,
-       (count(*) filter (where not skipped and not selected and not completed and last_at < $3))::int as dropped,
+       (count(*) filter (where not skipped and not marked_na and not selected and not completed
+         and last_at < $3))::int as dropped,
        (percentile_cont(0.5) within group (order by seconds))::float8 as median_seconds
      from per
      group by item_id, version_key`,
@@ -128,12 +134,12 @@ export async function teamItems(
 
     const optionCounts = version.opts.map(() => 0);
     const byLang: Record<Lang, number> = { zh: 0, en: 0 };
-    let notApplicable = 0;
+    let unscoredOption = 0;
     for (const o of optionsBy.get(keyOf(c)) ?? []) {
       if (o.option_index < 0 || o.option_index >= optionCounts.length) continue;
       optionCounts[o.option_index] += o.n;
       byLang[o.lang] += o.n;
-      if (version.s[o.option_index] === null) notApplicable += o.n;
+      if (version.s[o.option_index] === null) unscoredOption += o.n;
     }
     const shares = optionCounts.map((n) => (c.answered > 0 ? n / c.answered : null));
     const realShares = shares.filter((s): s is number => s !== null);
@@ -147,7 +153,7 @@ export async function teamItems(
 
     const skip = rate(c.skipped, c.shown);
     const dropOff = rate(c.dropped, c.shown);
-    const na = rate(notApplicable, c.answered);
+    const na = rate(c.marked_na + unscoredOption, c.shown);
     const retestRow = retestBy.get(keyOf(c));
     const retest = rate(retestRow?.changed ?? 0, retestRow?.n ?? 0);
 
@@ -172,6 +178,8 @@ export async function teamItems(
         ...na,
         red: na.rate !== null && na.rate > RED_LINES.notApplicableRate,
         hasOption: version.s.includes(null),
+        marked: c.marked_na,
+        unscoredOption,
       },
       retest: { ...retest, red: retest.rate !== null && retest.rate > RED_LINES.retestChangeRate },
     });
@@ -209,6 +217,7 @@ export async function teamItems(
 
   return {
     generatedAt: now.toISOString(),
+    demoPeople: (await demoCounts(db)).people,
     bankVersion,
     role,
     redLines: RED_LINES,
@@ -229,7 +238,7 @@ export function teamItemsCsv(data: TeamItemsResponse): Response {
     'dropped', 'drop_off_rate', 'drop_off_red',
     'answered', 'median_seconds', 'stem_seconds', 'similar_stems', 'similar_median_seconds', 'time_red',
     'option_counts', 'option_shares', 'options_red',
-    'not_applicable', 'not_applicable_rate', 'not_applicable_red',
+    'marked_not_applicable', 'unscored_option', 'not_applicable', 'not_applicable_rate', 'not_applicable_red',
     'retest_people', 'retest_changed', 'retest_change_rate', 'retest_red',
   ];
   const rows = data.rows.map((r): CsvCell[] => [
@@ -238,7 +247,7 @@ export function teamItemsCsv(data: TeamItemsResponse): Response {
     r.dropOff.count, r.dropOff.rate, r.dropOff.red,
     r.answered, r.time.medianSeconds, r.time.stemSeconds, r.time.similarCount, r.time.similarMedianSeconds, r.time.red,
     r.options.counts.join('|'), r.options.shares.map((s) => (s === null ? '' : s.toFixed(4))).join('|'), r.options.red,
-    r.notApplicable.count, r.notApplicable.rate, r.notApplicable.red,
+    r.notApplicable.marked, r.notApplicable.unscoredOption, r.notApplicable.count, r.notApplicable.rate, r.notApplicable.red,
     r.retest.of, r.retest.count, r.retest.rate, r.retest.red,
   ]);
   return csv(`standing-items-${data.role ?? 'all'}`, header, rows);

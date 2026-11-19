@@ -123,8 +123,9 @@ export const ALGO_PARAMS: Record<number, AlgoParamsV1> = deepFreeze({
       // Movers are named only when at least two sectors are priced in both records.
       minMovers: 2,
     },
-    // Daily open and payday check: a sector moves at most 2 points a day; the rest carries
-    // over to the following days. Initial setting, to be re-estimated from daily data.
+    // Data from the four micro apps moves a sector at most 2 points a day; the rest carries
+    // over to the following days. The day of a full check is exempt. Initial setting, to be
+    // re-estimated from daily data.
     dailyMoveLimitPoints: 2,
     dailyOpen: {
       // Daily data replaces a questionnaire answer only with records on 4 or more of the last
@@ -153,17 +154,95 @@ export const ALGO_PARAMS: Record<number, AlgoParamsV1> = deepFreeze({
       // setting. This is not a clinical threshold.
       mindNotice: { windowDays: 7, veryBadDays: 5 },
     },
+    // Payday check. Each payday the person enters three numbers on the device: take-home
+    // income, spending, savings. Only bands leave the device.
     payday: {
-      // Saving and debt shares are averaged over the last three pay periods. Initial setting.
+      // The saving share is averaged over the last three pay periods. Initial setting.
       averagePeriods: 3,
+      // One pay period is enough for the share to replace the answer; the brief sets no
+      // minimum. Initial setting, to be raised if single paydays turn out to be noisy.
+      minPeriods: 1,
       // Wealth is halted after 45 days without a payday check. Initial setting.
       haltAfterDays: 45,
-      // Shares are amounts divided by take-home pay. Design choice, to be revisited.
+      // The share is savings divided by take-home pay. Design choice, to be revisited.
       denominator: 'take_home',
-      // Cash on hand divided by essential monthly spending replaces the savings question.
+      // Offered to people who live on their own earnings and are employed full-time, work
+      // part-time or gigs, freelance, or own a business. Set in the brief.
+      eligibleRoles: ['emp', 'gig', 'free', 'owner'],
+      eligibleMoney: ['own'],
+      // Months of savings (W3). The three numbers are flows and the question asks for a
+      // stock, so the answer of the last full check is the starting range, and the savings
+      // and shortfalls logged since move that range. The answer is replaced only when the
+      // whole range has left the band that was answered. Only the wording that asks for
+      // months in these bands is replaced.
       runwayItemId: 'W3',
-      // The saving share (high tier) or the debt share (everyone else) replaces this one.
+      runway: { versionKeys: ['base'], band: 'W3' },
+      // Share saved (W5). Only the high-tier wording "save" asks for the share of take-home
+      // pay saved. The other wordings ask for the share that goes to debt payments, which the
+      // three numbers do not hold, so they keep the questionnaire answer.
       shareItemId: 'W5',
+      saveShare: { versionKey: 'save', band: 'W5:save' },
+    },
+    // Weekly win: one entry a week, a course, a certificate or a skill improved. Designed
+    // without data. Every value below is an initial setting.
+    weeklyWin: {
+      // Capability is halted after 28 days without an entry.
+      haltAfterDays: 28,
+      // Course hours and the learning question (C_learn, hours in the past 12 months). The
+      // hours logged in the last 365 days are a part of that total, so they replace the
+      // answer only when they reach a higher band than the one answered, and only once
+      // courses were logged in 4 different weeks.
+      learning: {
+        itemId: 'C_learn',
+        band: 'C_learn',
+        // Hours assumed for each option of a course entry: about 1 hour, 2 to 4, 5 to 9,
+        // 10 to 19, 20 or more. Midpoints chosen at design time.
+        midpointHours: [1, 3, 7, 15, 25],
+        windowDays: 365,
+        minWeeks: 4,
+      },
+      // A new licence or certificate that required an exam and the licence question (C_lic:
+      // none, one at entry level, one advanced or state licence, two, three or more). The
+      // options stand for 0, 1, 1, 2 and 3 licences held. Licences logged after the last
+      // full check are added to the number answered there.
+      licence: {
+        itemId: 'C_lic',
+        heldForOption: [0, 1, 1, 2, 3],
+        oneEntryOption: 1,
+        oneAdvancedOption: 2,
+        optionFromTwo: [3, 4],
+      },
+      // No question asks how regularly a person works on a skill. The share of the last 8
+      // calendar weeks with an entry enters capability as an extra item with load 0.5 (half a
+      // question), once 4 of the 8 weeks have an entry. A week without an entry counts as a
+      // week without a win.
+      regularity: { extraId: 'weekly_win', area: 'C', load: 0.5, windowWeeks: 8, minWeeks: 4 },
+    },
+    // People nudge: three people to reconnect with each week, and a log of who was reached.
+    // Designed without data. Every value below is an initial setting.
+    peopleNudge: {
+      // Network is halted after 28 days without an entry.
+      haltAfterDays: 28,
+      // Three people a week.
+      maxPerWeek: 3,
+      // No question asks how many people a person was in touch with. People reached out of
+      // three, averaged over the last 8 calendar weeks, enter network as an extra item with
+      // load 0.5 (half a question), once 4 of the 8 weeks have an entry. A week without an
+      // entry counts as a week in which nobody was reached.
+      reach: { extraId: 'people_reached', area: 'N', load: 0.5, windowWeeks: 8, minWeeks: 4 },
+      // Contact with a mentor and the mentor question (N5, wording "base": no never, not now
+      // but in the past, a few times a year, at least monthly, more than one). A mentor
+      // reached in 3 different weeks of the last 91 days reads as "at least monthly"; in 2
+      // different weeks of the last 365 days as "a few times a year". The log replaces the
+      // answer only when it implies a higher option than the one answered.
+      mentor: {
+        itemId: 'N5',
+        versionKey: 'base',
+        levels: [
+          { windowDays: 91, minWeeks: 3, option: 3 },
+          { windowDays: 365, minWeeks: 2, option: 2 },
+        ],
+      },
     },
   },
 });
@@ -247,6 +326,15 @@ export const BANK_BANDS: Record<string, Record<string, BankBand>> = deepFreeze({
       lowerExclusive: [false, true, false, false, false],
       optionForBand: [4, 3, 2, 1, 0],
     },
+    // C_learn (every version), hours of structured learning in the past 12 months: none,
+    // under 10, 10 to 39, 40 to 99, 100 or more. Exactly 0 hours is "none"; anything above
+    // it is "under 10".
+    C_learn: {
+      unit: 'hours_per_year',
+      lowerEdges: [0, 0, 10, 40, 100],
+      lowerExclusive: [false, true, false, false, false],
+      optionForBand: [0, 1, 2, 3, 4],
+    },
   },
 });
 
@@ -297,3 +385,81 @@ export const GO_CRITERIA = deepFreeze({
 // The recompute command reports the share of people whose overall price moves by more than
 // this many points between two algorithm versions. Initial setting.
 export const RECOMPUTE_MOVE_POINTS = 5;
+
+// ---------------------------------------------------------------- breakdown
+
+// "Why it moved" swaps each changed answer back on its own and reads off the difference, then
+// scales the differences so that they add up to the actual change. When answers interact
+// strongly the differences can add up to far less than the change, or to the opposite sign.
+// Scaling is used only while the factor stays above 0 and at or below maxScale; beyond that
+// the differences are shown as measured and the rest is listed as its own line. Initial
+// setting.
+export const BREAKDOWN = deepFreeze({ maxScale: 3 } as const);
+
+// ---------------------------------------------------------------- the seven scoring tests
+
+// Thresholds of the seven tests in evaluation.ts. All are initial settings chosen
+// conservatively at design time, to be revisited with the advisors once real data exists.
+export const EVALUATION = deepFreeze({
+  // Fewest records (results, pairs, sessions) before any test gives a verdict other than
+  // "insufficient_data".
+  minRecords: 30,
+  range: {
+    // The overall price should spread: a standard deviation under 5 points means nearly
+    // everyone gets the same price.
+    minOverallSd: 5,
+    // At most 5% of sector prices may sit on the 55 or 145 limit.
+    maxShareAtLimits: 0.05,
+  },
+  stability: {
+    // Retest correlation of the overall price, the same value as the go criterion.
+    minRetestCorrelation: 0.75,
+  },
+  response: {
+    // A pair in which at least one answer changed and the overall price moved by this much
+    // or less counts as not moved (0.005 reads as 0.00 at two decimals).
+    unmovedBand: 0.005,
+    // Mean absolute change of the overall price per changed answer. Under 0.05 points the
+    // price hardly reacts; over 1.5 points single answers move it too much.
+    minPointsPerChangedAnswer: 0.05,
+    maxPointsPerChangedAnswer: 1.5,
+  },
+  validity: {
+    // Rank correlation between objective position and the ladder answer. The ladder question
+    // loads on wealth and capability, so part of this correlation is built in; the threshold
+    // is a floor, not a target.
+    minLadderCorrelation: 0.15,
+    // Two sectors that correlate above this measure nearly the same thing.
+    maxSectorCorrelation: 0.85,
+  },
+  fairness: {
+    // Groups smaller than this are reported and left out of the gap.
+    minGroupSize: 10,
+    // Largest gap between the median overall prices of two roles, or of two age bands. Half
+    // a standard deviation.
+    maxMedianGap: 7.5,
+  },
+  gaming: {
+    // Share of sessions with every answer on the best option (check f9).
+    maxAllBestShare: 0.02,
+    // Share of sessions flagged for answering faster than the stems can be read (check f10).
+    maxFastShare: 0.1,
+    // Share of sessions with data grade C.
+    maxGradeCShare: 0.05,
+  },
+  versionEffect: {
+    // Rank correlation of the overall price between two versions.
+    minRankCorrelation: 0.9,
+    // Share of people whose overall price moves by more than RECOMPUTE_MOVE_POINTS.
+    maxShareMoved: 0.1,
+  },
+} as const);
+
+// ---------------------------------------------------------------- test-only algorithm variant
+
+// Used by tests and by a dry run of the recompute command to prove that two algorithm
+// versions give different results on the same answers. It is never registered by the app and
+// must never be made CURRENT. It is version 1 with one value changed: a sector takes half of
+// its value from its own questions and half from the others, where version 1 takes two
+// thirds and one third.
+export const TEST_VARIANT = deepFreeze({ version: 9001, ownShare: 0.5, otherShare: 0.5 } as const);

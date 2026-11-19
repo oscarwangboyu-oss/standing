@@ -35,6 +35,13 @@ export function createAlgoV1(version: number, source: AlgoParamsV1): Algo {
   return Object.freeze<Algo>({
     version,
     timing: params.timing,
+    live: Object.freeze({
+      dailyMoveLimitPoints: params.dailyMoveLimitPoints,
+      dailyOpen: params.dailyOpen,
+      payday: params.payday,
+      weeklyWin: params.weeklyWin,
+      peopleNudge: params.peopleNudge,
+    }),
     contextOf,
     nextQuestion: (bank, background, steps, opts) => nextQuestion(params, bank, background, steps, opts?.excludedAreas),
     progressOf: (bank, background, steps, opts) => progressOf(params, bank, background, steps, opts?.excludedAreas),

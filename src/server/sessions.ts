@@ -2,7 +2,7 @@
  * Reading sessions, events and results. Shared by the session handlers and by /api/me.
  * The steps of a session are never stored: they are rebuilt from the raw events every time.
  */
-import { HEALTH_AREAS, type SessionInfo, type StoredResult, type UsState } from '../shared/api';
+import { HEALTH_AREAS, type EventAction, type SessionInfo, type StoredResult, type UsState } from '../shared/api';
 import type { AreaId, Background, Lang, OrderDirection, Result, RoleId, Step, VersionSet, Where } from '../engine';
 import type { Db } from './db';
 import { first } from './db';
@@ -26,7 +26,7 @@ export interface SessionRow {
 
 export interface EventRow {
   seq: number;
-  action: 'shown' | 'select' | 'skip';
+  action: EventAction;
   item_id: string;
   version_key: string;
   lang: Lang;
@@ -92,7 +92,10 @@ export function sessionInfo(session: SessionRow): SessionInfo {
   };
 }
 
-/** The engine step of one answer event (select or skip). */
+/**
+ * The engine step of one answer event (select, skip or na). A skip and a not-applicable both
+ * give a step without an option: the question has no score.
+ */
 export function stepOf(event: EventRow): Step {
   const step: Step = {
     id: event.item_id,
@@ -103,11 +106,13 @@ export function stepOf(event: EventRow): Step {
     order: event.display_direction,
     source: 'questionnaire',
   };
+  // Why there is no option. Scoring ignores it; the team's per-question totals read it.
+  if (event.action === 'skip' || event.action === 'na') step.reason = event.action;
   if (event.click_position) step.where = event.click_position;
   return step;
 }
 
-/** Answered and skipped questions in order. "shown" events carry no answer and are left out. */
+/** Answered, skipped and not-applicable questions in order. "shown" events carry no answer and are left out. */
 export function stepsOf(events: readonly EventRow[]): Step[] {
   return events.filter((e) => e.action !== 'shown').map(stepOf);
 }
@@ -171,4 +176,42 @@ export async function storedResult(db: Db, row: ResultRow): Promise<StoredResult
     versions: versionsOf(row),
     result: full.result,
   };
+}
+
+/**
+ * Stores a result next to any other result of the same check. The key is (check, algorithm
+ * version, norm version): a row that exists is never overwritten, so an old result and its
+ * recomputation can both be looked up. Returns true when a row was written.
+ */
+export async function insertResult(db: Db, sessionId: string, userId: string, at: string, result: Result): Promise<boolean> {
+  const sector = (area: AreaId, field: 'price' | 'raw'): number | null => result.sectors[area][field];
+  const rows = await db.query(
+    `insert into results (session_id, algo_version, norm_version, bank_version, user_id, computed_at, overall,
+       price_c, price_w, price_n, price_b, price_m, raw_c, raw_w, raw_n, raw_b, raw_m, grade, result)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+     on conflict do nothing
+     returning session_id`,
+    [
+      sessionId,
+      result.versions.algo,
+      result.versions.norm,
+      result.versions.bank,
+      userId,
+      at,
+      result.overall,
+      sector('C', 'price'),
+      sector('W', 'price'),
+      sector('N', 'price'),
+      sector('B', 'price'),
+      sector('M', 'price'),
+      sector('C', 'raw'),
+      sector('W', 'raw'),
+      sector('N', 'raw'),
+      sector('B', 'raw'),
+      sector('M', 'raw'),
+      result.grade,
+      JSON.stringify(result),
+    ],
+  );
+  return rows.length > 0;
 }

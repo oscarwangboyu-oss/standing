@@ -13,7 +13,7 @@ import { AREA_IDS, CURRENT, getNorm, ROLE_IDS, type AreaId, type RoleId } from '
 import { PRICE_BIN_EDGES } from '../config';
 import type { Db } from '../db';
 import { csv, type CsvCell } from '../http';
-import { shownResultCte } from './shared';
+import { demoCounts, shownResultCte } from './shared';
 
 interface CohortRow {
   role: RoleId | null;
@@ -78,6 +78,7 @@ export async function teamPrices(db: Db, now: Date): Promise<TeamPricesResponse>
   const rows = await cohortRows(db);
   return {
     generatedAt: now.toISOString(),
+    demoPeople: (await demoCounts(db)).people,
     versions: { ...CURRENT },
     binEdges: [...PRICE_BIN_EDGES],
     rows: rows.map(
@@ -100,6 +101,7 @@ export async function teamNorms(db: Db, now: Date): Promise<TeamNormsResponse> {
   const norm = getNorm(CURRENT.norm);
   return {
     generatedAt: now.toISOString(),
+    demoPeople: (await demoCounts(db)).people,
     versions: { ...CURRENT },
     current: { version: CURRENT.norm, provisional: norm.provisional, sectors: norm.sectors },
     rows: rows.map(

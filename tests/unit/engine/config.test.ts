@@ -314,7 +314,14 @@ describe('BANK_BANDS against the option texts of bank 2.1', () => {
     // The questions named in the parameters are the ones that have bands.
     const p = ALGO_PARAMS[1];
     expect(Object.keys(BANK_BANDS['2.1']).sort()).toEqual(
-      [p.dailyOpen.sleep.itemId, p.dailyOpen.exercise.itemId, p.payday.runwayItemId, `${p.payday.shareItemId}:save`, `${p.payday.shareItemId}:debt`].sort(),
+      [
+        p.dailyOpen.sleep.itemId,
+        p.dailyOpen.exercise.itemId,
+        p.payday.runwayItemId,
+        `${p.payday.shareItemId}:save`,
+        `${p.payday.shareItemId}:debt`,
+        p.weeklyWin.learning.band,
+      ].sort(),
     );
   });
 

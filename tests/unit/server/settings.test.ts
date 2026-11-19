@@ -30,8 +30,28 @@ async function personWithEverything(api: TestApi) {
     },
   });
   await api.call('POST', '/api/visits', { token, body: { localDate: '2026-03-02' } });
+  // One entry in each of the four micro apps.
+  const localDate = api.now().toISOString().slice(0, 10);
+  const entries: Array<[string, Record<string, unknown>]> = [
+    ['/api/daily', { localDate, sleep: 3, exercise: 2, state: 3 }],
+    ['/api/payday', { id: 'payday-entry-000001', localDate, periods: 1, saveShare: 2, runway: null, baselineDay: null }],
+    ['/api/weekly-wins', { id: 'weekly-win-0000001', localDate, kind: 'course', hours: 1 }],
+    ['/api/people-nudges', { id: 'people-nudge-00001', localDate, planned: 3, reached: ['friend', 'mentor'] }],
+  ];
+  for (const [path, body] of entries) {
+    const stored = await api.call('POST', path, { token, body });
+    if (stored.status !== 201) throw new Error(`${path} failed: ${stored.status} ${stored.text}`);
+  }
   const second = await api.call('POST', '/api/restore', { body: { recoveryCode: user.recoveryCode } });
   return { user, token, session, open, secondToken: second.body.deviceToken as string };
+}
+
+/** Puts two people in a comparison: a invites, b accepts. b also holds an unused invite. */
+async function connect(api: TestApi, aToken: string, bToken: string): Promise<void> {
+  const invite = await api.call('POST', '/api/compare/invites', { token: aToken });
+  const accepted = await api.call('POST', '/api/compare/accept', { token: bToken, body: { code: invite.body.code } });
+  if (accepted.status !== 201) throw new Error(`accept failed: ${accepted.status} ${accepted.text}`);
+  await api.call('POST', '/api/compare/invites', { token: bToken });
 }
 
 describe('the list of personal tables', () => {
@@ -42,11 +62,18 @@ describe('the list of personal tables', () => {
        where table_schema = 'public' and column_name = 'user_id' order by table_name`,
     );
     expect(rows.map((r) => r.table_name)).toEqual(USER_TABLES.map((t) => t.name).sort());
-    // And nothing else in the schema: users itself and the migration log.
+    // And nothing else in the schema that could hold a person: users itself, the migration
+    // log, and the version log, which has a row per version and none per person.
     const all = await api.db.query<{ table_name: string }>(
       "select table_name from information_schema.tables where table_schema = 'public' order by table_name",
     );
-    expect(all.map((r) => r.table_name)).toEqual([...USER_TABLES.map((t) => t.name), USERS_TABLE.name, '_migrations'].sort());
+    expect(all.map((r) => r.table_name)).toEqual(
+      [...USER_TABLES.map((t) => t.name), USERS_TABLE.name, '_migrations', 'version_log'].sort(),
+    );
+    const logColumns = await api.db.query<{ column_name: string }>(
+      "select column_name from information_schema.columns where table_name = 'version_log' order by column_name",
+    );
+    expect(logColumns.map((r) => r.column_name)).toEqual(['effective_day', 'kind', 'logged_at', 'version']);
   });
 });
 
@@ -55,6 +82,7 @@ describe('export', () => {
     const api = await makeApi({ now: '2026-03-01T12:00:00.000Z' });
     const { user, token, session, open } = await personWithEverything(api);
     const stranger = await personWithEverything(api);
+    await connect(api, token, stranger.token);
 
     api.setNow('2026-03-01T13:00:00.000Z');
     const res = await api.call('GET', '/api/me/export', { token });
@@ -76,6 +104,17 @@ describe('export', () => {
     expect(res.body.tables.visits.map((v: any) => v.day)).toEqual(['2026-03-01', '2026-03-02']);
     expect(res.body.tables.device_tokens.map((d: any) => d.origin)).toEqual(['create', 'restore']);
     expect(res.body.tables.consents.length).toBe(2);
+    // The micro-app records are there as stored: taps, bands, categories and counts.
+    expect(res.body.tables.daily_entries).toMatchObject([{ day: '2026-03-01', logged_on: '2026-03-01', sleep: 3, exercise: 2, state: 3 }]);
+    expect(res.body.tables.payday_entries).toMatchObject([{ periods: 1, save_share: 2, runway: null, baseline_day: null }]);
+    expect(res.body.tables.weekly_wins).toMatchObject([{ kind: 'course', hours: 1, exam: null, level: null }]);
+    expect(res.body.tables.people_nudges).toMatchObject([{ planned: 3, reached_friend: 1, reached_mentor: 1, reached_family: 0 }]);
+    // The comparison is listed without the other person, the invite without its code hash.
+    expect(Object.keys(res.body.tables.comparisons[0]).sort()).toEqual(['created_at', 'pair_id', 'user_id']);
+    expect(Object.keys(res.body.tables.compare_invites[0]).sort()).toEqual(
+      ['accepted_at', 'created_at', 'expires_at', 'pair_id', 'user_id'],
+    );
+    expect(res.text).not.toContain('code_hash');
 
     // No hashes, no secrets, and nothing of anyone else.
     expect(res.text).not.toContain('recovery_hash');
@@ -100,6 +139,7 @@ describe('delete', () => {
     const api = await makeApi();
     const { user, token, secondToken } = await personWithEverything(api);
     const stranger = await personWithEverything(api);
+    await connect(api, token, stranger.token);
 
     const tables = [...USER_TABLES.map((t) => t.name), 'users'];
     const before: Record<string, number> = {};
@@ -116,9 +156,12 @@ describe('delete', () => {
 
     for (const table of tables) {
       expect(await countRows(api.db, table, user.userId), table).toBe(0);
-      expect(await countRows(api.db, table, stranger.user.userId), table).toBe(strangerBefore[table]);
-      expect(await countRows(api.db, table), table).toBe(strangerBefore[table]);
+      // A comparison belongs to two people: it is gone for the friend as well. Nothing else of theirs is touched.
+      const left = table === 'comparisons' ? 0 : strangerBefore[table];
+      expect(await countRows(api.db, table, stranger.user.userId), table).toBe(left);
+      expect(await countRows(api.db, table), table).toBe(left);
     }
+    expect((await api.call('GET', '/api/compare', { token: stranger.token })).body.comparisons).toEqual([]);
     // No row anywhere still mentions the id, whatever the column.
     for (const table of tables) {
       const rows = await api.db.query(`select * from ${table}`);

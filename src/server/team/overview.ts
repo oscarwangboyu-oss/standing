@@ -8,7 +8,7 @@ import type { Db } from '../db';
 import { first } from '../db';
 import { csv, type CsvCell } from '../http';
 import { teamItems } from './items';
-import { GO, rate, RED_LINES, RETEST_WINDOW, retestPairsCte, shownResultCte } from './shared';
+import { demoCounts, GO, rate, RED_LINES, RETEST_WINDOW, retestPairsCte, shownResultCte } from './shared';
 
 interface StartedRow {
   role: RoleId | null;
@@ -56,7 +56,7 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
   const pairs = retest?.pairs ?? 0;
   const correlation = retest?.correlation ?? null;
 
-  const demo = await first<{ n: number }>(db, 'select count(*)::int as n from users where is_demo');
+  const demo = await demoCounts(db);
 
   // Highest skip rate of any question version, over all roles.
   const items = await teamItems(db, now, null);
@@ -71,7 +71,8 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
   return {
     generatedAt: now.toISOString(),
     versions: { ...CURRENT },
-    demoPeople: demo?.n ?? 0,
+    demoPeople: demo.people,
+    demoChecks: demo.checks,
     totals,
     byRole,
     retest: { pairs, correlation, windowDays: RETEST_WINDOW },

@@ -258,7 +258,15 @@ describe('overview', () => {
       people: { count: 28, of: 30, rate: 28 / 30 },
     });
     expect(body.demoPeople).toBe(1);
+    expect(body.demoChecks).toBe(1);
     expect(body.versions).toEqual({ algo: 1, bank: '2.1', norm: 'provisional-1' });
+  });
+
+  it('every table says how many simulated people are behind it, in JSON and in the CSV header', async () => {
+    for (const table of ['overview', 'items', 'prices', 'norms', 'returns', 'report']) {
+      expect((await get(`/api/team/${table}`)).body.demoPeople, table).toBe(1);
+      expect((await get(`/api/team/${table}?format=csv`)).headers.get('x-standing-demo-people'), table).toBe('1');
+    }
   });
 
   it('counts by role', async () => {
@@ -376,11 +384,12 @@ describe('per question, all roles', () => {
     expect(rows.B3.options.red).toBe(true);
   });
 
-  it('not-applicable share: options whose score is null; red above 15%', () => {
-    // B4: 1 of 5 chose option 6, the one without a score.
+  it('not-applicable share: marked not applicable or an option whose score is null, over those shown; red above 15%', () => {
+    // B4: shown to 5, 1 chose option 6, the one without a score. Nobody marked it not applicable.
     expect(rows.B4.options.counts).toEqual([1, 1, 1, 1, 0, 0, 1]);
-    expect(rows.B4.notApplicable).toEqual({ count: 1, of: 5, rate: 0.2, red: true, hasOption: true });
-    expect(rows.B1.notApplicable).toEqual({ count: 0, of: 15, rate: 0, red: false, hasOption: false });
+    expect(rows.B4.notApplicable).toEqual({ count: 1, of: 5, rate: 0.2, red: true, hasOption: true, marked: 0, unscoredOption: 1 });
+    // B1: shown to 20. No unscored option and nobody marked it.
+    expect(rows.B1.notApplicable).toEqual({ count: 0, of: 20, rate: 0, red: false, hasOption: false, marked: 0, unscoredOption: 0 });
   });
 
   it('retest change: same person, two checks 10 to 21 days apart; red above 30%', () => {
@@ -629,7 +638,8 @@ describe('CSV', () => {
     expect(rows[0]).toBe(
       'item_id,version_key,area,shown,skipped,skip_rate,skip_red,dropped,drop_off_rate,drop_off_red,answered,' +
         'median_seconds,stem_seconds,similar_stems,similar_median_seconds,time_red,option_counts,option_shares,options_red,' +
-        'not_applicable,not_applicable_rate,not_applicable_red,retest_people,retest_changed,retest_change_rate,retest_red',
+        'marked_not_applicable,unscored_option,not_applicable,not_applicable_rate,not_applicable_red,' +
+        'retest_people,retest_changed,retest_change_rate,retest_red',
     );
     expect(rows.length).toBe(6);
     const b1 = rows.find((r) => r.startsWith('B1,'))!.split(',');

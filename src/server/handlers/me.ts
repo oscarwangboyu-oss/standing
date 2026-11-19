@@ -18,14 +18,26 @@ import {
 import { CURRENT, type Grade } from '../../engine';
 import { consentOf, profileOf, requireUser } from '../auth';
 import { first } from '../db';
-import { invalid, isInt, isOneOf, isRecord, json, readBody, type Deps } from '../http';
+import { invalid, isInt, isOneOf, isRecord, json, readBody, utcDay, type Deps } from '../http';
+import { liveOf, loadPerson } from '../live';
 import { latestOpenSession, loadSession, pricesOf, shownResults, storedResult, versionsOf } from '../sessions';
 import { USERS_TABLE, USER_TABLES } from '../tables';
+import { versionMarkers } from '../versions';
 import { checkedLocalDay, overallChange } from './sessions';
 
-/** GET /api/me */
+/**
+ * The day the live series ends on: the `today` query parameter, which is the device's local
+ * date and is checked against server time like a visit, or the server's UTC date without it.
+ */
+export function todayOf(request: Request, now: Date): string {
+  const today = new URL(request.url).searchParams.get('today');
+  return checkedLocalDay(today === null || today === '' ? undefined : today, now);
+}
+
+/** GET /api/me?today=YYYY-MM-DD */
 export async function getMe(request: Request, deps: Deps): Promise<Response> {
   const user = await requireUser(request, deps);
+  const today = todayOf(request, deps.now());
   const rows = await shownResults(deps.db, user.id, CURRENT);
   const history: HistoryPoint[] = rows.map((row) => ({
     sessionId: row.session_id,
@@ -58,6 +70,9 @@ export async function getMe(request: Request, deps: Deps): Promise<Response> {
       low: priced.length > 0 ? Math.min(...priced) : null,
     },
     openSession: open ? { id: open.id, createdAt: open.created_at, answered: answered?.n ?? 0 } : null,
+    versionMarkers: await versionMarkers(deps.db, utcDay(deps.now())),
+    // Computed now from the raw records. Nothing of it is stored.
+    live: liveOf(await loadPerson(deps.db, user.id, today), user, deps.env.flags, today),
   };
   return json(response);
 }
@@ -140,7 +155,7 @@ export async function postReportEvents(request: Request, deps: Deps): Promise<Re
   });
   const session = await loadSession(deps.db, user.id, body.sessionId);
 
-  const inserted = await deps.db.query(
+  const inserted = await deps.db.query<{ id: string }>(
     `insert into report_events (user_id, id, session_id, section, kind, ms, useful, at)
      select $1, x.id, $2, x.section, x.kind, x.ms, x.useful, $3
      from jsonb_to_recordset($4::jsonb) as x(id text, section text, kind text, ms integer, useful boolean)
@@ -148,6 +163,21 @@ export async function postReportEvents(request: Request, deps: Deps): Promise<Re
      returning id`,
     [user.id, session.id, deps.now().toISOString(), JSON.stringify(rows)],
   );
+  // Funnel events: a section came into view, or the share action was used. Stored rows only.
+  if (deps.track) {
+    const at = deps.now().toISOString();
+    const stored = new Set(inserted.map((r) => r.id));
+    for (const row of rows) {
+      if (!stored.has(row.id) || (row.kind !== 'seen' && row.kind !== 'share')) continue;
+      deps.track({
+        name: row.kind === 'seen' ? 'result_section_seen' : 'share',
+        userId: user.id,
+        at,
+        sessionId: session.id,
+        section: row.section,
+      });
+    }
+  }
   const response: PostReportEventsResponse = { stored: inserted.length, duplicates: rows.length - inserted.length };
   return json(response);
 }
@@ -163,6 +193,7 @@ export async function postVisit(request: Request, deps: Deps): Promise<Response>
     'insert into visits (user_id, day, first_at) values ($1, $2, $3) on conflict do nothing returning day',
     [user.id, day, now.toISOString()],
   );
+  if (inserted.length > 0) deps.track?.({ name: 'visit', userId: user.id, at: now.toISOString() });
   const response: VisitResponse = { day, recorded: inserted.length > 0 };
   return json(response);
 }

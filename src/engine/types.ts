@@ -155,14 +155,27 @@ export interface Context {
   mgr: 0 | 1;
 }
 
+/**
+ * Why a step has no answer. skip: the person passed over the question. na: the person marked
+ * it not applicable. Scoring treats both the same (k is null); the distinction is kept for the
+ * per-question totals on the team dashboard.
+ */
+export const SKIP_REASONS = ['skip', 'na'] as const;
+export type SkipReason = (typeof SKIP_REASONS)[number];
+
 /** One question as it was answered or skipped. Raw record: append only. */
 export interface Step {
   /** Question id. */
   id: string;
   /** Version key that was shown. */
   key: string;
-  /** Option index. null means the question was skipped. */
+  /** Option index. null means the question was skipped or marked not applicable. */
   k: number | null;
+  /**
+   * Set when k is null: skipped, or marked not applicable. compute ignores it. A stored step
+   * without it and with k null counts as skipped.
+   */
+  reason?: SkipReason;
   /** Seconds from display to answer. null means not timed. */
   secs: number | null;
   /** Language shown when the answer was given. The time threshold is computed in this language. */
@@ -254,6 +267,244 @@ export interface TimingParams {
   thresholdMaxSeconds: number;
   /** Lowest weight multiplier an answer can get. */
   multiplierFloor: number;
+}
+
+// ---------------------------------------------------------------- live data: parameters
+//
+// The rules for everything that happens after the first check: the four micro apps and the
+// day-by-day price. They belong to an algorithm version (Algo.live), because changing one of
+// them changes prices. The values live in config.ts.
+
+export interface DailyOpenParams {
+  /** Look-back window in days. */
+  windowDays: number;
+  /** Days with a record needed inside the window before daily data replaces the questionnaire answer. */
+  minDays: number;
+  sleep: {
+    /** Question whose answer the daily sleep records replace. */
+    itemId: string;
+    /** Hours assumed for each daily sleep option. */
+    midpointHours: number[];
+  };
+  exercise: {
+    /** Question whose answer the daily exercise records replace. */
+    itemId: string;
+    /** Minutes assumed for each daily exercise option. */
+    midpointMinutes: number[];
+    /** The daily mean is multiplied by this to compare with the weekly question. */
+    daysPerWeek: number;
+  };
+  state: {
+    /** Id of the synthetic item added to the mind sector. */
+    extraId: string;
+    area: AreaId;
+    load: number;
+    /** Score of each of the five state options, from very bad to very good. */
+    scores: number[];
+  };
+  /** Days without a record after which body and mind are halted. */
+  haltAfterDays: number;
+  /** Days after the last full check at which a quarterly retest is suggested. */
+  retestAfterDays: number;
+  streak: {
+    /** How many days back a missed day can still be filled in. */
+    backfillDays: number;
+    /** Missed days in a row that reset the streak. */
+    resetAfterMissedDays: number;
+  };
+  mindNotice: {
+    windowDays: number;
+    /** Days of "very bad" inside the window that show the mind notice. */
+    veryBadDays: number;
+  };
+}
+
+export interface PaydayParams {
+  /** Pay periods averaged for the saving share. */
+  averagePeriods: number;
+  /** Fewest pay periods with an income above zero before the saving share replaces the answer. */
+  minPeriods: number;
+  /** Days without a payday check after which the wealth sector is halted. */
+  haltAfterDays: number;
+  /** What the saving amount is divided by. */
+  denominator: 'take_home';
+  /** Roles the payday check is offered to. */
+  eligibleRoles: RoleId[];
+  /** Sources of day-to-day money the payday check is offered to. */
+  eligibleMoney: MoneyId[];
+  /** Question whose answer the estimated months of savings can replace. */
+  runwayItemId: string;
+  runway: {
+    /** Versions of the question that ask for months of savings in the bands of `band`. */
+    versionKeys: string[];
+    /** Key of BANK_BANDS that places months of savings. */
+    band: string;
+  };
+  /** Question whose answer the saving share replaces, in the version that asks for it. */
+  shareItemId: string;
+  saveShare: {
+    /** Version of the question that asks for the share saved. Other versions keep the questionnaire answer. */
+    versionKey: string;
+    /** Key of BANK_BANDS that places the share. */
+    band: string;
+  };
+}
+
+export interface WeeklyWinParams {
+  /** Days without an entry after which the capability sector is halted. */
+  haltAfterDays: number;
+  learning: {
+    /** Question whose answer the logged course hours can replace. */
+    itemId: string;
+    /** Key of BANK_BANDS that places hours a year. */
+    band: string;
+    /** Hours assumed for each hours option of a course entry. */
+    midpointHours: number[];
+    /** Look-back window in days. The question asks about the past 12 months. */
+    windowDays: number;
+    /** Weeks with a course entry needed inside the window before the log is read. */
+    minWeeks: number;
+  };
+  licence: {
+    /** Question whose answer a new licence or certificate can replace. */
+    itemId: string;
+    /** Licences held that each option of the question stands for. */
+    heldForOption: number[];
+    /** Option for exactly one licence at entry level. */
+    oneEntryOption: number;
+    /** Option for exactly one advanced or state licence. */
+    oneAdvancedOption: number;
+    /** Option for each total from two upward. The last one covers every higher total. */
+    optionFromTwo: number[];
+  };
+  regularity: {
+    /** Id of the synthetic item added to the capability sector. */
+    extraId: string;
+    area: AreaId;
+    load: number;
+    /** Calendar weeks looked back over. */
+    windowWeeks: number;
+    /** Weeks with an entry needed inside the window before the item counts. */
+    minWeeks: number;
+  };
+}
+
+export interface PeopleNudgeParams {
+  /** Days without an entry after which the network sector is halted. */
+  haltAfterDays: number;
+  /** People to reconnect with each week. More reached than this in one week count as this many. */
+  maxPerWeek: number;
+  reach: {
+    /** Id of the synthetic item added to the network sector. */
+    extraId: string;
+    area: AreaId;
+    load: number;
+    /** Calendar weeks looked back over. */
+    windowWeeks: number;
+    /** Weeks with an entry needed inside the window before the item counts. */
+    minWeeks: number;
+  };
+  mentor: {
+    /** Question whose answer logged contact with a mentor can replace. */
+    itemId: string;
+    /** Version of the question that asks about a mentor. Other versions keep the questionnaire answer. */
+    versionKey: string;
+    /**
+     * Levels from the highest option down. The first one whose condition holds is the option
+     * the log implies: a mentor reached in at least minWeeks weeks of the last windowDays days.
+     */
+    levels: Array<{ windowDays: number; minWeeks: number; option: number }>;
+  };
+}
+
+/** The rules an algorithm version applies to data that arrives after a check. */
+export interface LiveParams {
+  /** Most points a sector may move in one day. The day of a full check is exempt. */
+  dailyMoveLimitPoints: number;
+  dailyOpen: DailyOpenParams;
+  payday: PaydayParams;
+  weeklyWin: WeeklyWinParams;
+  peopleNudge: PeopleNudgeParams;
+}
+
+// ---------------------------------------------------------------- live data: entries
+//
+// What the micro apps record. Everything here is a tap, a category or a count. Free text (a
+// person's name, the title of a course) and money amounts stay on the device and have no
+// field here, so they cannot reach the engine or the server through these records.
+
+/** One day of the daily open. Each of the three taps is an option index from 0 to 4, or null when left out. */
+export interface DailyEntry {
+  /** The day the entry describes, YYYY-MM-DD. */
+  day: string;
+  /** The day it was entered, when that is later than `day` (yesterday filled in today). Defaults to `day`. */
+  loggedOn?: string;
+  /** Last night's sleep: under 5 hours, 5 to 6, 6 to 7, 7 to 9, more than 9. */
+  sleep: number | null;
+  /** Minutes of moderate or vigorous activity: none, 1 to 19, 20 to 39, 40 to 59, 60 or more. */
+  exercise: number | null;
+  /** How the person feels now, from very bad (0) to very good (4). */
+  state: number | null;
+}
+
+/**
+ * What one payday check sends on: bands only, never amounts. The device computes them from
+ * the three numbers with paydayBandsFor.
+ */
+export interface PaydayBands {
+  /** The payday, YYYY-MM-DD. */
+  day: string;
+  /** Pay periods that went into the saving share (1 to averagePeriods). 0 when there is no share. */
+  periods: number;
+  /** Option index of the saving-share question the averaged share falls in, or null. */
+  saveShare: number | null;
+  /**
+   * Option index of the months-of-savings question the estimate has provably reached, or null
+   * when the questionnaire answer still stands.
+   */
+  runway: number | null;
+  /** Day of the full check whose answer the runway estimate started from. null without one. */
+  baselineDay: string | null;
+}
+
+export const WEEKLY_WIN_KINDS = ['course', 'certificate', 'skill'] as const;
+export type WeeklyWinKind = (typeof WEEKLY_WIN_KINDS)[number];
+
+export const CERTIFICATE_LEVELS = ['entry', 'advanced'] as const;
+export type CertificateLevel = (typeof CERTIFICATE_LEVELS)[number];
+
+/** One weekly win. The title the person types stays on the device. */
+export interface WeeklyWinEntry {
+  /** The day the win was logged, YYYY-MM-DD. */
+  day: string;
+  /** A course or training, a licence or certificate, or a skill improved by practice. */
+  kind: WeeklyWinKind;
+  /**
+   * course: hours of structured learning that week as an option index (about 1 hour, 2 to 4,
+   * 5 to 9, 10 to 19, 20 or more). null or absent otherwise.
+   */
+  hours?: number | null;
+  /** certificate: true when it required an exam. Only those count toward the licence question. */
+  exam?: boolean;
+  /** certificate: entry level, or advanced or state licence. */
+  level?: CertificateLevel;
+}
+
+export const NUDGE_CATEGORIES = ['family', 'friend', 'mentor', 'work', 'other'] as const;
+/**
+ * Who a reached person is to the user. mentor: someone more experienced who actively helps
+ * their studies or career. work: a colleague, classmate or professional contact.
+ */
+export type NudgeCategory = (typeof NUDGE_CATEGORIES)[number];
+
+/** One week of the people nudge. Names stay on the device; the engine sees categories and counts. */
+export interface PeopleNudgeEntry {
+  /** The day the log was saved, YYYY-MM-DD. */
+  day: string;
+  /** People picked to reconnect with that week. */
+  planned: number;
+  /** Category of each person actually reached. An empty list is a week in which nobody was reached. */
+  reached: NudgeCategory[];
 }
 
 // ---------------------------------------------------------------- outputs
@@ -467,6 +718,8 @@ export interface AlgoComputeInput extends ComputeInput {
 export interface Algo {
   readonly version: number;
   readonly timing: TimingParams;
+  /** Rules for the micro apps and the day-by-day price under this version. */
+  readonly live: LiveParams;
   contextOf(bank: Bank, background: Background): Context;
   nextQuestion(
     bank: Bank,

@@ -48,3 +48,54 @@ export const DROP_OFF_IDLE_MINUTES = 30;
  * wide, which is one standard deviation, from limit down (55) to limit up (145).
  */
 export const PRICE_BIN_EDGES = [55, 70, 85, 100, 115, 130, 145] as const;
+
+/**
+ * Friend compare: an invite link works for this many days after it is made. Long enough for a
+ * friend to take the check on another day, short enough that an old link in a chat stops
+ * working. Initial setting.
+ */
+export const COMPARE_INVITE_DAYS = 14;
+
+/**
+ * Friend compare: most unused, unexpired invites one person can hold. It bounds what one device
+ * token can write to the invite table. Initial setting.
+ */
+export const MAX_OPEN_INVITES = 10;
+
+/**
+ * PostHog forwarding: the request to PostHog is given up after this many milliseconds. It runs
+ * after the response to the user was sent, so the limit only bounds background work.
+ */
+export const POSTHOG_TIMEOUT_MS = 2000;
+
+/**
+ * PostHog forwarding: most events in one request to PostHog. One API request yields at most
+ * MAX_EVENTS_PER_REQUEST of them, so a batch is never split in practice.
+ */
+export const POSTHOG_MAX_BATCH = 100;
+
+/** The recompute command lists this many of the largest moves. */
+export const RECOMPUTE_TOP_MOVES = 10;
+
+/**
+ * Micro apps: most entries one person can record in one app on one day (payday, weekly win,
+ * people nudge; the daily open takes one a day). It bounds what one device token can write.
+ * The engine reads the last entry of a day or week, so more would add nothing. Initial setting.
+ */
+export const MAX_MICRO_ENTRIES_PER_DAY = 10;
+
+/**
+ * Team dashboard, stage 2: a person counts as active for an app when they opened Standing or
+ * recorded an entry on one of the last N days. Seven days for the daily and the weekly apps.
+ * Thirty for payday, so that a person paid once a month has had one payday. Initial settings.
+ */
+export const TEAM_APP_WINDOW_DAYS = { daily_open: 7, payday: 30, weekly_win: 7, people_nudge: 7 } as const;
+
+/** Team dashboard: the day-by-day daily open table covers this many days up to today. */
+export const TEAM_DAILY_DAYS = 60;
+
+/** Team dashboard: the week-by-week table of the weekly apps covers this many calendar weeks. */
+export const TEAM_APP_WEEKS = 12;
+
+/** Prices in the day-by-day series of GET /api/me are rounded to this many decimals. */
+export const SERIES_DECIMALS = 2;

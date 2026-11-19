@@ -6,6 +6,22 @@
  */
 import type { Rate, TeamGoCriteria, TeamRedLines } from '../../shared/api';
 import { DASHBOARD_RED_LINES, GO_CRITERIA, RETEST_WINDOW_DAYS } from '../../engine';
+import type { Db } from '../db';
+import { first } from '../db';
+
+/**
+ * How many people, and how many of their checks, are simulated (made by npm run seed:demo).
+ * Every team response carries the count of people, so a table that includes simulated data can
+ * never be read as real. Always 0 in production: the demo script refuses to run there.
+ */
+export async function demoCounts(db: Db): Promise<{ people: number; checks: number }> {
+  const row = await first<{ people: number; checks: number }>(
+    db,
+    `select (select count(*) from users where is_demo)::int as people,
+       (select count(*) from sessions s join users u on u.id = s.user_id where u.is_demo)::int as checks`,
+  );
+  return { people: row?.people ?? 0, checks: row?.checks ?? 0 };
+}
 
 export function rate(count: number, of: number): Rate {
   return { count, of, rate: of > 0 ? count / of : null };
@@ -53,5 +69,37 @@ export function shownResultCte(algoParam: string, normParam: string): string {
       from results r
       order by r.session_id, (r.algo_version = ${algoParam}::int and r.norm_version = ${normParam}) desc,
         r.computed_at desc
+    )`;
+}
+
+/**
+ * SQL: a derived table of (user_id, day), one row for every sign that a person used Standing
+ * on a day: a visit, or an entry in one of the four micro apps on the day it was entered. A
+ * person can appear more than once for a day. Use it as `from ${ACTIVITY} a`.
+ */
+export const ACTIVITY = `(
+    select user_id, day from visits
+    union all select user_id, logged_on as day from daily_entries
+    union all select user_id, day from payday_entries
+    union all select user_id, day from weekly_wins
+    union all select user_id, day from people_nudges
+  )`;
+
+/**
+ * SQL: `active`, one row per active person and day. A person is active on a day when they used
+ * Standing that day (ACTIVITY) and had completed a check by then. Day 0 is the local date of
+ * their first completed check, as in the return rates.
+ */
+export function activeCte(): string {
+  return `
+    checked as (
+      select distinct on (s.user_id) s.user_id, s.local_day as day0
+      from sessions s where s.completed_at is not null
+      order by s.user_id, s.completed_at, s.id
+    ),
+    active as (
+      select distinct a.user_id, a.day
+      from ${ACTIVITY} a join checked c on c.user_id = a.user_id
+      where a.day >= c.day0
     )`;
 }

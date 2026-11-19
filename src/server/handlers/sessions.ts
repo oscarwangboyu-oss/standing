@@ -13,6 +13,7 @@ import {
   VISIT_MAX_SKEW_DAYS,
   type CompleteSessionResponse,
   type CreateSessionResponse,
+  type EventAction,
   type OpenSessionResponse,
   type OverallChange,
   type PostEventsResponse,
@@ -40,6 +41,7 @@ import {
   type Step,
 } from '../../engine';
 import { requireUser, type UserRow } from '../auth';
+import type { FunnelEventName } from '../posthog';
 import { randomId } from '../crypto';
 import type { Db } from '../db';
 import { first } from '../db';
@@ -59,6 +61,7 @@ import {
 import {
   backgroundOf,
   excludedAreasOf,
+  insertResult,
   latestOpenSession,
   loadEvents,
   loadSession,
@@ -192,6 +195,7 @@ export async function createSession(request: Request, deps: Deps): Promise<Respo
     ]);
   });
 
+  deps.track?.({ name: 'check_started', userId: user.id, at, sessionId: id });
   const response: CreateSessionResponse = {
     session: sessionInfo(await loadSession(deps.db, user.id, id)),
     created: true,
@@ -235,6 +239,14 @@ export async function getOpenSession(request: Request, deps: Deps): Promise<Resp
 
 // ---------------------------------------------------------------- events
 
+/** The funnel event each stored question event is forwarded as. */
+const FUNNEL_NAME_OF: Record<EventAction, FunnelEventName> = {
+  shown: 'question_shown',
+  select: 'question_answered',
+  skip: 'question_skipped',
+  na: 'question_not_applicable',
+};
+
 /** Options in the order they were on screen for a display direction. */
 function displayedOrder(version: ItemVersion, direction: OrderDirection): number[] {
   // The engine derives the direction from a random number; pick one that gives this direction.
@@ -255,7 +267,7 @@ function checkedEvent(bank: Bank, raw: unknown, index: number): EventRow {
   if (!isRecord(raw)) throw eventError(index, {}, 'an event must be an object');
   const e = raw as Partial<Record<keyof QuestionEventInput, unknown>>;
   if (!isInt(e.seq, 0, 200)) throw eventError(index, e, 'seq must be a whole number from 0');
-  if (!isOneOf(e.action, EVENT_ACTIONS)) throw eventError(index, e, 'action must be shown, select or skip');
+  if (!isOneOf(e.action, EVENT_ACTIONS)) throw eventError(index, e, 'action must be shown, select, skip or na');
   if (e.bankVersion !== bank.bank_version) {
     throw eventError(index, e, 'bankVersion is not the bank version of the session', { expected: bank.bank_version });
   }
@@ -296,7 +308,8 @@ function checkedEvent(bank: Bank, raw: unknown, index: number): EventRow {
     if (e.clickPosition !== null && e.clickPosition !== undefined) {
       throw eventError(index, e, 'clickPosition must be null unless the action is select');
     }
-    if (e.action === 'skip' && e.seconds !== null && e.seconds !== undefined) {
+    // A skip and a not-applicable may carry the time it took to decide.
+    if ((e.action === 'skip' || e.action === 'na') && e.seconds !== null && e.seconds !== undefined) {
       if (!validSeconds(e.seconds)) {
         throw eventError(index, e, `seconds must be a number from 0 to ${MAX_ANSWER_SECONDS}`);
       }
@@ -404,7 +417,7 @@ export async function postEvents(request: Request, deps: Deps, sessionId: string
   });
 
   if (fresh.length > 0) {
-    // Write budget: two rows per question (shown, then select or skip), so one full check
+    // Write budget: two rows per question (shown, then select, skip or na), so one full check
     // writes at most 68 rows here. All rows of a request go in as one statement.
     const inserted = await deps.db.query<{ seq: number; action: string }>(
       `insert into question_events (session_id, seq, action, user_id, item_id, version_key, lang, option_index,
@@ -421,6 +434,24 @@ export async function postEvents(request: Request, deps: Deps, sessionId: string
     const written = new Set(inserted.map((r) => `${r.seq}:${r.action}`));
     for (const r of results) {
       if (r.status === 'stored' && !written.has(`${r.seq}:${r.action}`)) r.status = 'duplicate';
+    }
+    // Funnel events for what was stored: which question, how long, where on the path. Never
+    // the option, the click position or the display direction.
+    if (deps.track) {
+      const at = deps.now().toISOString();
+      for (const event of fresh) {
+        if (!written.has(`${event.seq}:${event.action}`)) continue;
+        deps.track({
+          name: FUNNEL_NAME_OF[event.action],
+          userId: user.id,
+          at,
+          sessionId: session.id,
+          itemId: event.item_id,
+          versionKey: event.version_key,
+          seconds: event.action === 'shown' ? null : event.seconds,
+          position: event.seq,
+        });
+      }
     }
   }
 
@@ -440,10 +471,6 @@ export function overallChange(previous: ResultRow, overall: number | null): Over
     delta,
     percent: delta !== null && previous.overall ? (delta / previous.overall) * 100 : null,
   };
-}
-
-function sectorColumn(result: Result, area: AreaId, field: 'price' | 'raw'): number | null {
-  return result.sectors[area][field];
 }
 
 /** POST /api/sessions/:id/complete */
@@ -472,35 +499,10 @@ export async function completeSession(request: Request, deps: Deps, sessionId: s
 
     await deps.db.transaction(async (tx) => {
       // Derived record: the three versions are stored with it so it can be recomputed and compared.
-      await tx.query(
-        `insert into results (session_id, algo_version, norm_version, bank_version, user_id, computed_at, overall,
-           price_c, price_w, price_n, price_b, price_m, raw_c, raw_w, raw_n, raw_b, raw_m, grade, result)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-         on conflict do nothing`,
-        [
-          session.id,
-          result.versions.algo,
-          result.versions.norm,
-          result.versions.bank,
-          user.id,
-          at,
-          result.overall,
-          sectorColumn(result, 'C', 'price'),
-          sectorColumn(result, 'W', 'price'),
-          sectorColumn(result, 'N', 'price'),
-          sectorColumn(result, 'B', 'price'),
-          sectorColumn(result, 'M', 'price'),
-          sectorColumn(result, 'C', 'raw'),
-          sectorColumn(result, 'W', 'raw'),
-          sectorColumn(result, 'N', 'raw'),
-          sectorColumn(result, 'B', 'raw'),
-          sectorColumn(result, 'M', 'raw'),
-          result.grade,
-          JSON.stringify(result),
-        ],
-      );
+      await insertResult(tx, session.id, user.id, at, result);
       await tx.query('update sessions set completed_at = $1 where id = $2 and completed_at is null', [at, session.id]);
     });
+    deps.track?.({ name: 'check_completed', userId: user.id, at, sessionId: session.id });
   }
 
   // Read back what is stored, so a first call and a repeated call answer the same.

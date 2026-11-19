@@ -142,6 +142,11 @@ export function shownEvent(q: NextQuestion, seq: number, options: AnswerOptions 
   };
 }
 
+/** The "not applicable" event of a question. */
+export function naEvent(q: NextQuestion, seq: number, options: AnswerOptions = {}): QuestionEventInput {
+  return { ...answerEvent(q, seq, null, options), action: 'na' };
+}
+
 /** The answer event of a question: a selection of option k, or a skip when k is null. */
 export function answerEvent(q: NextQuestion, seq: number, k: number | null, options: AnswerOptions = {}): QuestionEventInput {
   const rng = options.rng ?? 0.7;
@@ -170,6 +175,7 @@ export function stepFor(event: QuestionEventInput): Step {
     order: event.displayDirection,
     source: 'questionnaire',
   };
+  if (event.action === 'skip' || event.action === 'na') step.reason = event.action;
   if (event.clickPosition) step.where = event.clickPosition;
   return step;
 }
@@ -218,3 +224,28 @@ export async function countRows(db: Db, table: string, userId?: string): Promise
     : await db.query<{ n: number }>(`select count(*)::int as n from ${table}`);
   return rows[0].n;
 }
+
+/** Takes a whole check through the API and completes it. Returns the session, the steps and the stored result. */
+export async function completedCheck(
+  api: TestApi,
+  token: string,
+  options: { role?: RoleId; healthConsent?: boolean; choose?: Chooser; localDate?: string } = {},
+): Promise<{ id: string; steps: Step[]; background: Background; result: any }> {
+  const role = options.role ?? 'emp';
+  const healthConsent = options.healthConsent ?? true;
+  const session = await newSession(api, token, {
+    role,
+    healthConsent,
+    body: options.localDate ? { localDate: options.localDate } : undefined,
+  });
+  const background = backgroundFor(role);
+  const steps = await answer(api, token, session.id, background, options.choose ?? (() => 1), {
+    excludedAreas: healthConsent ? [] : ['B', 'M'],
+  });
+  const done = await api.call('POST', `/api/sessions/${session.id}/complete`, { token });
+  if (done.status !== 200) throw new Error(`complete failed: ${done.status} ${done.text}`);
+  return { id: session.id, steps, background, result: done.body.stored.result };
+}
+
+/** The UTC date of the injected clock, which the tests use as the device's local date. */
+export const today = (api: TestApi): string => api.now().toISOString().slice(0, 10);

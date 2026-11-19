@@ -1,5 +1,5 @@
 /**
- * Team dashboard: return rates from the visits table, and how the result page is read.
+ * Team dashboard: return rates from visits and micro-app entries, and how the result page is read.
  */
 import {
   REPORT_SECTIONS,
@@ -12,7 +12,7 @@ import {
 import { RETURN_RATE_DAYS } from '../../engine';
 import type { Db } from '../db';
 import { csv, utcDay, type CsvCell } from '../http';
-import { rate } from './shared';
+import { ACTIVITY, demoCounts, rate } from './shared';
 
 type ReturnSqlRow = { first_day: string; people: number } & Record<string, number | string>;
 
@@ -20,8 +20,9 @@ type ReturnSqlRow = { first_day: string; people: number } & Record<string, numbe
  * Return rates by the date of the first check.
  *
  * Day 0 is the local date on which a person started their first completed check. They
- * "returned on day N" when the visits table has a row for day 0 plus N. A person enters the
- * denominator of day N once that day is over everywhere in the US: two UTC dates later.
+ * "returned on day N" when they used Standing on day 0 plus N: the visits table has a row for
+ * that day, or they recorded an entry in a micro app that day. A person enters the denominator
+ * of day N once that day is over everywhere in the US: two UTC dates later.
  */
 export async function teamReturns(db: Db, now: Date): Promise<TeamReturnsResponse> {
   const days = [...RETURN_RATE_DAYS];
@@ -31,7 +32,7 @@ export async function teamReturns(db: Db, now: Date): Promise<TeamReturnsRespons
       (n) => `
        (count(*) filter (where f.day0 + ${n} + 1 < $1::date))::int as eligible_${n},
        (count(*) filter (where f.day0 + ${n} + 1 < $1::date and exists (
-          select 1 from visits v where v.user_id = f.user_id and v.day = to_char(f.day0 + ${n}, 'YYYY-MM-DD')
+          select 1 from ${ACTIVITY} v where v.user_id = f.user_id and v.day = to_char(f.day0 + ${n}, 'YYYY-MM-DD')
         )))::int as returned_${n}`,
     )
     .join(',');
@@ -64,7 +65,12 @@ export async function teamReturns(db: Db, now: Date): Promise<TeamReturnsRespons
       ),
     })),
   };
-  return { generatedAt: now.toISOString(), returnDays: days, rows: [total, ...rows] };
+  return {
+    generatedAt: now.toISOString(),
+    demoPeople: (await demoCounts(db)).people,
+    returnDays: days,
+    rows: [total, ...rows],
+  };
 }
 
 export function teamReturnsCsv(data: TeamReturnsResponse): Response {
@@ -127,7 +133,7 @@ export async function teamReport(db: Db, now: Date): Promise<TeamReportResponse>
       notUseful: u?.not_useful ?? 0,
     };
   });
-  return { generatedAt: now.toISOString(), rows };
+  return { generatedAt: now.toISOString(), demoPeople: (await demoCounts(db)).people, rows };
 }
 
 export function teamReportCsv(data: TeamReportResponse): Response {

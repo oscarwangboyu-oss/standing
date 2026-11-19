@@ -7,12 +7,24 @@ import type { ApiErrorBody, ApiErrorCode } from '../shared/api';
 import { MAX_BODY_BYTES } from './config';
 import type { Db } from './db';
 import type { Env } from './env';
+import type { FunnelEvent } from './posthog';
 
 /** What every handler gets. The clock is injected so tests control time. */
 export interface Deps {
   db: Db;
   env: Env;
   now: () => Date;
+  /**
+   * Hands the funnel events of one finished request to PostHog (src/server/posthog.ts). Given
+   * by whoever builds the API; absent means nothing is forwarded. It must return at once and
+   * never throw: the response does not wait for it.
+   */
+  forward?: (events: FunnelEvent[]) => void;
+  /**
+   * Notes one funnel event of the current request. Set by the router for each request when
+   * `forward` is given. Handlers call it only after the thing it reports was stored.
+   */
+  track?: (event: FunnelEvent) => void;
 }
 
 /** Thrown by handlers. The router turns it into an ApiErrorBody with the given status. */
