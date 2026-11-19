@@ -1,0 +1,31 @@
+.field { display: grid; gap: var(--s-2); }
+.label { font-size: var(--t-15); font-weight: 650; }
+.box {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line-2);
+  transition: box-shadow var(--d-fast) linear;
+}
+.box:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
+.invalid { box-shadow: inset 0 0 0 2px var(--down); }
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font-size: var(--t-17);
+}
+.input::placeholder { color: var(--ink-3); }
+.number { font-family: var(--font-display); font-weight: 650; font-size: var(--t-20); }
+.affix { flex: none; color: var(--ink-2); font-weight: 600; }
+.prefix { margin-right: var(--s-2); }
+.suffix { margin-left: var(--s-2); font-size: var(--t-15); font-weight: 500; }
+.hint { font-size: var(--t-13); line-height: 1.4; color: var(--ink-2); }
+.error { font-size: var(--t-15); font-weight: 600; line-height: 1.4; color: var(--down); }

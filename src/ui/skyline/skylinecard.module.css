@@ -1,0 +1,36 @@
+.card {
+  position: relative;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--edge);
+  overflow: hidden;
+}
+.small { border-radius: var(--r-lg); }
+.corner { position: absolute; top: var(--s-3); left: var(--s-3); }
+/* The five lots are 80 of 440 units wide, with 20 on each side: 4.545% and five equal columns. */
+.legend {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 0;
+  padding: var(--s-3) 4.545% calc(var(--s-3) + 2px);
+}
+.cell { display: grid; justify-items: center; gap: 1px; min-width: 0; }
+.code {
+  font-family: var(--font-display);
+  font-size: var(--t-12);
+  font-weight: 750;
+  letter-spacing: 0.035em;
+  line-height: 1.2;
+}
+.value {
+  font-family: var(--font-display);
+  font-size: var(--t-15);
+  font-weight: 700;
+  font-stretch: 86%;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.small .legend { padding-block: var(--s-2); }
+.small .code { font-size: 0.6875rem; }
+.small .value { font-size: var(--t-13); }

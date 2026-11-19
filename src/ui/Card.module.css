@@ -1,0 +1,19 @@
+.card {
+  position: relative;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--ink);
+}
+.raised { box-shadow: var(--shadow-2), inset 0 0 0 1px var(--edge); }
+.flat { box-shadow: inset 0 0 0 1.5px var(--line); }
+.sunk { background: var(--ground-2); }
+.sector { background: var(--sector-wash); }
+.sector.raised { box-shadow: var(--shadow-1); }
+.pad_none { padding: 0; overflow: hidden; }
+.pad_sm { padding: var(--s-4); border-radius: var(--r-md); }
+.pad_md { padding: var(--s-5); }
+.pad_lg { padding: var(--s-6); border-radius: var(--r-xl); }
+@media (min-width: 600px) {
+  .pad_md { padding: var(--s-6); }
+  .pad_lg { padding: var(--s-8); }
+}

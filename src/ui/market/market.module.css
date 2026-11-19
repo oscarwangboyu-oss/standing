@@ -1,0 +1,71 @@
+/* Screen-specific layout of the market home, the sector sheet and "Why it moved".
+   Everything visual comes from src/ui and the tokens. */
+
+/* ---------- Market home ---------- */
+.notice { margin-bottom: var(--s-6); }
+.against { margin-top: var(--s-6); }
+.againstLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--t-15);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.catchUp { margin-top: var(--s-4); font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.streak { margin-top: var(--s-3); }
+.retake { display: grid; gap: var(--s-3); justify-items: start; }
+.retake + * { margin-top: var(--s-3); }
+.chartNote { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.baseline { margin-top: var(--s-10); }
+.skyNote { margin-top: var(--s-2); padding-inline: var(--s-1); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
+.state { display: grid; justify-items: start; gap: var(--s-4); padding-block: var(--s-6); }
+.state p { color: var(--ink-2); }
+.skeleton { display: grid; gap: var(--s-6); }
+.noOverall { display: grid; gap: var(--s-2); }
+.noOverall p:last-child { color: var(--ink-2); font-size: var(--t-15); }
+
+/* ---------- The sector sheet ---------- */
+.sheetQuote { display: grid; gap: var(--s-3); padding-bottom: var(--s-5); border-bottom: 1px solid var(--line); }
+.sheetPrice { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-3); }
+.sheetSince { font-size: var(--t-13); color: var(--ink-2); }
+.sheetFacts { display: grid; gap: var(--s-2); }
+.sheetFact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 28px;
+  font-size: var(--t-15);
+  color: var(--ink-2);
+}
+.sheetFact > :last-child { flex: none; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sheetNote { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.sheetBreakdown { margin-top: var(--s-5); }
+
+/* ---------- Why it moved ---------- */
+.breakdown { display: grid; gap: var(--s-5); }
+.breakdownState { display: grid; justify-items: start; gap: var(--s-3); color: var(--ink-2); }
+.between { font-size: var(--t-13); font-weight: 600; color: var(--ink-2); }
+.part { display: grid; gap: var(--s-2); }
+.part + .part { padding-top: var(--s-5); border-top: 1px solid var(--line); }
+.partHead { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.partOverall { font-family: var(--font-display); font-weight: 700; }
+.partTarget { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.partNone { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.lines { display: grid; }
+.line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+}
+.line + .line { border-top: 1px solid var(--line); }
+.lineText { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.lineTitle { font-size: var(--t-15); font-weight: 600; line-height: 1.35; }
+.lineSwap { display: grid; gap: 2px; font-size: var(--t-13); line-height: 1.4; color: var(--ink-2); }
+.lineKey { display: inline-block; min-width: 3.6em; font-weight: 600; color: var(--ink-3); }
+.lineSource { margin-top: 2px; }
+.howTo { font-size: var(--t-13); line-height: 1.45; color: var(--ink-3); }

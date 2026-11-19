@@ -1,0 +1,74 @@
+/* Layout of the five reference compositions. Everything visual comes from src/ui. */
+
+/* ---------- Question ---------- */
+.question { display: grid; gap: var(--s-5); }
+.questionText {
+  font-family: var(--font-display);
+  font-size: clamp(1.625rem, 1.2rem + 2vw, 2.25rem);
+  font-weight: 700;
+  font-stretch: 90%;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin-bottom: var(--s-1);
+}
+.skip { display: flex; justify-content: center; margin-top: var(--s-4); }
+
+/* ---------- Result ---------- */
+.asideStack { display: grid; gap: var(--s-5); }
+.wideOnly { display: none; }
+.stats { margin-top: var(--s-6); }
+.tape { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--line); }
+.useful { margin-top: var(--s-4); padding-inline: var(--s-1); }
+.shape { margin-top: var(--s-4); display: grid; gap: var(--s-4); }
+.shape:first-child { margin-top: 0; }
+.caption { font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
+.baseline { margin-top: var(--s-10); }
+.actions { display: grid; gap: var(--s-3); margin-top: var(--s-6); }
+@media (min-width: 960px) {
+  .wideOnly { display: block; }
+  .narrowOnly { display: none; }
+  .actions { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- Market ---------- */
+.against { margin-top: var(--s-6); }
+.againstLine { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); font-size: var(--t-15); font-weight: 600; color: var(--ink-2); }
+.streak { margin-top: var(--s-3); }
+
+/* ---------- Compare ---------- */
+.compareLead { margin-top: var(--s-2); color: var(--ink-2); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: var(--s-6); }
+.person { display: grid; gap: var(--s-3); align-content: start; min-width: 0; }
+.personHead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s-2); }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: var(--s-3) 0; vertical-align: middle; }
+.table thead th { padding-top: 0; font-weight: 400; text-align: left; }
+.table thead th:last-child, .table td:last-child { text-align: right; }
+.table tbody tr { border-top: 1px solid var(--line); }
+.table tbody th { width: 1%; padding-inline: var(--s-3); text-align: center; font-weight: 400; white-space: nowrap; }
+.gap { display: block; margin-top: 4px; font-size: var(--t-12); font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.compareLower { margin-top: var(--s-10); }
+@media (min-width: 960px) {
+  .pair { gap: var(--s-6); }
+  .compareLower > section { margin-top: 0; }
+  .compareLower { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+}
+.bar { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--sector); }
+.table td:last-child .bar i { margin-left: auto; }
+
+/* ---------- Share ---------- */
+.share {
+  display: grid;
+  gap: var(--s-8);
+  max-width: calc(var(--col) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding: var(--s-6) var(--gutter) var(--s-10);
+}
+.shareCard { width: 100%; max-width: 440px; margin-inline: auto; }
+.shareSide { display: grid; gap: var(--s-4); align-content: center; }
+.shareLead { color: var(--ink-2); }
+.shareActions { display: grid; gap: var(--s-3); margin-top: var(--s-2); }
+@media (min-width: 960px) {
+  .share { grid-template-columns: minmax(0, 440px) minmax(0, 420px); justify-content: center; gap: var(--s-16); max-width: none; }
+}

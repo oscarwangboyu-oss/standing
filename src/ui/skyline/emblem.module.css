@@ -1,0 +1,7 @@
+.emblem {
+  flex: none;
+  border-radius: 28%;
+  overflow: hidden;
+}
+.spot { flex: none; max-width: 100%; height: auto; border-radius: 15% / 20%; }
+.glyph { flex: none; }

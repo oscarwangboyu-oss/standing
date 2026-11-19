@@ -1,0 +1,4 @@
+.tape { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 6px; }
+.step { height: 6px; border-radius: var(--r-pill); background: var(--track); }
+.done { background: var(--sector, var(--ink)); opacity: 0.45; }
+.now { background: var(--sector, var(--ink)); }

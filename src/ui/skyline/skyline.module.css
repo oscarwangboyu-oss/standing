@@ -1,0 +1,53 @@
+/* The skyline illustration. Colours come from the --k-* custom properties (see palette.ts). */
+.sky {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+}
+.sky > svg { width: 100%; height: 100%; }
+.framed { border-radius: var(--r-xl); }
+.small.framed { border-radius: var(--r-lg); }
+.glyph { overflow: visible; }
+/* The wide scene is cropped to its five lots on a phone: the SVG slices around its centre. */
+.hero { aspect-ratio: var(--ar-narrow); }
+@media (min-width: 700px) {
+  .hero { aspect-ratio: var(--ar-wide); }
+}
+
+/* The horizon is 100. The tag sits on the line, at the left edge. */
+.hundred {
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
+  padding: 2px 8px 3px 7px;
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  box-shadow: var(--shadow-1);
+}
+
+/* Build mode: a tower gains a floor when a question is answered. */
+.tower { transition: transform 520ms var(--ease-spring); }
+.pin { transition: transform 520ms var(--ease-spring); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The rise: once, when the skyline is first shown. In SVG a px is one scene unit. */
+  .rise .tower {
+    animation: rise 1100ms var(--ease-out) both;
+    animation-delay: calc(var(--i) * 110ms + 180ms);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tower, .pin { transition: none; }
+}
+@keyframes rise {
+  from { transform: translateY(calc(var(--h) * 1px)); }
+  to { transform: translateY(0); }
+}

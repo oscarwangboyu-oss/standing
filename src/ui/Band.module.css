@@ -1,0 +1,27 @@
+/* The silhouette is a 320 x 28 tile, repeated along the top edge and filled with the band colour. */
+.band {
+  --edge-h: 28px;
+  position: relative;
+  margin-top: var(--edge-h);
+  padding: var(--s-12) 0 var(--s-16);
+  background: var(--band);
+}
+.band::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% - 1px);
+  height: var(--edge-h);
+  background: var(--band);
+  -webkit-mask: var(--silhouette) repeat-x left bottom / 320px 28px;
+  mask: var(--silhouette) repeat-x left bottom / 320px 28px;
+  --silhouette: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 28'%3E%3Cpath d='M0 28V16h12V9h14v7h8V4h4v-4h2v4h6v12h10V12h16v4h6V7l10-5v14h12V10h4V6h10v4h4v6h10V13h14v3h8V5h18v11h6v-4h10V8h3V3h2v5h3v4h8v4h10V9h16v7h8V12l6-4l6 4v4h10V6h12v10h10v-3h12v15z'/%3E%3C/svg%3E");
+}
+.ink { color: var(--on-ink); }
+.inner { margin-inline: auto; padding-inline: var(--gutter); }
+.col { max-width: calc(var(--col) + 2 * var(--gutter)); }
+.wide { max-width: calc(var(--wide) + 2 * var(--gutter)); }
+@media (min-width: 900px) {
+  .band { padding: var(--s-16) 0 var(--s-20); }
+}

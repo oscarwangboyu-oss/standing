@@ -1,0 +1,74 @@
+/* The dock floats above the page on a phone. On a wide screen the same links sit in the top bar. */
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin-top: auto;
+  padding: var(--s-2) var(--s-3) calc(var(--s-3) + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.bar .list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  max-width: 420px;
+  margin-inline: auto;
+  padding: 6px;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--edge);
+  pointer-events: auto;
+}
+.bar .link {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 4px 5px;
+  border-radius: 22px;
+  color: var(--ink-2);
+  font-size: var(--t-12);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: transform var(--d-fast) var(--ease-out);
+}
+.bar .icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  transition: background-color var(--d-base) var(--ease-out), color var(--d-base) var(--ease-out);
+}
+.bar .link[aria-current="page"] { color: var(--ink); font-weight: 700; }
+.bar .link[aria-current="page"] .icon { background: var(--ink); color: var(--on-ink); }
+.bar .link:active { transform: scale(0.94); }
+
+.top .list { display: flex; gap: var(--s-1); }
+.top .link {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--tap);
+  padding: 0 var(--s-4) 0 var(--s-3);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--t-15);
+  font-weight: 600;
+  text-decoration: none;
+}
+.top .icon { display: grid; }
+.top .icon svg { width: 20px; height: 20px; }
+.top .link[aria-current="page"] { background: var(--ink); color: var(--on-ink); }
+@media (hover: hover) {
+  .top .link:hover:not([aria-current="page"]) { background: var(--ground-2); color: var(--ink); }
+  .bar .link:hover { color: var(--ink); }
+}
+
+.bar { display: block; }
+.top { display: none; }
+@media (min-width: 960px) {
+  .bar { display: none; }
+  .top { display: block; }
+}

@@ -1,0 +1,24 @@
+/* The primary action pinned to the bottom of a phone screen. It slides in like a sheet. */
+.bar {
+  position: fixed;
+  z-index: 20;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: calc(var(--s-3) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--edge), inset 0 0 0 1px var(--line);
+  transform: translateY(calc(100% + 32px));
+  visibility: hidden;
+  transition: transform 320ms var(--ease-out), visibility 0s linear 320ms;
+}
+.show { transform: none; visibility: visible; transition: transform 320ms var(--ease-out), visibility 0s; }
+.fact { min-width: 0; font-size: var(--t-13); font-weight: 600; line-height: 1.25; color: var(--ink-2); }
+@media (min-width: 700px) {
+  .bar { display: none; }
+}

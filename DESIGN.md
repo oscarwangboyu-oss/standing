@@ -1,157 +1,286 @@
-# Standing design system
+# Skyline
 
-This is a new identity made for the product. It takes nothing from the roadmap deck. The reference mock it was built from is in `design/mocks/board/` (static HTML, not shipped): open those files when a rule here is unclear, and match them.
+The design system of Standing. The code is in `src/styles` (tokens), `src/ui` (components), `src/copy/common.ts` and `src/copy/types.ts` (text). Every part is shown in its states at `/styleguide`, with five reference screens at the end. Screens are built from these parts and copy the reference screens.
 
-The bar is a designer's own site or a finished product site: one confident idea, large type, exact spacing, nothing decorative. Patterns come from apps the audience already uses: a quote head and sparkline rows like a stocks app, giant numerals, bottom navigation within thumb reach, bottom sheets for detail, a share image worth posting, a streak for the daily habit.
+This document replaces the earlier monochrome design. Nothing from it remains.
 
-**The idea: the price is the hero.** Zinc paper, blue-black ink, a fine grain. The only colour on screen is information: green for up, red for down, and one blue reserved for the 100 baseline and for keyboard focus. The interface is English only.
+## 1. The idea
 
-## 1. Colour tokens
+Standing shows where you stand, drawn as your own city.
 
-Chroma is information. Nothing decorative is coloured.
+- Five towers, one per sector, always in sector order: SKIL, WLTH, NETW, BODY, MIND.
+- The street is the base of every tower. One floor is five points. **The horizon is 100**, the median of people like you: it is the line where the sky meets the bay behind the city. A tower above 100 crosses the horizon. A tower below 100 stays under it.
+- A tower's roof line is its price, on one linear scale from 55 to 145. Cranes, domes and flags stand above the roof line and carry no value.
+- A short tower is a complete, well-drawn building. A price of 55 is still a workshop, a bank, a pair of towers. Nothing in the picture mocks a low price.
 
-| Token | Light | Dark | Role |
+The skyline is the identity. It appears on the landing page (large, rising once), in the check (the progress indicator), on the result (revealed, then the numbers), on the market home (small), on the share image (at dusk), in the compare view (two side by side) and in empty states.
+
+What makes it feel finished: a warm ground, deep ink, one confident hue per sector, a characterful display face for headings and prices, generous radii, soft layered shadows, and one illustration language used everywhere.
+
+## 2. Colour
+
+Tokens are in `src/styles/tokens.css`. The light theme is day, the dark theme is night, chosen by `prefers-color-scheme`. There is no manual switch.
+
+### Neutrals
+
+| Token | Day | Night | Use |
 |---|---|---|---|
-| `--paper` | `#E4E5E6` zinc | `#17191B` slate | Page background |
-| `--paper-2` | `#D7D9DB` | `#212427` | Recessed surface (reserved, not used on these five screens) |
-| `--ink` | `#111315` | `#E9EAEA` | Text, prices, bars, primary button fill, strong rules |
-| `--ink-2` | `#454B51` | `#A3A9AE` | Secondary text, captions, tag outline |
-| `--rule` | `#B4B8BB` | `#3A3F43` | Hairlines between rows. Decorative only, never carries meaning alone |
-| `--up` | `#055A39` | `#45C68A` | Gain, always with an up triangle and a plus sign |
-| `--down` | `#9E1C16` | `#FF7466` | Loss, always with a down triangle and a minus sign |
-| `--ref` | `#1B31C9` | `#93A5FF` | The 100 baseline (chart line, bar tick, pentagon ring, the figure 100) and the focus ring. Nothing else |
+| `--ground` | `#FAF6EE` | `#0B1024` | The page. Warm near-white by day, deep blue-black by night. Never grey. |
+| `--ground-2` | `#F2ECDF` | `#131A37` | A sunk area: notes, quiet cards, the sunk band. |
+| `--surface` | `#FFFFFF` | `#182043` | Cards, sheets, the navigation. |
+| `--surface-2` | `#FCF9F3` | `#1E2850` | A quiet area or a hover inside a card. |
+| `--ink` | `#141A31` | `#F5F1E8` | Text and the primary action. |
+| `--ink-2` | `#474E68` | `#B8BED6` | Secondary text. |
+| `--ink-3` | `#5F6680` | `#9299B8` | Captions, axis labels. Still AA on every ground. |
+| `--line` | `#E7E0D1` | `#283262` | Hairlines. |
+| `--line-2` | `#CFC6B2` | `#3F4C8C` | The border of a control. |
+| `--track` | `#ECE5D5` | `#262F60` | The empty part of a bar or a scale, skeleton blocks. |
+| `--on-ink` | `#FAF6EE` | `#0B1024` | Text on an ink fill. |
+| `--focus` | `#1D4FD8` | `#A9C0FF` | The focus ring. |
 
-The dark band (`.band`, used once on the landing) is always dark and redefines the same names, so every component inside adapts without extra rules.
+### Sector ramps
 
-| Token | Light theme band | Dark theme band |
+Each sector owns a hue with five steps. Use them through `sectorStyle(code)` from `@/ui`, which sets `--sector`, `--sector-deep`, `--sector-tint`, `--sector-wash` and `--sector-line` on an element; components inside pick them up.
+
+| Sector | Hue | deep | base | tint | wash | line |
+|---|---|---|---|---|---|---|
+| SKIL Capability | cobalt | `#1B348F` | `#2E5CE6` | `#BCCDFA` | `#E9EFFD` | `#2E5CE6` |
+| WLTH Wealth | amber-gold | `#744900` | `#E9A829` | `#F7DC9B` | `#FCF2DA` | `#AD7200` |
+| NETW Network | teal | `#095C57` | `#14A398` | `#A6E0D9` | `#DFF5F2` | `#0E8A80` |
+| BODY Body | coral | `#A12F1A` | `#F26B4B` | `#FAC3B4` | `#FEEBE4` | `#DA4F34` |
+| MIND Mind | violet | `#5230A8` | `#8558E3` | `#D0BFF6` | `#F0EAFC` | `#8558E3` |
+
+Night values are in the tokens file: deep becomes the light text step, wash the dark tinted ground.
+
+- **deep**: text in the sector colour (tickers, tags). AA on wash, tint, surface and ground.
+- **base**: fills. Position bars, the chosen ring of an option, icon chips. A base fill is never the only carrier of a value: the number is next to it.
+- **tint** and **wash**: backgrounds. Wash for tags, bands and tinted cards; tint for emblems.
+- **line**: the base, darkened where needed so a thin stroke reaches 3 to 1 on every ground. Chart lines, sparklines, end dots and pentagon corners use it.
+
+### Gain and loss
+
+`--up` on `--up-wash` (green) and `--down` on `--down-wash` (red). A gain or a loss is **always the `Change` pill**: an arrow, a sign, the figure, and a hidden word ("up", "down") for screen readers. Never colour alone, and never green or red as a text colour outside the pill, except the Limit up and Limit down tags and a field error.
+
+This keeps gains and losses apart from the coral and teal sectors: the pill has a triangle and digits, a sector tag has a building glyph and letters; by day the pill text is much darker than the sector fills (crimson `#BF2130` against coral `#F26B4B`), by night much lighter. `tests/unit/ui/theme.test.ts` checks the lightness gap.
+
+### Contrast
+
+Computed in `tests/unit/ui/theme.test.ts` for both themes, from the tokens file itself: every ink on every ground and surface, sector text on its wash and tint, pill text on its wash, text on ink, at 4.5 to 1 or better; sector lines and the focus ring at 3 to 1 or better; the share image text on every sky band it can sit on. Change a token and the test tells you what broke.
+
+## 3. Type
+
+Two families, self-hosted from `node_modules` (`src/styles/fonts.css`). No remote fonts.
+
+- **Bricolage Grotesque** (variable: weight 200 to 800, width 75 to 100, optical size): headings, the wordmark, tickers, buttons, every price. Its default figures are proportional, so the face is declared with tabular lining figures (`font-feature-settings: "tnum", "lnum"` in the `@font-face`). Measured in Chrome: all digits 0.56em wide. Prices line up in columns, on a canvas too.
+- **Hanken Grotesk** (variable weight): text. Tabular figures by default.
+
+Roles are classes in `src/styles/base.css`:
+
+| Class | Size | Use |
 |---|---|---|
-| background | `#111315` | `#050506` |
-| ink / ink-2 / rule | `#E9EAEA` / `#A3A9AE` / `#3A3F43` | same |
-| up / down / ref | `#45C68A` / `#FF7466` / `#93A5FF` | same |
+| `.t-display` | 40 to 76px, 700, width 88 | The largest heading of a public page |
+| `.t-h1` | 30 to 42px, 700 | The heading of a screen |
+| `.t-h2` | 24px, 700 | The heading of a section |
+| `.t-h3` | 20px, 650 | The heading of a card |
+| `.t-lead` | 20px | A lead paragraph |
+| `.t-body` | 17px | Body text |
+| `.t-small` | 15px | A second line under a title |
+| `.t-caption` | 13px | Axis labels, footnotes |
+| `.t-label` | 13px, 600 | A small label above a value. Sentence case, never spaced capitals |
+| `.t-figure` | inherits | Any figure that is a price, outside the `Price` component |
 
-Grain: an inline SVG `feTurbulence` tile (200px, `baseFrequency 1.7`, 2 octaves) as a `background-image` on `body`, `.band`, the sticky bars and the share card. Black specks on light paper, white specks on dark. It is a data URI, so there is no network request. It is a background layer, so text is never filtered.
+Headings are large and tight (`letter-spacing` -0.02 to -0.045em). Prices always show two decimals. `Price` sets the decimals smaller so the whole number reads first; a screen reader hears one number. The only upper-case text is ticker codes.
 
-Contrast (WCAG 2 ratio, computed by `audit.mjs`). "Grain mean" is the average colour of an empty patch measured from pixels, "worst" is the darkest 2 percent of pixels on light surfaces and the lightest 2 percent on dark ones.
+## 4. Space, shape, depth
 
-| Surface | Token | Flat | Grain mean | Worst |
-|---|---|---|---|---|
-| Light paper `#E4E5E6` (mean `#D9DADB`) | ink | 14.76 | 13.26 | 10.77 |
-| | ink-2 | 7.00 | 6.29 | 5.11 |
-| | up | 6.59 | 5.91 | 4.81 |
-| | down | 6.33 | 5.68 | 4.62 |
-| | ref | 7.15 | 6.42 | 5.22 |
-| Dark paper `#17191B` (mean `#1F2123`) | ink | 14.62 | 13.36 | 10.80 |
-| | ink-2 | 7.42 | 6.78 | 5.48 |
-| | up | 8.14 | 7.44 | 6.01 |
-| | down | 6.67 | 6.09 | 4.92 |
-| | ref | 7.61 | 6.95 | 5.62 |
-| Band, light theme `#111315` | ink-2 / up / down / ref | 7.84 / 8.60 / 7.04 / 8.04 | 7.24 / 7.94 / 6.50 / 7.42 | 5.90 / 6.47 / 5.30 / 6.05 |
-| Band, dark theme `#050506` | ink-2 / up / down / ref | 8.58 / 9.41 / 7.70 / 8.80 | 8.12 / 8.90 / 7.29 / 8.32 | 6.94 / 7.61 / 6.23 / 7.11 |
+- **Space**: a 4px step. `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-5` 20, `--s-6` 24, `--s-8` 32, `--s-10` 40, `--s-12` 48, `--s-16` 64, `--s-20` 80. Inside a card 20 to 24. Between cards of one group 12 to 16. Between sections of an app screen 40. Between sections of a public page 64 to 80.
+- **Gutter**: `--gutter` is 20px, 16px under 380px wide.
+- **Columns**: `--col` 560px for app screens, `--wide` 1120px for public pages and the split desktop layout.
+- **Radius**: `--r-sm` 10, `--r-md` 16 (notes, fields, small cards), `--r-lg` 22 (cards), `--r-xl` 28 (large cards, the skyline, sheets, the dock), `--r-pill` for every action and tag.
+- **Shadows**: three layered steps tinted with the ink, tuned per theme. `--shadow-1` for a resting control, `--shadow-2` for a raised card, `--shadow-3` for sheets, the dock, toasts and the share card. At night shadows are stronger and raised surfaces also get a 1px light edge (`--edge`).
+- **Tap targets**: `--tap` is 44px. No control is smaller. Every button, link and radio in the styleguide was measured at 360px wide.
+- **Focus**: one ring everywhere, 3px `--focus` with a 3px gap.
 
-Primary button label (paper on ink): 14.76 light, 14.62 dark. The fact on the right of the button is the label colour at 74 percent opacity: 8.39 light, 6.80 dark.
+## 5. The illustration system
 
-## 2. Type
+Code in `src/ui/skyline/`. Everything is inline SVG built by React from the five prices. There are no image files and no icon library.
 
-One family: Archivo Variable, self-hosted.
+### Scale (`geometry.ts`, pure, tested)
 
-- File: `node_modules/@fontsource-variable/archivo/files/archivo-latin-standard-normal.woff2` (90 KB, latin subset, upright).
-- Axes used: `wght` 100 to 900 and `wdth` 62 to 125, through `font-weight` and `font-stretch`.
-- Declared once, with the full latin range.
-- `font-variant-numeric: tabular-nums lining-nums` on `body`. Archivo has real tabular figures at every width (checked: every digit is 0.4295em at width 62, weight 800).
-
-Width is the hierarchy. This replaces a second typeface.
-
-| Role | `font-stretch` | Weight | Tracking | Used for |
-|---|---|---|---|---|
-| Price (`.fig`) | 62% | 800 hero, 700 in rows | -0.02em | Every price and large figure |
-| Caption | 88% | 400 | 0 | Strip labels on narrow phones |
-| Text | 100% | 400 body, 600 to 650 headings | -0.02em to -0.03em on headings | Language |
-| Code (`.code`) | 112% | 700 | +0.02em | Ticker codes: RIVR, SKIL, WLTH, NETW, BODY, MIND |
-
-Scale (rem tokens `--t-12` to `--t-64`, 16px root)
-
-| Token | px | Used for |
+| Constant | Value | Meaning |
 |---|---|---|
-| `--t-12` | 12 | Smallest captions, scale labels, tags |
-| `--t-13` | 13 | Captions, cohort line, footer |
-| `--t-15` | 15 | Row text, notes, secondary buttons |
-| `--t-17` | 17 | Body, primary button label |
-| `--t-21` | 21 | Ticker in quote head, block titles |
-| `--t-28` | 28 | Section headings on phone, row prices, strip values |
-| `--t-40` | 40 | Section headings on desktop, row prices on desktop |
-| `--t-64` | 64 | Reserved |
-| hero price | `min(44.2cqw, 25rem)` | The overall price. "104.37" is 2.24em wide at width 62, weight 800, tracking -0.02em, so 44.2 percent of the container width fills the row. About 145px on a 360 phone, 371px in the desktop column |
+| `SCENE_W` × `SCENE_H` | 440 × 300 | The scene in units |
+| `GROUND_Y` | 262 | The street |
+| `PODIUM` | 20 | Height every tower has at a price of 55 |
+| `PER_POINT` | 2.3 | Height per point above 55 |
+| `FLOOR` | 11.5 | One floor: five points |
+| `HORIZON_Y` | 138.5 | Where a price of 100 ends |
+| `LOT_W` | 80 | One lot. Five lots, no gap, 20 units of margin each side |
 
-Line height: 1.45 body, 1.1 to 1.2 headings, 0.8 on prices.
+`towerHeight(price)` is `PODIUM + (price - 55) * PER_POINT`, clamped to 55 to 145. `viewTop()` crops the sky so ordinary prices are not mostly empty sky; it always keeps the horizon and 34 units above the tallest roof. Give two skylines the same crop with `skylineTop(a, b)` and the `top` prop.
 
-## 3. Spacing, radius, lines
+Because the lots are equal, a five-column grid with 4.545% side padding lines up with the towers. `SkylineCard` uses this to print each ticker and price under its tower.
 
-- Spacing: 4px base. `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-6` 24, `--s-8` 32, `--s-12` 48, `--s-18` 72. Page gutter 16. Section gap 72 on phone, 120 on desktop.
-- Radius: 0 everywhere. The only round shapes are data points (chart dot, pentagon vertices).
-- Lines encode rank. A 2px ink rule opens a table or a block. A 1px `--rule` hairline separates rows. A 1px ink outline means the thing can be pressed (answer options, secondary buttons, the Daily open block). A solid ink slab is the primary action.
-- No shadows, no gradients, no cards.
-- Tap targets: 44px minimum. Primary button 56, answer options 64, rows 64 to 68, tab bar 56.
-- App screens are a single column capped at 560px and centred. The landing is capped at 1344px.
+### The five buildings (`buildings.tsx`)
 
-## 4. Signature element
+Each sector has its own architecture, so it is recognisable without colour.
 
-The price, set in extra-condensed 800 so that six characters fill the width of the screen, and the blue par line that runs under it through the product. 100 is always the same blue: the chart baseline, the tick in every position bar, the ring in the pentagon, the line through the five rows of the share card, the figure in the provisional-baseline note. Blue never means anything else except focus.
+| Sector | Building | Roof |
+|---|---|---|
+| SKIL | A workshop tower with a sawtooth annex | A tower crane with a load on the hook, an antenna, a bird on the jib |
+| WLTH | A bank: steps, six columns, a vault door, a pediment; tall narrow windows | A stepped crown and a pennant |
+| NETW | Two slim towers with roofs that slant toward each other, joined by skybridges | Masts, a dish, signal arcs |
+| BODY | A tower with a climbing wall (holds and a climber) and a gym on the ground floor | A pool that hangs over the edge, a swimmer, a sunshade |
+| MIND | A tower with a garden terrace and a round window | An observatory dome with a telescope, a roof tree |
 
-Supporting vernacular: ticker codes in the expanded width, rows with hairlines, a fact set on the right of each primary button ("31 to 34 questions", "1080 x 1350", "3 questions, 15 seconds").
+Drawing rules: flat fills, no outlines, no gradients. Light comes from the upper left: every tower has a front (`F`), a lit facet at its upper left (`L`), a shaded side on its right (`S`), dark trim (`D`) and window glass (`W`). Each tower throws a short shadow to the right on the street. Windows sit on a grid counted from the street, one row per floor, and are drawn as two paths per face (glass and lit), so the markup stays small: the hero skyline is about 28 KB.
 
-## 5. Motion
+Three detail levels follow the size: glyph (massing and roof shapes only), small (windows), card and hero (every detail).
 
-One moment, "the open". On first paint of the landing and the result page the price starts at the issue price 100.00 and replays its history (100.00, 98.20, 99.40 ... 104.37) while the chart line draws from left to right in step with it. 250ms delay, 1600ms, cubic ease-out. The change line and the end dot appear when it lands. The number and the line are driven by the same `requestAnimationFrame` loop, so the figure always matches the tip of the line.
+### Scenery (`scenery.tsx`)
 
-Everything else is response to touch: buttons shift 1px on press, answer options invert, the phone action bar on the landing slides in (180ms) once the first button has left the screen.
+The sky in four flat bands, the bay, the far shore under the horizon, the street with a dashed path. Small living details for a second look: clouds, three birds, a hot-air balloon by day, a sailboat, water glints, street trees, lamps that glow at night, a cyclist, someone walking a dog. The daytime sun sits above the shortest tower so no tower hides it. In the wide scene, low neighbours in quiet colours fill the sides and stay under the horizon.
 
-`prefers-reduced-motion: reduce`: the open does not run and all transitions are off. Screenshots are taken in this mode, except `landing-390-light-en-motion.png`, which is a frame 1000ms into the open.
+### Times of day (`palette.ts`)
 
-## 6. Layout
+One palette object per time: `day`, `night`, `dusk`. `skylineCss()` turns them into `--k-*` custom properties, and `app/layout.tsx` puts that stylesheet in the document once: day by default, night under `prefers-color-scheme: dark`, and the classes `k-day`, `k-night`, `k-dusk` for a fixed time. The share image uses the same objects as plain colours.
 
-```
-Phone landing                     Desktop landing (1000px and up)
-+----------------------------+    +-----------+------------------------------------+
-| Standing                   |    | Standing  | RIVR                  Sample quote |
-| RIVR         Sample quote  |    |           | 104.37  (fills the column)         |
-| 104.37  (fills the width)  |    |           | up +1.12 (+1.08%)                  |
-| up +1.12 (+1.08%)          |    |           | issue | high | low | grade         |
-| issue | high | low | grade |    | (sticky,  | chart with the blue 100 line       |
-| One sentence of pitch      |    |  100vh)   | five sector rows with bars         |
-| [ Start the check    31-34]|    |           | [dark band: how a price is read]   |
-| chart                      |    | pitch     | how a check works + real question  |
-| five sector rows           |    | sentence  | after the first check              |
-| [dark band, full bleed]    |    | [ Start ] | what is collected                  |
-| how a check works ...      |    | note      | what a price is, footer            |
-+----------------------------+    +-----------+------------------------------------+
-```
+- **day**: pale blue sky, a warm haze at the horizon, a sun.
+- **night**: deep blue, stars, a crescent moon, lit windows, glowing lamps.
+- **dusk**: indigo to violet to rose bands, a large sun going down behind the city. Only the share image.
 
-- Landing DOM order is pitch, sample quote, rest. On phone the pitch wrapper is `display: contents` and `order` puts the quote first. On desktop the pitch is a sticky 328px column and the board scrolls in the second column.
-- Question: progress tape and sector label at the top, question and answers together at the bottom of the screen, within thumb reach. From 700px wide the block sits under the header instead.
-- Position bars use a 70 to 130 track (two standard deviations each way) so typical prices are legible. Prices beyond it stop at the edge. The ruler on the landing shows the full 55 to 145 range.
+**Lit windows carry meaning.** `lit={{ BODY: true, MIND: true, SKIL: false, … }}`: a sector updated today has its lights on; one that was not is nearly dark. Leave `lit` out and every tower is lit normally.
 
-## 7. Implementation rules (Next.js, React, CSS variables)
+### `Skyline` props
 
-1. Tokens live in `src/styles/tokens.css` on `:root`, the dark set under `@media (prefers-color-scheme: dark)`. Components read `var(--ink)` and friends and never a hex value, because `.band` works by redefining the same names on a subtree.
-2. Fonts: one `@font-face` in `src/styles/fonts.css` pointing at `@fontsource-variable/archivo/files/archivo-latin-standard-normal.woff2` (the file with both the weight and the width axis), `font-display: swap`. No remote fonts and no `next/font/google`.
-3. Three text primitives carry every number and code: `<Price value />` (always `toFixed(2)`), `<Ticker code />`, `<Change value pct? />`. `Change` renders an inline SVG triangle, the sign (U+2212 for minus), the colour, and a visually hidden "up" or "down". Zero change renders in ink with no triangle.
-4. Hero price: the parent has `container-type: inline-size`, the price uses `font-size: min(44.2cqw, 25rem)`. Do not fit text with JavaScript.
-5. `PositionBar({ value })` sets `--v` inline and CSS does the rest (`clamp(70, v, 130)`). The bar is ink, never green or red: position against the issue price is not a change.
-6. Charts are hand-written SVG. `PriceChart`: grid and the blue 100 line in one SVG, the price line in another so it can be clipped during the open, `preserveAspectRatio="none"` with `vector-effect: non-scaling-stroke`; axis labels and the end dot are HTML positioned in percent. It also draws a vertical marker on days when the algorithm, bank or norm version changed, and marks full checks. `Sparkline` uses one shared y-domain for the five sectors. `Pentagon` has 70 at the centre and 130 at the rim with rings every 15 points.
-7. Grain is a background image (inline SVG `feTurbulence` data URI) on `body` and on any element that paints its own opaque background. Never a fixed overlay with a blend mode.
-8. Focus: `:focus-visible { outline: 2px solid var(--ref); outline-offset: 2px }`.
-9. States: the mind notice sits above the quote head as a note with a 2px ink rule and no colour. "First record, no change yet" replaces the change line in `--ink-2`. A sector without a price shows "Not enough data" and an empty track; a sector excluded by consent shows "Not listed". Halted is an outline tag; limit up and limit down are solid tags. MIND is never tagged laggard while the mind notice shows.
-10. The share image is one component sized in `cqw`, rendered at 1080 x 1350. It contains the ticker, the overall price, five sector prices and the type. No cohort, no change, no answers.
-11. App screens are a single column capped at 560px and centred. The public pages are capped at 1344px with a sticky left column on desktop.
-12. Motion: only "the open" described in section 5, plus direct response to touch. Honour `prefers-reduced-motion`.
-13. Server components by default; add `'use client'` only where state or effects are needed.
+| Prop | Meaning |
+|---|---|
+| `prices` | The five prices. Missing or null: no price |
+| `status` | Per sector: `listed`, `unlisted` (a fenced lot with a sign), `insufficient` (a frame under scaffolding), `halted` (the tower dimmed, lights out, a barrier at the door). Lots without a tower claim no height |
+| `time` | `auto` (the theme), `day`, `night`, `dusk` |
+| `size` | `glyph` (48 to 96px, towers only), `small` (120 to 240px), `card` (the full scene), `hero` (wide, with neighbours; under 700px it is cropped to the five lots so the towers keep their size) |
+| `rise` | Towers rise from the street once |
+| `lit` | Which sectors have their lights on |
+| `build`, `active` | The check: `{ built, total }` per sector, and the sector being answered. Prices are ignored; every tower is built toward the height of 100 and gains an equal share per answer. A sector with no answers is an empty lot. A pin marks the active sector |
+| `top`, `sceneWidth`, `detailTop` | Crop and width overrides (compare, share image) |
+| `palette` | Plain colours for an image drawn outside the page |
+| `label` | Replaces the generated description. Pass `""` when the same numbers are printed next to it |
 
-## 8. Patterns added to the mock
+Related: `SkylineCard` (skyline plus the legend under the towers), `SkylineScene` (the bare `<svg>`, for nesting), `TypeEmblem`, `Spot`, `SectorGlyph`.
 
-- **Bottom sheet**: secondary detail (why a price moved, a sector's breakdown, the share options) opens in a sheet from the bottom on phones and a centred panel from 700px. One sheet at a time, closes on Escape and on backdrop tap, focus is trapped and returned.
-- **Bottom navigation**: text labels only, 56px high, the current item marked with a 2px ink rule above it. Market, Open, Log, Settings.
-- **Streak**: seven day cells, filled ink for a recorded day, outlined for a missed one, today outlined in blue until recorded. Never a flame, never a number in a badge.
-- **Compare**: two quote heads side by side on desktop and stacked on phone, then five rows with both prices and the difference in ink. No winner label.
-- **Dashboard** (`/team`): the same tokens, denser. Tables with 1px rules, numbers right-aligned in tabular figures, a red-line breach shown as a solid ink tag with the word, never colour alone.
-- **Forms** (payday numbers, ticker, recovery code): a 1px ink outline, 56px high, label above in `--t-13`, error text below in ink with a 2px ink rule on the left.
-- **Empty and error states** say what happened and what to do next, in the interface voice.
+### Types (`src/copy/types.ts`)
+
+A type is the pair of a person's two highest sectors, in either order: ten pairs, ten names. `typeForPrices(prices)` picks it; a tie goes to the sector that comes first. The names and lines live in that one file so the founder can rename them.
+
+| Pair | Name |
+|---|---|
+| SKIL + WLTH | The Builder |
+| SKIL + NETW | The Operator |
+| SKIL + BODY | The Engine |
+| SKIL + MIND | The Steady Hand |
+| WLTH + NETW | The Anchor |
+| WLTH + BODY | The Long Runner |
+| WLTH + MIND | The Planner |
+| NETW + BODY | The Teammate |
+| NETW + MIND | The Confidant |
+| BODY + MIND | The Even Keel |
+
+A name is plain and adult. A line leads with the strength and claims only what two high sectors can mean. `TypeEmblem` draws the two buildings side by side, each on its own tint. `TypeCard` shows emblem, name, line and the two sector tags.
+
+### Spots
+
+`Spot` draws a small scene for an empty state from the same parts: `lot` (nothing here yet), `building` (not enough data), `halted`, `sunrise` (the day is not opened yet). A spot is decoration; the sentence next to it says what is going on.
+
+## 6. Components
+
+Import from `@/ui`. All text comes from `src/copy`.
+
+**Figures**: `Price` (hero, xl, lg, md, sm), `Ticker` (plain or chip), `Change` (the pill), `Tag` (Leader, Laggard, Limit up, Limit down, Halted, Resumed, Sample data), `SectorTag` (glyph, code, optional name, on the sector wash).
+
+**Actions**: `Button` (primary: an ink pill, one per screen; secondary: outlined; quiet: text; sizes lg 56, md 48, sm 44; `href` makes it a link), `IconButton` (round, 44px, needs a `label`).
+
+**Surfaces**: `Card` (raised, flat, sunk, or tinted with a `sector`; `pad` none, sm, md, lg), `Band` (a full-width tinted section whose top edge is a skyline silhouette; tones: a sector, `sunk`, `ink`; bands follow each other without a gap), `Rule`, `Sheet` (a native modal dialog: bottom sheet on a phone, centred panel from 700px; focus is trapped and returns to the opener; Escape and the backdrop close it).
+
+**Notices**: `Note` (info, care for the mind notice, plain), `BaselineNote` (the provisional-baseline statement; it stays on the result until real data replaces the baseline), `Toast` with `useToast`, `Skeleton`, `SkeletonText`, `SkeletonQuote` (still blocks, no shimmer).
+
+**Input**: `Field` (text or number with affixes, hint, error), `OptionList` (the answers to one question: a radio group with one tab stop; arrows, Home and End move; Enter or Space chooses; options are 60px tall, sink when pressed and take the sector colour with a check when chosen), `Useful` ("Was this part useful?", two pills).
+
+**Progress**: the `Skyline` in build mode is the progress indicator of the check. `ProgressCount` says it in words next to it: "Question 33 of 42 · 3 of 5 in Body". `ProgressTape` is for short flows of a few steps (the Daily Open), where a skyline would be too much.
+
+**Quote**: `QuoteHead` (ticker chip, group, hero price, change; "First record, no change yet" on the first), `StatStrip` (issue price, high, low, grade), `Tape` and `TapeCode` (the one-line market comment), `SectorRow` in a `SectorBoard` (building chip, code and name, sparkline from 400px, price, change, position bar, one tag; a row without a price says "Not listed" or "Not enough data"; a halted row is dimmed and tagged), `PositionBar` and `PositionScale` (70 to 130, the tick is 100).
+
+**Onward**: `FeatureEntry` (the one thing to do today, a large tinted card with a spot; one per screen), `Entry` in an `EntryList` (rows with an icon chip, a title, one fact, a status, a chevron), `Streak` (seven windows, filled when the day was recorded, with the count).
+
+**Frames**: `AppShell` (the top bar with the wordmark; one column capped at 560px; with `aside` the illustration comes first on a phone and becomes a sticky left column from 960px; `width="wide"` allows 960px for side-by-side screens; `nav` adds the navigation), `BottomNav` (a floating dock with icons and labels on a phone, links in the top bar from 960px), `Block` (a titled section of an app screen), `PublicShell` and `Column`, `Footer` (Bayu Technology, Atlanta, Georgia, the address, and the two required statements).
+
+**Icons**: `src/ui/icons.tsx`. One family: 24px grid, 1.8 stroke, round caps and joins, the current colour. `Mark` is the five-tower mark. Sector glyphs are the five building silhouettes at 20px. No emoji anywhere.
+
+## 7. Charts
+
+Hand-written SVG in `src/ui/charts/`. The math is pure and tested (`scale.ts`). The 100 line is always drawn: dashed, in the secondary ink, with a "100" label.
+
+- `PriceChart`: dated points, the 100 line, a soft area between the line and 100, an end dot, optional rings for full checks and a marker for a version change, spacing by record or by day. It draws in once, in step with the hero price.
+- `Sparkline`: recent records with the 100 line. Give all rows one `sharedDomain` so 100 means the same in each.
+- `Pentagon`: the five sectors; centre 70, rim 130, the dashed ring is 100; an optional second shape as a dashed outline for compare.
+- `Ruler`: the full scale, 55 to 145, with one marker.
+
+Inside `sectorStyle()` a chart takes that sector's colour; outside it is ink.
+
+## 8. The share image
+
+`ShareCard` draws it as SVG at any width; `renderShareCard(data)` returns the same card as a 1080 × 1350 PNG. The layout is one pure list of operations (`share/layout.ts`) used by both, so they cannot drift apart. The renderer waits for the fonts, turns the scene into an SVG image, draws it on a canvas, then paints the text.
+
+On the card: the skyline at dusk with every light on, the ticker, the overall price, the type name, the five sector prices under their towers, "100 is the provisional median of my group." and "A personal index. Not a security." Never on the card: any answer, the cohort.
+
+## 9. Motion
+
+Motion has a purpose or it is not there.
+
+| Moment | What moves | Timing |
+|---|---|---|
+| A skyline is first shown (`rise`) | Towers rise from the street, left to right | 1100ms each, 110ms apart, ease-out, once |
+| An answer in the check | The tower of the current sector gains a floor | 520ms, a slight spring |
+| The result is shown (`useOpen`) | The price counts from 100 to the price while the chart line draws; then the change pill and the end dot appear | 250ms delay, 1600ms, ease-out, once |
+| A sheet opens | It slides up 48px and fades in | 320ms |
+| A pill or an option is pressed | It scales to 0.97 | 120ms |
+| A toast appears | It rises 12px | 260ms |
+
+Everything else is still. No parallax, no looping animation, no shimmer. Under `prefers-reduced-motion: reduce` nothing animates: the skyline stands, the price is the price.
+
+## 10. Layout
+
+- Phone first. The narrowest width is 360px: no horizontal scroll (measured on the styleguide).
+- App screens: one column, 560px at most, centred. A screen with a skyline passes it as `aside`: above the content on a phone, a sticky left column from 960px, with the content in the 560px column on the right.
+- Public pages: 1120px at most, built from full-width `Band`s.
+- One obvious action per screen: one primary button.
+
+## 11. Reference screens
+
+At `/styleguide#screens`, each at the width of the window. Screenshots in `design/shots/v2/` at 390 and 1440 wide, light and dark.
+
+1. **A question of the check**: the skyline under construction with the pin, `ProgressCount`, the question, `OptionList` in the sector colour, a quiet Skip.
+2. **The result reveal**: the skyline rises, then `QuoteHead` counts up; `StatStrip`; price history and the market comment; the sector board; the type card and the pentagon; the baseline note; Share and Compare; `Useful` after each section; the footer with the statements. If the mind notice applies it goes first, as `Note tone="care"`.
+3. **The market home**: a small skyline with today's lights, `QuoteHead` with the change since yesterday, the position against the issue price, the Daily Open as the feature with the streak, the sector board, the entries (Payday Check, Weekly Win, People Nudge, retake, settings), the dock.
+4. **Compare**: two skylines on one crop, two type cards, a mirrored table sector by sector, two shapes in one pentagon.
+5. **The share card**.
+
+## 12. Do
+
+- Draw the 100 line, in every chart and every skyline.
+- Use a sector's colour only for that sector.
+- Put a gain or a loss in the `Change` pill.
+- Give each screen one skyline, one primary action and real spacing between sections.
+- Say why a sector has no price ("Not listed", "Not enough data", "Halted") and draw the matching lot.
+- Keep text in `src/copy`, in short sentences with concrete numbers.
+
+## 13. Do not
+
+- No grey pages, no pure black or pure white grounds at night.
+- No green or red outside the pill, the two limit tags and a field error.
+- No grids of identical cards. Use one feature and a list of rows, or a board.
+- No stock gradients, no glass blur, no emoji, no icon library, no image files for illustration.
+- No motion beyond section 9.
+- No invented numbers, user counts, quotes or logos.
+- No internal 0 to 1 values. People see prices.
+- No third-party resource of any kind: fonts, scripts, images and icons are all served from this site.
+- Do not show a taller or shorter tower than the price says, and do not hide the horizon.

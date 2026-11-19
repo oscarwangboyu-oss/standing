@@ -1,0 +1,18 @@
+.tape {
+  font-family: var(--font-display);
+  font-size: var(--t-20);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.tape > span { vertical-align: 0.06em; }
+.code {
+  padding: 0.08em 0.4em 0.12em;
+  border-radius: 8px;
+  background: var(--sector-wash);
+  color: var(--sector-deep);
+  font-weight: 750;
+  font-size: 0.86em;
+  letter-spacing: 0.03em;
+}

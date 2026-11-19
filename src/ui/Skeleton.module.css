@@ -1,0 +1,5 @@
+.skeleton { display: block; border-radius: 8px; background: var(--track); }
+.stack { display: grid; gap: var(--s-3); }
+.line { height: 0.9em; }
+.quote { display: grid; gap: var(--s-3); }
+.quotePrice { height: calc(var(--t-price) * 0.9); margin-top: var(--s-1); border-radius: var(--r-md); }

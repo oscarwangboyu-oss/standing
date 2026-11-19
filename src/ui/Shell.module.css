@@ -1,0 +1,115 @@
+/* The frames: the app column, the split desktop layout, the public pages, the footer. */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--ground);
+}
+.embedded { min-height: 0; }
+
+/* ---------- Top bar ---------- */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: calc(var(--col) + 2 * var(--gutter));
+  min-height: 60px;
+  margin-inline: auto;
+  padding: var(--s-2) var(--gutter);
+}
+.topWide { max-width: calc(var(--wide) + 2 * var(--gutter)); }
+.topRight { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--tap);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 750;
+  font-stretch: 90%;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-decoration: none;
+}
+.wordmark > span { padding-bottom: 0.08em; }
+
+/* ---------- The app column ---------- */
+.frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: calc(var(--col) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.aside { margin-bottom: var(--s-5); }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; padding-bottom: var(--s-10); }
+.fill { justify-content: space-between; }
+.block { margin-top: var(--s-10); }
+.block:first-child { margin-top: 0; }
+.blockHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); margin-bottom: var(--s-4); }
+.blockTitle {
+  font-family: var(--font-display);
+  font-size: var(--t-24);
+  font-weight: 700;
+  font-stretch: 92%;
+  letter-spacing: -0.02em;
+  line-height: var(--lh-head);
+}
+
+/* ---------- From 960px: illustration left, content right ---------- */
+@media (min-width: 960px) {
+  .split .frame {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--col));
+    align-items: start;
+    gap: var(--s-16);
+    max-width: calc(var(--wide) + 2 * var(--gutter));
+    padding-top: var(--s-6);
+  }
+  .split .aside { position: sticky; top: var(--s-8); margin-bottom: 0; }
+  .wide .frame, .topMid { max-width: calc(960px + 2 * var(--gutter)); }
+  .split .fill { justify-content: flex-start; gap: var(--s-10); }
+  .top { min-height: 72px; }
+}
+
+/* ---------- Public pages ---------- */
+.public { display: flex; flex-direction: column; min-height: 100dvh; background: var(--ground); }
+.publicMain { flex: 1; }
+.column {
+  width: 100%;
+  max-width: calc(var(--wide) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.columnNarrow { max-width: calc(var(--col) + 2 * var(--gutter)); }
+
+/* ---------- Footer ---------- */
+.foot {
+  margin-top: var(--s-12);
+  padding: var(--s-8) 0 calc(var(--s-8) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  font-size: var(--t-13);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.appFoot { margin-top: 0; }
+.footInner {
+  display: grid;
+  gap: var(--s-5);
+  max-width: calc(var(--col) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.footWide .footInner { max-width: calc(var(--wide) + 2 * var(--gutter)); }
+.statements { display: grid; gap: var(--s-2); max-width: 62ch; }
+.footLine { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-6); }
+.footBrand { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: 600; color: var(--ink); }
+.footLinks { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-5); }
+.footLinks a { display: inline-flex; align-items: center; min-height: var(--tap); }

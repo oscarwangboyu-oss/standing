@@ -1,0 +1,42 @@
+/* Three questions to try on the landing page, framed like the question screen of the check. */
+.try {
+  display: grid;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--edge);
+  overflow: hidden;
+}
+.sky { border-bottom: 1px solid var(--line); }
+.body { display: grid; gap: var(--s-4); padding: var(--s-5); min-height: 420px; align-content: start; }
+.question {
+  font-family: var(--font-display);
+  font-size: var(--t-24);
+  font-weight: 700;
+  font-stretch: 90%;
+  letter-spacing: -0.025em;
+  line-height: 1.14;
+  text-wrap: balance;
+}
+.question:focus { outline: none; }
+.skip { display: flex; justify-content: center; }
+.done { display: grid; gap: var(--s-3); justify-items: start; align-content: center; min-height: 380px; }
+.doneText { color: var(--ink-2); max-width: 34ch; }
+.floors {
+  padding: 0.3em 0.8em 0.34em;
+  border-radius: var(--r-pill);
+  background: var(--sector-wash);
+  color: var(--sector-deep);
+  font-size: var(--t-13);
+  font-weight: 700;
+}
+.note {
+  padding: var(--s-3) var(--s-5);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--t-13);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+@media (min-width: 600px) {
+  .body { padding: var(--s-6); }
+}

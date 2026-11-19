@@ -1,0 +1,8 @@
+.card {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+}

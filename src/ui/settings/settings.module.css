@@ -1,0 +1,152 @@
+/* The settings screen. Built from the design-system parts; this file only arranges them and
+   adds the three things the system has no part for: an action row (an Entry that is a button),
+   the recovery code box and a time input. */
+
+.screen { display: flex; flex-direction: column; }
+.head { display: grid; gap: var(--s-2); margin: var(--s-2) 0 var(--s-8); }
+
+.text { font-size: var(--t-17); line-height: var(--lh-body); }
+.small { margin-top: var(--s-2); font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.gap { margin-top: var(--s-4); }
+.stack { display: grid; gap: var(--s-3); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-4); }
+.loadNote { margin-bottom: var(--s-6); }
+.problem {
+  margin-top: var(--s-3);
+  font-size: var(--t-15);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--down);
+}
+
+/* ---------- Ticker ---------- */
+.tickerLine { display: grid; justify-items: start; gap: var(--s-3); }
+.noTicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.42em 0.8em 0.46em;
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 1.5px var(--line-2);
+  color: var(--ink-2);
+  font-weight: 650;
+  font-size: var(--t-15);
+}
+
+/* ---------- Recovery code ---------- */
+.codeBox {
+  display: grid;
+  gap: var(--s-1);
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--ground-2);
+}
+.codeLabel { font-size: var(--t-13); font-weight: 600; line-height: 1.3; color: var(--ink-2); }
+.code {
+  font-family: var(--font-display);
+  font-size: var(--t-24);
+  font-weight: 700;
+  font-stretch: 92%;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums lining-nums;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.code[data-hidden] { color: var(--ink-3); letter-spacing: 0; font-weight: 600; user-select: none; }
+
+/* ---------- Consent ---------- */
+.consentItem { display: grid; }
+.consentHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-1) var(--s-3); }
+.itemTitle { font-size: var(--t-17); font-weight: 700; line-height: 1.3; }
+.state { font-size: var(--t-13); font-weight: 650; color: var(--ink-2); }
+.rule { margin-block: var(--s-5); }
+
+/* ---------- Action rows: an Entry that acts here ---------- */
+.rows { display: grid; }
+.rowItem + .rowItem { border-top: 1px solid var(--line); }
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 68px;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--d-fast) linear;
+}
+.rowItem:first-child .row { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.rowItem:last-child .row { border-radius: 0 0 var(--r-lg) var(--r-lg); }
+.rowIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--ground-2);
+  color: var(--ink);
+}
+.rowText { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.rowTitle { font-weight: 650; line-height: 1.3; }
+.rowDetail { font-size: var(--t-13); line-height: 1.35; color: var(--ink-2); }
+.rowChevron { flex: none; color: var(--ink-3); }
+@media (hover: hover) {
+  .row:hover:not(:disabled) { background: var(--surface-2); }
+}
+.row:active:not(:disabled) { background: var(--ground-2); }
+.row:disabled { cursor: progress; color: var(--ink-2); }
+
+/* ---------- Sheets ---------- */
+.sheetActions { display: grid; gap: var(--s-2); margin-top: var(--s-6); }
+.form { display: grid; gap: var(--s-5); }
+.bullets { display: grid; gap: var(--s-2); margin: var(--s-3) 0 0; padding-left: 1.2em; list-style: disc; font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.bullets li::marker { color: var(--ink-3); }
+.checkLine {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--tap);
+  margin-top: var(--s-4);
+  font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.checkbox {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+/* ---------- Reminder ---------- */
+.timeLine { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-3); margin-top: var(--s-4); }
+.timeField { display: grid; gap: var(--s-2); }
+.timeLabel { font-size: var(--t-15); font-weight: 650; }
+.timeInput {
+  min-height: 48px;
+  min-width: 132px;
+  padding: 0 var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line-2);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--t-20);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.timeInput:focus-visible { border-radius: var(--r-md); box-shadow: inset 0 0 0 2px var(--ink); }
+.row:focus-visible { border-radius: var(--r-md); outline-offset: -3px; }
+
+/* ---------- Empty and about ---------- */
+.empty { display: grid; justify-items: start; gap: var(--s-4); }
+.versions { margin-top: var(--s-4); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }

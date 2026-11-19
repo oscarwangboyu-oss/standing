@@ -1,0 +1,37 @@
+/* Illustrations of the public pages. Same parts and palette as the skyline. */
+
+/* One sector's building in an arched window. */
+.sector { display: block; width: 100%; height: auto; }
+
+/* How to read a price: an elevation drawing with the scale. */
+.scale { display: block; width: 100%; height: auto; overflow: visible; }
+.scaleStreet { fill: var(--k-ground); }
+.scaleKerb { fill: var(--k-ground2); }
+.scaleBand { fill: var(--surface); opacity: 0.7; }
+.scaleAxis { fill: none; stroke: var(--ink-2); stroke-width: 1.3; stroke-linecap: round; }
+.scaleLimit { fill: none; stroke: var(--line-2); stroke-width: 1.3; stroke-dasharray: 2 4; stroke-linecap: round; }
+.scalePar { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 6 5; }
+.scalePill { fill: var(--ink); }
+.scalePillText {
+  fill: var(--on-ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.scaleNum {
+  fill: var(--ink-2);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.scaleNote { fill: var(--ink-2); font-family: var(--font-text); font-size: 11.5px; font-weight: 500; }
+.scaleStrong { fill: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.scalePrice {
+  fill: var(--surface);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}

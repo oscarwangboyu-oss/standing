@@ -1,0 +1,77 @@
+/* Secondary detail: a sheet from the bottom on phones, a centred panel from 700px.
+   A native modal dialog: the browser traps focus, closes on Escape and returns focus. */
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(88dvh, 760px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--edge);
+  overflow: hidden;
+}
+.sheet[open] { display: flex; flex-direction: column; }
+/* ::backdrop does not inherit custom properties in older browsers, so the scrim has a fallback. */
+.sheet::backdrop { background: var(--scrim, rgb(20 26 49 / 0.46)); }
+.sheet::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: var(--line-2);
+}
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 56px;
+  padding: 6px 10px 6px var(--gutter);
+}
+.title {
+  font-family: var(--font-display);
+  font-size: var(--t-24);
+  font-weight: 700;
+  font-stretch: 92%;
+  letter-spacing: -0.02em;
+  line-height: var(--lh-head);
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-2) var(--gutter) calc(var(--s-6) + env(safe-area-inset-bottom));
+}
+/* The page behind a sheet does not scroll. */
+:global(html):has(.sheet[open]) { overflow: hidden; }
+
+@media (min-width: 700px) {
+  .sheet {
+    inset: 0;
+    width: min(520px, calc(100vw - 96px));
+    max-height: min(80dvh, 720px);
+    margin: auto;
+    border-radius: var(--r-xl);
+  }
+  .sheet::before { display: none; }
+  .head { padding: var(--s-4) var(--s-4) 0 var(--s-6); }
+  .body { padding: var(--s-3) var(--s-6) var(--s-6); }
+}
+
+/* Sheets slide. */
+@media (prefers-reduced-motion: no-preference) {
+  .sheet[open] { animation: sheet-in 320ms var(--ease-out); }
+  .sheet[open]::backdrop { animation: backdrop-in 220ms linear; }
+}
+@keyframes sheet-in { from { transform: translateY(48px); opacity: 0; } }
+@keyframes backdrop-in { from { opacity: 0; } }
