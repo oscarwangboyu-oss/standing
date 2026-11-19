@@ -1,7 +1,11 @@
 node_modules/
 dist/
-.wrangler/
-.dev.vars
+.next/
+.data/
+.env.local
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
 test-results/
 playwright-report/
 blob-report/
@@ -10,3 +14,6 @@ blob-report/
 *.log
 .vite/
 coverage/
+
+# design exploration, not part of the product
+design/mocks/

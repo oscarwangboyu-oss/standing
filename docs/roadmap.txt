@@ -1,0 +1,413 @@
+PAGES 21
+
+=== page 1 ===
+BAYU TECHNOLOGY
+Standing
+Know where you stand — across all of you.
+BODY · MIND · WEALTH · CAPABILITY · NETWORK
+Product roadmap and company overview
+72
+=== page 2 ===
+OUR VISION
+A person is worth more than their net worth.
+Standing helps young people see, grow and prove where they stand — across body, mind, wealth, capability and network.
+See
+Grow
+Prove
+A free check shows where you stand today.
+Reports and tracking show how to rise.
+A verified statement backs it up.
+=== page 3 ===
+WHAT WE MEASURE
+Five areas, one score
+01
+02
+03
+04
+05
+Body
+Mind
+Wealth
+Capability
+Network
+Sleep, exercise, steps, sports played
+Mood, energy, stress, how today feels
+Income, savings, debt, home and car
+Education, skills, certificates, learning
+Communities, mentors, people to ask
+Scored by published rules · Compared with peers · Owned by the user
+=== page 4 ===
+THE ROADMAP
+Four stages, each earns the next
+01
+02
+Check
+Daily
+Get the questions and the score right.
+Give people a reason to open Standing every day.
+Now · the MVP
+Next
+03
+04
+Report
+Prove
+Turn the habit into revenue.
+Connect real money data, once trust is earned.
+Then
+Later
+MOVES ON WHEN
+MOVES ON WHEN
+LAUNCHES WITH
+MOVES ON WHEN
+25% back on day 7 · 12% on day 30
+1.5% buy a report · subscribers stay 3+ months
+Security audit + CPA partner70% finish · retest 0.75+
+=== page 5 ===
+THE PRODUCTS
+Every product has its stage
+1 · CHECK 2 · DAILY 3 · REPORT 4 · PROVE
+Questionnaire
+Scoring system
+Result and share
+Standing app
+Five micro apps
+Report and subscription
+Safe to Spend
+Verified statement
+=== page 6 ===
+STAGE 01 · NOW
+Check
+The MVP
+Product Questionnaire with skip button
+Scoring system and breakdown
+Result and share card
+Friend compare
+Technical Anonymous totals per question
+Versioned questions and scoring
+Re-score script on past answers
+Private by default
+Business 50–100 new responses a week
+Testing on our five campuses
+Advisors review the scoring
+Incorporate the company
+MOVE ON WHEN 70% finish · no question skipped by over 10% · retest 0.75+Get the questions and the score right — the base for everything after.
+=== page 7 ===
+STAGE 1 · CHECK
+Questionnaire
+The front door. A five-minute check anyone can take — and the instrument we tune every week.
+
+
+
+
+Thirty questions
+Skip and N/A
+Six numbers
+Weekly versions
+Ranges and taps across five areas. No sign-up, phone first.
+Every question can be skipped or marked
+Skip rate, drop-off, time, spread, N/A share,
+50–100 responses a round, up to five questions changed
+“not applicable”.
+retake change.
+each time.
+THE USER GETS
+BUILT WITH
+A fast check that feels like a quiz, not a form — with questions that get better every week.
+Next.js web app · Anonymous totals in Supabase · PostHog events per question
+=== page 8 ===
+STAGE 1 · CHECK
+Scoring system
+The engine. Turns answers into a price for each area and one overall price — and explains every move.
+
+
+
+
+Area prices
+Why it moved
+Seven tests
+Full replay
+Each area scored 0–100, combined into one
+Every rise or fall broken down to the points each
+Range, stability, response, validity, fairness, gaming,
+Versioned rules; every change re-run on all past
+overall price.
+answer added.
+version effect.
+answers first.
+THE USER GETS
+BUILT WITH
+A score they can understand and trust — the method is public and every version is numbered.
+TypeScript rules package · One versioned config · Raw answers kept · No AI calls
+=== page 9 ===
+STAGE 1 · CHECK
+Result and share
+The payoff. The moment a user finishes, they see where they stand — and get two reasons to bring someone else.
+
+
+
+
+Result page
+Share card
+Friend compare
+Strengths first
+Overall price, five area prices on a radar chart,
+An image for stories and chats: score and strengths
+An invite link. Once both finish, the scores appear
+Results lead with what’s strong and what can grow.
+and peer position.
+— never private details.
+side by side.
+No public rankings.
+THE USER GETS
+BUILT WITH
+Something worth posting, a reason to challenge a friend — and a starting price to improve on.
+Generated share images · Invite links · Small database of anonymous scores
+=== page 10 ===
+STAGE 02 · NEXT
+Daily
+The habit
+Product Standing app, web first
+Daily Open for body and mind
+Payday, Weekly Win, People Nudge
+A live price for every area
+Technical Business One event model for all inputs
+Daily input rules and caps
+Consent for health and mind data
+Native app with HealthKit
+Grow daily users on campus
+Test streaks and reminders
+Legal review of mind data
+Raise step two
+MOVE ON WHEN Give people a reason to open Standing every day.
+25% come back on day 7 · 12% on day 30
+=== page 11 ===
+STAGE 2 · DAILY
+Standing app
+The daily home. Web first, then a native phone app — the one-time score becomes a live price.
+
+
+
+
+Live price
+Steady rules
+Fresh data
+Automatic data
+Logged data replaces the matching answer; the price
+Body and mind as 7-day averages; each area moves
+An area pauses after 14 days without data; a full
+The native app reads years of step counts from HealthKit
+moves that day.
+2 points a day at most.
+retake each quarter.
+in one tap.
+THE USER GETS
+BUILT WITH
+A score that lives with them, and a reason to check it every morning.
+Next.js web, then React Native · One event data model · HealthKit and Health Connect
+=== page 12 ===
+STAGE 2 · DAILY · INSIDE THE APP
+Five micro apps, one per area
+BODY
+Daily Open
+Daily
+MIND
+Daily Open
+Daily
+WEALTH
+Payday Check
+Each payday
+CAPABILITY
+Weekly Win
+Weekly
+NETWORK
+People Nudge
+Weekly
+Did I sleep enough? Did I move? Two taps, or
+Income, spending, savings: three numbers,
+One entry: a course, certificate or skill
+Three people to reconnect with, and a
+automatic in the app.
+How am I today? One tap that builds a streak.
+no bank link.
+I improved.
+log of who I reached.
+Body and mind open the app every day · Wealth, capability and network keep the score moving week to week
+=== page 13 ===
+STAGE 03 · THEN
+Product Report
+First revenue
+Paid report · $12 and $19
+Subscription · $6.99 a month
+Reports built from history
+Monthly reviews
+Technical Secure payments
+Reports generated by rules
+Subscription billing
+Email delivery
+Business Test prices and wording
+Planner reviews wealth content
+First partner offers, disclosed
+University and employer pilots
+MOVE ON WHEN 1.5% buy a report · subscribers stay 3+ months
+Turn the habit into revenue.
+=== page 14 ===
+STAGE 3 · REPORT
+Report and subscription
+Where we earn. A personal analysis built from the check and the user’s own logged history.
+
+
+
+
+Standard · $12
+In-depth · $19
+Subscription
+Clear limits
+Strengths, gaps and a 12- month action list for all
+Adds money analysis and five-year projections under
+Full history, monthly reviews, deeper analysis. $6.99
+Report data never feeds the score. No investment
+five areas.
+three scenarios.
+a month or $59 a year.
+or medical advice.
+THE USER GETS
+BUILT WITH
+A clear plan built on their own history — and a reason to keep tracking.
+Stripe payments and billing · Report templates filled by rules · Resend email
+=== page 15 ===
+STAGE 04 · LATER
+Prove
+Earned trust
+Product Safe to Spend
+Verified net worth statement
+CPA letter on request
+Share link the user controls
+Technical Read-only bank connections
+Documents processed on device
+Penetration test and SOC 2
+Encrypted storage throughout
+Business Partner accounting firm
+Organization contracts
+Partner fees at scale
+Academic and pro endorsements
+LAUNCH ONLY WITH Connect real money data — once trust is earned.
+Security certification · A signed CPA partner
+=== page 16 ===
+STAGE 4 · PROVE
+Connected money and proof
+Two products that need the most trust, so they come last.
+WEALTH, CONNECTED
+PROOF OF NET WORTH
+Safe to Spend
+Verified statement
+The wealth micro app upgraded with linked bank accounts.
+A dated, independently verified net worth statement, $39.
+Read-only bank connection
+Shows what’s safe to spend today
+Updates the wealth price daily
+Each asset shows how it was checked
+Documents read on the device
+CPA letter on request
+=== page 17 ===
+THE TECH STACK
+One stack, built to grow
+WEB APP
+SCORING ENGINE
+DATABASE
+ANALYTICS
+Next.js
+TypeScript
+Supabase
+PostHog
+TypeScript web app for the check, results, Daily Open
+A rules package with one versioned config. Runs
+Postgres for anonymous totals, then one event store
+Skip rate, drop-off and return, so each gate is a number.
+and reports, on Vercel.
+on web, server and app.
+for every input.
+From stage 1
+From stage 1
+From stage 1
+From stage 1
+MOBILE APP
+DATA CONNECTIONS
+PAYMENTS AND EMAIL
+AI TOOLS
+React Native
+HealthKit
+Stripe
+Claude Code
+One codebase for iOS and Android, sharing logic
+HealthKit and Health Connect in stage 2; Plaid bank links
+Card payments for reports and subscriptions; Resend
+Plus Cursor and Figma AI to code, test and design
+with the web.
+in stage 4.
+sends email.
+faster. Never in the score.
+From stage 2
+From stage 2
+From stage 3
+Every stage
+=== page 18 ===
+WHO WE ARE
+Ten builders. Five universities.
+One company.
+2026 Founded in Atlanta, Georgia
+Bayu Technology builds backend data systems for small and mid-sized companies. Standing is our first
+10 Team members, four in engineering
+consumer product.
+5 Universities across the U.S. and Canada
+2 Founders: Oscar Wang and Cola Wang
+Emory Waterloo U. of Washington Columbia
+Stanford
+=== page 19 ===
+OUR VALUES
+How we work
+01 Privacy comes first 02 Don’t wait for perfect 03 Build in parallel 04 AI in every workflow 05 Maximize efficiency Users own their data. We collect the least and never sell it.
+Ship the smallest useful version, then iterate.
+Many components at once, each with one owner.
+AI tools multiply what each of us can build.
+Fewer meetings, written decisions, automate the rest.
+=== page 20 ===
+THE ORGANIZATION
+Our team
+Oscar Wang
+Founder and CEO · business and product
+Cola Wang
+Co-founder and CTO · software execution
+Alex Vu
+CFO · pricing and budget
+Engineering
+Led by Cola Wang
+Fred Li
+Backend · scoring, reports
+Glory Li
+Backend · payments, data
+Lex Zhou
+Data · peers and index
+Design
+Led by Oscar Wang
+Asa Ma
+Product design
+Suri Xie
+Visual design · share card
+Product
+Led by Oscar Wang
+Haoyang Long
+Strategy · scoring method
+Marketing
+Led by Oscar Wang
+Miranda Wei
+Marketing lead
+=== page 21 ===
+STAGE 1 STARTS NOW
+Don’t wait for perfect. Ship the check, read the numbers, earn the
+next stage.
+1
+2
+3
+Add the skip button and anonymous totals; get
+Build the re-score script and price breakdown; run a retest
+Launch Daily Open on the web; watch who comes back50 responses
