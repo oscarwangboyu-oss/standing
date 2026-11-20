@@ -237,8 +237,14 @@ async function sessionResponse(db: Db, session: SessionRow): Promise<SessionResp
   const steps = stepsOf(events);
   // A question that was shown and not answered yet: the person left on it.
   const last = events[events.length - 1];
+  // Only while it is still the question the path has there: a consent withdrawn while a Body or
+  // Mind question was on screen takes that question off the path.
+  const next =
+    !session.completed_at && last && last.action === 'shown' && last.seq === steps.length && Object.hasOwn(BANKS, session.bank_version)
+      ? nextQuestion(getBank(session.bank_version), backgroundOf(session), steps, { excludedAreas: excludedAreasOf(session) })
+      : null;
   const pending =
-    !session.completed_at && last && last.action === 'shown' && last.seq === steps.length
+    next && last && next.id === last.item_id && next.key === last.version_key
       ? {
           seq: last.seq,
           itemId: last.item_id,
@@ -376,7 +382,9 @@ export async function postEvents(request: Request, deps: Deps, sessionId: string
     let inserted: Array<{ seq: number; action: string }> = [];
     const session = await loadSession(tx, user.id, sessionId);
     if (!Object.hasOwn(BANKS, session.bank_version)) {
-      throw new ApiError(500, 'internal_error', 'the bank version of this session is no longer registered');
+      // Not retryable: the device drops these events and reads the server again, so its queue
+      // is not held up behind a check that can no longer be answered.
+      throw new ApiError(409, 'session_completed', 'this check was answered with a question bank that is no longer served');
     }
     const bank = getBank(session.bank_version);
     const incoming = rawEvents.map((raw, index) => checkedEvent(bank, raw, index));

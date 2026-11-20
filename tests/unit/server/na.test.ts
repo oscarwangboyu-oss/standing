@@ -127,19 +127,23 @@ describe('the na event', () => {
 
 // ---------------------------------------------------------------- the team's numbers
 
-// B4 has an option without a score (index 6). Ten people saw it, all role emp:
-//   p1, p2       marked it not applicable
-//   p3           chose option 6, the unscored one
-//   p4           skipped it
-//   p5..p9       chose options 0..4
-//   p10          saw it two hours ago and left
-// Not applicable: (2 marked + 1 unscored option) of 10 shown = 30%, above the 15% line.
-// Skip: 1 of 10. Drop-off: 1 of 10. Answered (selected): 6.
+// B4 has an option without a score (index 6). Thirty people saw it, all role emp, in three
+// rounds of ten (k is the place in the round, 1 to 10):
+//   k 1, 2       marked it not applicable
+//   k 3          chose option 6, the unscored one
+//   k 4          skipped it
+//   k 5..9       chose options 0..4
+//   k 10         saw it two hours ago and left
+// Thirty shown is the fewest a red line needs.
+// Not applicable: (6 marked + 3 unscored option) of 30 shown = 30%, above the 15% line: red.
+// Skip: 3 of 30 = 10%, on the line, not above it. Drop-off: 3 of 30 = 10%, above 3%: red.
+// Answered (selected): 18, too few for the option spread to be judged.
 async function build(db: Db, now: string): Promise<void> {
   const early = new Date(Date.parse(now) - 2 * 3600 * 1000).toISOString();
-  for (let i = 1; i <= 10; i += 1) {
-    const user = `p${i}`;
-    const session = `sp${i}`;
+  for (let n = 1; n <= 30; n += 1) {
+    const i = ((n - 1) % 10) + 1;
+    const user = `p${n}`;
+    const session = `sp${n}`;
     await db.query(
       `insert into users (id, created_at, recovery_hash, recovery_rotated_at, general_consent_version, general_consent_at, lang)
        values ($1, $2, $3, $2, 'general-1', $2, 'en')`,
@@ -168,25 +172,26 @@ describe('the per-question table', () => {
     const res = await api.call('GET', '/api/team/items', { token: TEAM_PASSPHRASE });
     expect(res.status).toBe(200);
     const row = (res.body.rows as TeamItemRow[]).find((r) => r.itemId === 'B4') as TeamItemRow;
-    expect(row.shown).toBe(10);
-    expect(row.notApplicable).toEqual({ count: 3, of: 10, rate: 0.3, red: true, hasOption: true, marked: 2, unscoredOption: 1 });
-    expect(row.skip).toEqual({ count: 1, of: 10, rate: 0.1, red: false });
-    expect(row.dropOff).toEqual({ count: 1, of: 10, rate: 0.1, red: true });
-    expect(row.answered).toBe(6);
-    expect(row.options.counts).toEqual([1, 1, 1, 1, 1, 0, 1]);
+    expect(row.shown).toBe(30);
+    expect(row.notApplicable).toEqual({ count: 9, of: 30, rate: 0.3, red: true, hasOption: true, marked: 6, unscoredOption: 3 });
+    expect(row.skip).toEqual({ count: 3, of: 30, rate: 0.1, red: false });
+    expect(row.dropOff).toEqual({ count: 3, of: 30, rate: 0.1, red: true });
+    expect(row.answered).toBe(18);
+    expect(row.options.counts).toEqual([3, 3, 3, 3, 3, 0, 3]);
+    expect(row.options.red).toBe(false);
 
     const csv = await api.call('GET', '/api/team/items?format=csv', { token: TEAM_PASSPHRASE });
     const [header, line] = csv.text.trimEnd().split('\r\n');
     const cells = line.split(',');
     const at = (name: string) => cells[header.split(',').indexOf(name)];
-    expect([at('marked_not_applicable'), at('unscored_option'), at('not_applicable'), at('not_applicable_rate')]).toEqual(['2', '1', '3', '0.3']);
-    expect([at('skipped'), at('dropped')]).toEqual(['1', '1']);
+    expect([at('marked_not_applicable'), at('unscored_option'), at('not_applicable'), at('not_applicable_rate')]).toEqual(['6', '3', '9', '0.3']);
+    expect([at('skipped'), at('dropped')]).toEqual(['3', '3']);
   });
 
   it('the highest skip rate of the overview does not count not-applicable answers', async () => {
     const api = await makeApi({ now: '2026-03-01T12:00:00.000Z' });
     await build(api.db, '2026-03-01T12:00:00.000Z');
     const res = await api.call('GET', '/api/team/overview', { token: TEAM_PASSPHRASE });
-    expect(res.body.status.maxItemSkipRate).toMatchObject({ value: 0.1, itemId: 'B4', met: true });
+    expect(res.body.status.maxItemSkipRate).toMatchObject({ value: 0.1, itemId: 'B4', count: 3, of: 30, met: true });
   });
 });

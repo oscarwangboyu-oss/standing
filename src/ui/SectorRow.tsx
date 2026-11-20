@@ -39,14 +39,22 @@ export interface SectorRowProps {
  */
 export function SectorRow({ code, price, change, status = price === null ? 'insufficient' : 'listed', tag, history, domain, onSelect, children, className }: SectorRowProps) {
   const hasPrice = price !== null && (status === 'listed' || status === 'halted');
+  // BODY and MIND are already their own names: "BODY Body" would say the same word twice.
+  const name = sectorNames[code].toUpperCase() === code ? null : sectorNames[code];
+  // The tag sits next to the code, so every position bar below spans the same width and the
+  // 100 tick lines up with the scale under the board.
+  const marketTag = hasPrice && tag && tag !== 'halted' ? <Tag kind={tag} /> : null;
   const body = (
     <>
       <span className={styles.chip}>
         <SectorGlyph code={code} size={22} />
       </span>
-      <span className={styles.id}>
-        <span className={styles.code}>{code}</span>
-        <span className={styles.name}>{sectorNames[code]}</span>
+      <span className={cx(styles.id, name === null && styles.idSolo)}>
+        <span className={styles.codeLine}>
+          <span className={styles.code}>{code}</span>
+          {marketTag}
+        </span>
+        {name !== null && <span className={styles.name}>{name}</span>}
       </span>
       {hasPrice ? (
         <>
@@ -75,7 +83,6 @@ export function SectorRow({ code, price, change, status = price === null ? 'insu
       {hasPrice && (
         <div className={styles.under}>
           <PositionBar value={price} quiet />
-          {tag && tag !== 'halted' && <Tag kind={tag} />}
         </div>
       )}
       {children !== undefined && <div className={styles.extra}>{children}</div>}

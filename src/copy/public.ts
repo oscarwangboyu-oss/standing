@@ -117,10 +117,10 @@ export const about = {
     ] as ReadonlyArray<{ name: string; when: string; text: string; gate: string; gateKind: 'gate' | 'start' }>,
   },
   principles: {
-    title: 'Two rules we keep',
+    title: 'How we work',
     list: [
-      'Privacy comes first. We collect the least we can, and we do not sell data.',
-      'Nothing is invented. No made-up user counts, no testimonials, no press logos. Where the baseline is provisional, the page says so.',
+      'We do not collect your name, email or phone number, and we do not sell data.',
+      'The numbers about the check come from the question bank and the scoring rules. The baseline is marked provisional until real medians replace it.',
     ],
   },
   contact: {
@@ -221,7 +221,7 @@ export const method = {
       id: 'baseline',
       title: 'The provisional baseline',
       text: [
-        'A price compares you with the median of your group. Until enough people have taken the check, every group uses the same stand-in baseline. It is a design setting, not the measured median of any group.',
+        'A price compares you with the median of your group. Until enough people have taken the check, every group uses the same stand-in baseline. It is a design setting. No group’s median has been measured yet.',
         'The team replaces it group by group once real medians and head counts are known. Prices are re-based then, and the baseline version goes up. Until then every result says that the baseline is provisional.',
       ],
     },

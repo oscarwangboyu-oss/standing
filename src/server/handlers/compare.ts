@@ -41,6 +41,7 @@ interface InviteRow {
   created_at: string;
   expires_at: string;
   accepted_at: string | null;
+  pair_id: string | null;
 }
 
 interface SideRow {
@@ -141,7 +142,7 @@ function statusOf(invite: InviteRow, now: string): InviteStatus {
   return invite.expires_at <= now ? 'expired' : 'open';
 }
 
-const INVITE_COLUMNS = 'user_id, created_at, expires_at, accepted_at';
+const INVITE_COLUMNS = 'user_id, created_at, expires_at, accepted_at, pair_id';
 
 /** POST /api/compare/invites */
 export async function createInvite(request: Request, deps: Deps): Promise<Response> {
@@ -223,11 +224,35 @@ export async function acceptInvite(request: Request, deps: Deps): Promise<Respon
   if (!invite) throw inviteInvalid();
   const at = deps.now().toISOString();
   const status = statusOf(invite, at);
+  // The person who accepted it, asking again (a lost response, a reload, a second device): the
+  // comparison they already have.
+  const mine = async (): Promise<Response | null> => {
+    const fresh = await first<InviteRow>(deps.db, `select ${INVITE_COLUMNS} from compare_invites where code_hash = $1`, [codeHash]);
+    if (!fresh?.pair_id) return null;
+    const row = await first<{ pair_id: string; created_at: string }>(
+      deps.db,
+      'select pair_id, created_at from comparisons where pair_id = $1 and user_id = $2',
+      [fresh.pair_id, user.id],
+    );
+    if (!row) return null;
+    const response: AcceptInviteResponse = {
+      comparison: await comparisonOf(deps.db, row.pair_id, row.created_at, await requireCompletedCheck(deps.db, user.id), fresh.user_id),
+      created: false,
+    };
+    return json(response, 200);
+  };
+  if (status === 'accepted') {
+    const again = await mine();
+    if (again) return again;
+  }
   if (status !== 'open') throw inviteInvalid(status);
   if (invite.user_id === user.id) throw new ApiError(409, 'invite_own', 'this is your own invite: send the link to a friend');
   const me = await requireCompletedCheck(deps.db, user.id);
 
   const pair = await deps.db.transaction(async (tx) => {
+    // Two accepts between the same two people at once: the second waits here, then finds the
+    // pair the first one made, so the unique index is never hit.
+    await tx.query('select id from users where id in ($1, $2) order by id for update', [user.id, invite.user_id]);
     const existing = await first<{ pair_id: string; created_at: string }>(
       tx,
       'select pair_id, created_at from comparisons where user_id = $1 and other_user_id = $2',
@@ -240,7 +265,7 @@ export async function acceptInvite(request: Request, deps: Deps): Promise<Respon
        where code_hash = $3 and accepted_at is null and expires_at > $1 returning code_hash`,
       [at, pairId, codeHash],
     );
-    if (used.length === 0) throw inviteInvalid('accepted');
+    if (used.length === 0) return null;
     if (existing) return { id: pairId, createdAt: existing.created_at, created: false };
     await tx.query(
       `insert into comparisons (pair_id, user_id, other_user_id, created_at) values ($1, $2, $3, $4), ($1, $3, $2, $4)`,
@@ -249,6 +274,12 @@ export async function acceptInvite(request: Request, deps: Deps): Promise<Respon
     return { id: pairId, createdAt: at, created: true };
   });
 
+  if (pair === null) {
+    // Used in the meantime: by this person (the same accept twice at once) or by someone else.
+    const again = await mine();
+    if (again) return again;
+    throw inviteInvalid('accepted');
+  }
   const response: AcceptInviteResponse = {
     comparison: await comparisonOf(deps.db, pair.id, pair.createdAt, me, invite.user_id),
     created: pair.created,

@@ -44,9 +44,11 @@ import {
   Spot,
   Streak,
   Ticker,
+  cx,
   formatDay,
   formatPrice,
   sharedDomain,
+  type StreakDay,
 } from '@/ui';
 import {
   areaOf,
@@ -82,17 +84,30 @@ function cohortOf(me: MeResponse): string | undefined {
 
 export default function MarketPage() {
   const me = useMe();
+  const device = useDevice();
+  const log = useDailyLog(device.userId);
   const live = me.data?.live ?? null;
+  const week = live && live.apps.dailyOpen.enabled && live.apps.dailyOpen.available ? streakWeek(live.streak, live.today, copy.weekdays, log.known) : null;
+  const weekKey = JSON.stringify(week);
 
+  // From 960px the streak sits in the sticky column under the skyline, so the reward of the
+  // Daily Open stays in view next to the board. On a phone it stays in the Today block.
   const aside = useMemo(
     () =>
       live ? (
         <>
           <SkylineCard prices={livePrices(live)} status={liveStatus(live)} lit={litToday(live)} size="small" />
           <p className={styles.skyNote}>{copy.skylineLit}</p>
+          {week && (
+            <Card className={cx(styles.streakAside, styles.wideOnly)} variant="flat">
+              <Streak days={week} count={live.streak.current} />
+            </Card>
+          )}
         </>
       ) : undefined,
-    [live],
+    // weekKey stands for week: the log hands out a new object on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [live, weekKey],
   );
   useShell({ aside });
 
@@ -116,12 +131,10 @@ export default function MarketPage() {
       </div>
     );
   }
-  return <Market me={me.data} live={live} />;
+  return <Market me={me.data} live={live} week={week} />;
 }
 
-function Market({ me, live }: { me: MeResponse; live: MeLive }) {
-  const device = useDevice();
-  const log = useDailyLog(device.userId);
+function Market({ me, live, week }: { me: MeResponse; live: MeLive; week: StreakDay[] | null }) {
   const [selected, setSelected] = useState<AreaId | null>(null);
   const [asked, setAsked] = useState(false);
   const breakdown = useAsync(() => api.dayBreakdown({ today: today() }), [live.today, live.overall.target], { enabled: asked });
@@ -219,6 +232,8 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
               <Change value={overall - 100} size="sm" />
             </p>
             <Ruler value={overall} />
+            {/* The price history needs two days. Until then the ruler is the picture, and this line says when the chart starts. */}
+            {points.length < 2 && <p className={styles.rulerNote}>{copy.historyOneDay}</p>}
           </div>
           {isCatchingUp(live.overall) && (
             <p className={styles.catchUp}>{copy.catchingUp(formatPrice(live.overall.target as number), live.moveLimit)}</p>
@@ -255,9 +270,9 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
             </Note>
           )}
           {feature}
-          {dailyShown && (
-            <Card className={styles.streak} variant="flat">
-              <Streak days={streakWeek(live.streak, live.today, copy.weekdays, log.known)} count={live.streak.current} />
+          {dailyShown && week && (
+            <Card className={cx(styles.streak, styles.narrowOnly)} variant="flat">
+              <Streak days={week} count={live.streak.current} />
             </Card>
           )}
         </Block>
@@ -299,19 +314,17 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
         </Card>
       </Block>
 
-      <Block title={copy.history} id="m-history">
-        <Card>
-          {points.length > 1 ? (
+      {points.length > 1 && (
+        <Block title={copy.history} id="m-history">
+          <Card>
             <PriceChart
               points={points}
               spacing="day"
               caption={hasVersionMark ? `${copy.historyCaption} ${copy.historyCaptionVersion}` : copy.historyCaption}
             />
-          ) : (
-            <p className={styles.chartNote}>{copy.historyOneDay}</p>
-          )}
-        </Card>
-      </Block>
+          </Card>
+        </Block>
+      )}
 
       <Block title={copy.more} id="m-more">
         <Card pad="none">
@@ -330,6 +343,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                       ? entries.payday.last(formatDay(live.apps.payday.lastDay))
                       : entries.payday.setUp
                 }
+                statusTone={live.apps.payday.recordedToday ? 'done' : undefined}
               />
             )}
             {live.apps.weeklyWin.enabled && live.apps.weeklyWin.available && (
@@ -340,6 +354,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                 title={entries.win.title}
                 detail={entries.win.detail}
                 status={live.apps.weeklyWin.recordedThisWeek ? entries.doneThisWeek : entries.dueThisWeek}
+                statusTone={live.apps.weeklyWin.recordedThisWeek ? 'done' : 'due'}
               />
             )}
             {live.apps.peopleNudge.enabled && live.apps.peopleNudge.available && (
@@ -350,6 +365,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                 title={entries.people.title}
                 detail={entries.people.detail}
                 status={live.apps.peopleNudge.recordedThisWeek ? entries.doneThisWeek : entries.dueThisWeek}
+                statusTone={live.apps.peopleNudge.recordedThisWeek ? 'done' : 'due'}
               />
             )}
             <Entry
@@ -364,6 +380,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                     : entries.retake.detail(dailyParams.retestAfterDays)
               }
               status={inProgress ? entries.retake.inProgress : live.retake.due ? entries.retake.due : formatDay(live.retake.dueDay)}
+              statusTone={!inProgress && live.retake.due ? 'due' : undefined}
             />
             <Entry href={resultRoute()} icon={<IconMarket />} title={entries.result.title} detail={entries.result.detail} />
             <Entry href={ROUTES.compare} icon={<IconCompare />} title={entries.compare.title} detail={entries.compare.detail} />

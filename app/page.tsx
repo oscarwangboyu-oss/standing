@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { brand, sectorNames } from '@/copy/common';
 import {
   START_HREF,
   after,
   closing,
   data,
+  demo,
   footerLinks,
   hero,
   how,
-  limits,
   meta,
   nav,
   reading,
@@ -24,6 +24,7 @@ import {
 } from '@/copy/landing';
 import { Guard } from '@/client/runtime';
 import { typeForPrices } from '@/copy/types';
+import { publicFlags, type PublicFlags } from '@/server/publicFlags';
 import {
   Band,
   Button,
@@ -36,9 +37,7 @@ import {
   IconPayday,
   IconPeople,
   IconWin,
-  Note,
   Price,
-  Ruler,
   SECTOR_CODES,
   SectorGlyph,
   SectorTag,
@@ -60,6 +59,7 @@ import { StickyStart } from '@/ui/public/StickyStart';
 import { TryCheck } from '@/ui/public/TryCheck';
 import { TypeGallery } from '@/ui/public/TypeGallery';
 import s from '@/ui/public/landing.module.css';
+import { LOT_W } from '@/ui/skyline/geometry';
 
 export const metadata: Metadata = {
   title: { absolute: meta.title },
@@ -70,14 +70,27 @@ export const metadata: Metadata = {
 
 /** More sky above the hero skyline than the default crop, so the heading and the city share one sky. */
 const HERO_TOP = 44;
+/**
+ * Width of the hero scene in units. Wider than the default 800, so on a desktop the towers stand a
+ * little smaller and the heading, the city and the five prices fit a 900px first screen. A phone
+ * shows the middle 440 units either way.
+ */
+const HERO_SCENE_W = 960;
+/** The share of the scene's width taken by the five lots: the prices on the street line up with it. */
+const HERO_LOTS = `${((LOT_W * 5) / HERO_SCENE_W) * 100}%`;
 /** Heights of the buildings in the sector bands. Each is a complete building. */
 const BAND_HEIGHT: Record<SectorCode, number> = { SKIL: 116, WLTH: 98, NETW: 122, BODY: 108, MIND: 102 };
-const AFTER_ICON: Record<'open' | 'payday' | 'win' | 'people', ReactNode> = {
+/** Heights of the buildings on the sector cards of a phone, where the building is small. */
+const CARD_HEIGHT: Record<SectorCode, number> = { SKIL: 112, WLTH: 96, NETW: 118, BODY: 104, MIND: 100 };
+type AfterId = 'open' | 'payday' | 'win' | 'people';
+const AFTER_ICON: Record<AfterId, ReactNode> = {
   open: <IconOpen />,
   payday: <IconPayday />,
   win: <IconWin />,
   people: <IconPeople />,
 };
+/** The stage switch of each short record. */
+const AFTER_FLAG: Record<AfterId, keyof PublicFlags> = { open: 'dailyOpen', payday: 'payday', win: 'weeklyWin', people: 'peopleNudge' };
 
 const sampleType = typeForPrices(sample.prices);
 const friendType = typeForPrices(sampleFriend.prices);
@@ -95,6 +108,8 @@ function SectionHead({ id, title, lead, className }: { id: string; title: string
 }
 
 export default function Page() {
+  const flags = publicFlags();
+  const afterOn = after.items.filter((item) => flags[AFTER_FLAG[item.id]]);
   return (
     <div className={s.page}>
       {/* A person with a completed check belongs on /market (src/client/nav.ts). */}
@@ -120,7 +135,7 @@ export default function Page() {
 
       <main>
         {/* ---------- Hero ---------- */}
-        <section className={s.hero} aria-labelledby="hero-title">
+        <section className={s.hero} aria-labelledby="hero-title" style={{ '--lots': HERO_LOTS } as CSSProperties}>
           <Column className={s.heroInner}>
             <div className={s.heroText}>
               <h1 id="hero-title" className={s.heroTitle}>
@@ -152,7 +167,7 @@ export default function Page() {
             </aside>
           </Column>
           <div className={s.heroSky}>
-            <Skyline prices={sample.prices} size="hero" rise top={HERO_TOP} framed={false} seed={7} />
+            <Skyline prices={sample.prices} size="hero" rise top={HERO_TOP} sceneWidth={HERO_SCENE_W} framed={false} seed={7} className={s.heroScene} />
           </div>
           <div className={s.pavement}>
             <dl className={s.heroLegend} aria-hidden="true">
@@ -166,28 +181,126 @@ export default function Page() {
                 </div>
               ))}
             </dl>
-            <p className={s.pavementNote}>
+            {/* Under 900px the quote card is not shown: the street carries the quote of the sample. */}
+            <p className={s.pavementQuote}>
               <Tag kind="sample">{sample.tag}</Tag>
-              <span>
-                {sample.note} {hero.horizon}
+              <span className={s.pavementQuoteLine}>
+                <Ticker variant="chip" size="sm">
+                  {sample.ticker}
+                </Ticker>
+                <span className="vh">{hero.overall} </span>
+                <Price value={sample.price} size="md" />
+                {sampleType && (
+                  <span className={s.pavementType}>
+                    <TypeEmblem pair={sampleType.pair} size={24} />
+                    {sampleType.name}
+                  </span>
+                )}
               </span>
             </p>
           </div>
         </section>
 
-        {/* ---------- What a result looks like ---------- */}
-        <section id="sample" className={s.section} aria-labelledby="sample-title">
+        {/* ---------- Try three questions, and how a check works ---------- */}
+        <section id="how" className={s.section} aria-labelledby="how-title">
           <Column>
-            <SectionHead id="sample-title" title={result.title} lead={result.lead} />
-            <SampleQuote />
+            <SectionHead id="how-title" title={demo.title} />
+            <div className={s.how}>
+              <div className={s.howTry}>
+                <TryCheck />
+              </div>
+              <div className={s.howText}>
+                <h3 className={s.h3}>{how.title}</h3>
+                <ol className={s.steps}>
+                  {how.steps.map((step, i) => (
+                    <li key={step.title}>
+                      <span className={s.stepNo} aria-hidden="true">
+                        {i + 1}
+                      </span>
+                      <div className={s.stepBody}>
+                        <h4 className={s.stepTitle}>{step.title}</h4>
+                        <p>{step.text}</p>
+                        {i === 0 && (
+                          <>
+                            <ul className={s.chips} aria-label={how.agesLabel}>
+                              {how.ages.map((a) => (
+                                <li key={a} className={s.chipAge}>
+                                  {a}
+                                </li>
+                              ))}
+                            </ul>
+                            <ul className={s.chips} aria-label={how.situationsLabel}>
+                              {how.situations.map((a) => (
+                                <li key={a}>{a}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+
+                {/* The short records after the check: listed only when their stage switch is on. */}
+                <div className={s.after}>
+                  <h3 className={s.h3}>
+                    {after.title}
+                    {afterOn.length > 0 && (
+                      <span className={s.h3Tag}>
+                        <Tag>{after.staged}</Tag>
+                      </span>
+                    )}
+                  </h3>
+                  {afterOn.length > 0 && (
+                    <div className={s.afterFull}>
+                      <p className={s.afterLead}>{after.lead}</p>
+                      <ul className={s.afterList}>
+                        {afterOn.map((item) => (
+                          <li key={item.id} style={sectorStyle(item.sectors[0] as SectorCode)}>
+                            <span className={s.afterIcon}>{AFTER_ICON[item.id]}</span>
+                            <div className={s.afterText}>
+                              <p className={s.afterTitle}>
+                                {item.title}
+                                <span className={s.afterRhythm}>{item.rhythm}</span>
+                              </p>
+                              <p className={s.afterDetail}>{item.text}</p>
+                            </div>
+                            <p className={s.afterTags}>
+                              {item.sectors.map((code) => (
+                                <SectorTag key={code} code={code} size="sm" />
+                              ))}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className={afterOn.length > 0 ? s.afterShort : s.afterSoon}>
+                    {afterOn.length > 0 ? after.short : after.soon}{' '}
+                    <Link href="/about#plan" className={s.inline}>
+                      {after.plan}
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
           </Column>
         </section>
 
-        {/* ---------- How to read a price ---------- */}
-        <Band tone="sunk" id="reading">
+        {/* ---------- What a result looks like (from 700px; a phone has the quote on the street) ---------- */}
+        <Band tone="sunk" id="sample" className={s.sampleSection}>
+          <SectionHead id="sample-title" title={result.title} lead={result.lead} />
+          <SampleQuote />
+        </Band>
+
+        {/* ---------- How to read a price: the one statement of the page ---------- */}
+        <Band tone="ink" id="reading" className={s.readingBand}>
           <div className={s.reading}>
             <div className={s.readingText}>
-              <SectionHead id="reading-title" title={reading.title} lead={reading.lead} />
+              <h2 id="reading-title" className={s.kicker}>
+                {reading.title}
+              </h2>
+              <p className={s.statement}>{reading.statement}</p>
               <dl className={s.facts}>
                 {reading.facts.map((f) => (
                   <div key={f.figure}>
@@ -196,25 +309,25 @@ export default function Page() {
                   </div>
                 ))}
               </dl>
+              <div className={s.baseline}>
+                <p>
+                  <strong>{reading.baselineTitle}</strong> {reading.baseline}
+                </p>
+                <Link href="/method" className={`${s.more} ${s.moreOnInk}`}>
+                  {reading.method}
+                  <IconArrowRight size={18} />
+                </Link>
+              </div>
             </div>
             <div className={s.readingFigure}>
               <div className={s.figureCard}>
                 <ScaleFigure code="SKIL" price={sample.prices.SKIL} copy={reading.figure} />
               </div>
-              <div className={s.rulerCard}>
-                <p className={s.rulerLabel}>
-                  <Ticker variant="chip" size="sm">
-                    {sample.ticker}
-                  </Ticker>
-                  {reading.rulerLabel}
-                </p>
-                <Ruler value={sample.price} />
-              </div>
             </div>
           </div>
         </Band>
 
-        {/* ---------- The five sectors ---------- */}
+        {/* ---------- The five sectors: a row of cards on a phone, a band each from 700px ---------- */}
         <section id="sectors" className={s.sectionIntro} aria-labelledby="sectors-title">
           <Column>
             <SectionHead id="sectors-title" title={sectors.title} lead={sectors.lead} />
@@ -228,6 +341,29 @@ export default function Page() {
               ))}
             </ul>
           </Column>
+          <div className={s.rail} role="region" aria-label={sectors.railLabel} tabIndex={0}>
+            <ul className={s.railList}>
+              {sectors.list.map((sector) => (
+                <li key={sector.code} className={s.railCard} style={sectorStyle(sector.code)}>
+                  <div className={s.railHead}>
+                    <SectorScene code={sector.code} h={CARD_HEIGHT[sector.code]} className={s.railArt} />
+                    <div className={s.railTitle}>
+                      <SectorTag code={sector.code} />
+                      <h3 id={`card-${sector.code}-title`} className={s.railName}>
+                        {sectorNames[sector.code]}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className={s.railAbout}>{sector.about}</p>
+                  <figure className={s.ask}>
+                    <figcaption className={s.sectorLabel}>{sectors.questionLabel}</figcaption>
+                    <blockquote className={s.askText}>{sector.question}</blockquote>
+                    <p className={s.askRange}>{sectors.answersLabel(sector.answers[0], sector.answers[1])}</p>
+                  </figure>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
         {sectors.list.map((sector, i) => (
           <Band key={sector.code} tone={sector.code} id={`sector-${sector.code}`} className={s.sectorBand}>
@@ -275,91 +411,11 @@ export default function Page() {
             </article>
           </Band>
         ))}
-        <div className={s.ladder}>
-          <Column>
-            <p>{sectors.ladder}</p>
-          </Column>
-        </div>
 
         {/* ---------- Types ---------- */}
-        <section id="types" className={s.section} aria-labelledby="types-title">
-          <Column>
-            <SectionHead id="types-title" title={types.title} lead={types.lead} />
-            <TypeGallery />
-          </Column>
-        </section>
-
-        {/* ---------- How a check works ---------- */}
-        <Band tone="sunk" id="how">
-          <div className={s.how}>
-            <div className={s.howText}>
-              <SectionHead id="how-title" title={how.title} lead={how.lead} />
-              <ol className={s.steps}>
-                {how.steps.map((step, i) => (
-                  <li key={step.title}>
-                    <span className={s.stepNo} aria-hidden="true">
-                      {i + 1}
-                    </span>
-                    <div className={s.stepBody}>
-                      <h3 className={s.stepTitle}>{step.title}</h3>
-                      <p>{step.text}</p>
-                      {i === 0 && (
-                        <>
-                          <ul className={s.chips} aria-label={how.agesLabel}>
-                            {how.ages.map((a) => (
-                              <li key={a} className={s.chipAge}>
-                                {a}
-                              </li>
-                            ))}
-                          </ul>
-                          <ul className={s.chips} aria-label={how.situationsLabel}>
-                            {how.situations.map((a) => (
-                              <li key={a}>{a}</li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div className={s.howTry}>
-              <TryCheck />
-            </div>
-          </div>
-
-          <div className={s.after}>
-            <header className={s.afterHead}>
-              <h3 className={s.h3}>
-                {after.title}
-                <span className={s.h3Tag}>
-                  <Tag>{after.staged}</Tag>
-                </span>
-              </h3>
-              <p className={s.lead}>{after.lead}</p>
-            </header>
-            <ul className={s.afterList}>
-              {after.items.map((item) => (
-                <li key={item.id} style={sectorStyle(item.sectors[0] as SectorCode)}>
-                  <span className={s.afterIcon}>{AFTER_ICON[item.id]}</span>
-                  <div className={s.afterText}>
-                    <p className={s.afterTitle}>
-                      {item.title}
-                      <span className={s.afterRhythm}>{item.rhythm}</span>
-                    </p>
-                    <p className={s.afterDetail}>{item.text}</p>
-                  </div>
-                  <p className={s.afterTags}>
-                    {item.sectors.map((code) => (
-                      <SectorTag key={code} code={code} size="sm" />
-                    ))}
-                  </p>
-                </li>
-              ))}
-            </ul>
-            <p className={s.afterNote}>{after.note}</p>
-          </div>
+        <Band tone="sunk" id="types">
+          <SectionHead id="types-title" title={types.title} lead={types.lead} />
+          <TypeGallery />
         </Band>
 
         {/* ---------- Share and compare ---------- */}
@@ -396,7 +452,7 @@ export default function Page() {
                         </Ticker>
                         <Price value={who.price} size="md" />
                       </p>
-                      <Skyline prices={who.prices} size="small" top={compareTop} label="" />
+                      <Skyline prices={who.prices} size="small" top={compareTop} label="" className={s.pairSky} />
                       {type && (
                         <p className={s.pairType}>
                           <TypeEmblem pair={type.pair} size={32} />
@@ -427,7 +483,7 @@ export default function Page() {
               </Link>
             </div>
             <div className={s.ledger}>
-              {/* What is never collected: a compact grid. What is kept: one row each, with how. */}
+              {/* What is never collected: a compact grid. What is kept: one row each, with how (from 700px). */}
               <p className={s.ledgerLabel}>{data.notLabel}</p>
               <dl className={s.ledgerNot}>
                 {data.rows
@@ -446,65 +502,50 @@ export default function Page() {
                     </div>
                   ))}
               </dl>
-              <p className={`${s.ledgerLabel} ${s.ledgerLabelKept}`}>{data.yesLabel}</p>
-              <dl className={s.ledgerKept}>
-                {data.rows
-                  .filter((row) => row.kept)
-                  .map((row) => (
-                    <div key={row.item}>
-                      <dt>
-                        <span className={s.ledgerMark}>
-                          <IconCheck size={14} />
-                        </span>
-                        <span className="vh">{data.yesLabel}: </span>
-                        {row.item}
-                      </dt>
-                      <dd>{row.value}</dd>
-                    </div>
-                  ))}
-              </dl>
+              <div className={s.ledgerKeptPart}>
+                <p className={`${s.ledgerLabel} ${s.ledgerLabelKept}`}>{data.yesLabel}</p>
+                <dl className={s.ledgerKept}>
+                  {data.rows
+                    .filter((row) => row.kept)
+                    .map((row) => (
+                      <div key={row.item}>
+                        <dt>
+                          <span className={s.ledgerMark}>
+                            <IconCheck size={14} />
+                          </span>
+                          <span className="vh">{data.yesLabel}: </span>
+                          {row.item}
+                        </dt>
+                        <dd>{row.value}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
             </div>
           </div>
         </Band>
 
-        {/* ---------- What it is not, and who builds it ---------- */}
-        <section className={s.section} aria-labelledby="limits-title">
-          <Column>
-            <div className={s.honest}>
-              <div className={s.limits}>
-                <h2 id="limits-title" className={s.h3}>
-                  {limits.title}
-                </h2>
-                <ul className={s.limitList}>
-                  {limits.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <Note tone="info" title={limits.baselineTitle}>
-                  <p>{limits.baseline}</p>
-                </Note>
-                <Link href="/method" className={s.more}>
-                  {limits.method}
-                  <IconArrowRight size={18} />
-                </Link>
-              </div>
-              <div className={s.team}>
-                <h2 className={s.h3}>{team.title}</h2>
-                <p className={s.teamText}>{team.text}</p>
-                <dl className={s.teamFacts}>
-                  {team.facts.map((f) => (
-                    <div key={f.text}>
-                      <dt>{f.figure}</dt>
-                      <dd>{f.text}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <Link href="/about" className={s.more}>
-                  {team.about}
-                  <IconArrowRight size={18} />
-                </Link>
-              </div>
+        {/* ---------- Who builds it ---------- */}
+        <section className={s.teamSection} aria-labelledby="team-title">
+          <Column className={s.team}>
+            <div className={s.teamHead}>
+              <h2 id="team-title" className={s.h2}>
+                {team.title}
+              </h2>
+              <p className={s.teamText}>{team.text}</p>
+              <Link href="/about" className={s.more}>
+                {team.about}
+                <IconArrowRight size={18} />
+              </Link>
             </div>
+            <dl className={s.teamFacts}>
+              {team.facts.map((f) => (
+                <div key={f.text}>
+                  <dt>{f.figure}</dt>
+                  <dd>{f.text}</dd>
+                </div>
+              ))}
+            </dl>
           </Column>
         </section>
 

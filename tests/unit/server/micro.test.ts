@@ -214,8 +214,8 @@ describe('POST /api/payday: bands only', () => {
       expect([JSON.stringify(body), res.status, res.body.error.code]).toEqual([JSON.stringify(body), 400, 'amounts_not_accepted']);
     }
     expect(await countRows(api.db, 'payday_entries')).toBe(0);
-    // The request has six fields, and none of them is an amount.
-    expect([...PAYDAY_ENTRY_FIELDS]).toEqual(['id', 'localDate', 'periods', 'saveShare', 'runway', 'baselineDay']);
+    // The request has seven fields, and none of them is an amount.
+    expect([...PAYDAY_ENTRY_FIELDS]).toEqual(['id', 'localDate', 'periods', 'saveShare', 'debtShare', 'runway', 'baselineDay']);
   });
 
   it('no micro-app table has a column that could hold an amount, a name or free text', async () => {
@@ -231,7 +231,7 @@ describe('POST /api/payday: bands only', () => {
       expect(c.column_name, `${c.table_name}.${c.column_name}`).not.toMatch(/amount|income|spend|saving|cash|debt|dollar|usd|balance|name|title|note|text/);
     }
     expect(columns.filter((c) => c.table_name === 'payday_entries').map((c) => c.column_name)).toEqual([
-      'user_id', 'id', 'day', 'periods', 'save_share', 'runway', 'baseline_day', 'source', 'at',
+      'user_id', 'id', 'day', 'periods', 'save_share', 'runway', 'baseline_day', 'source', 'at', 'burden_share',
     ]);
 
     // Every number column is bounded by a check: even written straight into the database, a
@@ -240,7 +240,7 @@ describe('POST /api/payday: bands only', () => {
     expect(numbers.length).toBeGreaterThan(10);
     const base: Record<string, string> = {
       daily_entries: `insert into daily_entries (user_id, day, logged_on, sleep, exercise, state, at) values ('${userId}', '2026-01-01', '2026-01-01', 1, 1, 1, 'x')`,
-      payday_entries: `insert into payday_entries (user_id, id, day, periods, save_share, runway, at) values ('${userId}', 'x', '2026-01-01', 1, 1, 1, 'x')`,
+      payday_entries: `insert into payday_entries (user_id, id, day, periods, save_share, burden_share, runway, at) values ('${userId}', 'x', '2026-01-01', 1, 1, 1, 1, 'x')`,
       weekly_wins: `insert into weekly_wins (user_id, id, day, kind, hours, at) values ('${userId}', 'x', '2026-01-01', 'course', 1, 'x')`,
       people_nudges: `insert into people_nudges (user_id, id, day, planned, reached_family, reached_friend, reached_mentor, reached_work, reached_other, at) values ('${userId}', 'x', '2026-01-01', 1, 1, 1, 1, 1, 1, 'x')`,
     };
@@ -273,7 +273,6 @@ describe('POST /api/payday: bands only', () => {
       payday({ id: 'short' }),
       payday({ periods: 0 }), // a share without periods
       payday({ periods: 1, saveShare: null }), // periods without a share
-      payday({ runway: 3 }), // a runway without its baseline
       payday({ runway: 3, baselineDay: '2026-02-01' }), // not a check of this person
       payday({ baselineDay: 'yesterday' }),
       (() => {
@@ -308,9 +307,22 @@ describe('POST /api/payday: bands only', () => {
     // A correction the same day is a new record with its own id. Both are kept.
     expect((await post(payday({ id: 'payday-entry-000002', periods: 0, saveShare: null }))).status).toBe(201);
     expect(await api.db.query('select * from payday_entries order by id')).toEqual([
-      { user_id: userId, id: 'payday-entry-000001', day: DAY, periods: 3, save_share: 4, runway: 3, baseline_day: DAY, source: 'payday', at: NOW },
-      { user_id: userId, id: 'payday-entry-000002', day: DAY, periods: 0, save_share: null, runway: null, baseline_day: null, source: 'payday', at: NOW },
+      { user_id: userId, id: 'payday-entry-000001', day: DAY, periods: 3, save_share: 4, runway: 3, baseline_day: DAY, source: 'payday', at: NOW, burden_share: null },
+      { user_id: userId, id: 'payday-entry-000002', day: DAY, periods: 0, save_share: null, runway: null, baseline_day: null, source: 'payday', at: NOW, burden_share: null },
     ]);
+  });
+
+  it('takes the debt share band and a runway from the money available now, with no baseline', async () => {
+    const res = await post(payday({ id: 'payday-entry-000003', periods: 2, saveShare: null, debtShare: 1, runway: 2, baselineDay: null }));
+    expect(res.status).toBe(201);
+    const [row] = await api.db.query<{ burden_share: number; runway: number; baseline_day: string | null }>(
+      "select burden_share, runway, baseline_day from payday_entries where id = 'payday-entry-000003'",
+    );
+    expect(row).toEqual({ burden_share: 1, runway: 2, baseline_day: null });
+    // A band out of range, or a share without its periods, is refused.
+    for (const body of [payday({ id: 'payday-entry-000004', periods: 1, saveShare: null, debtShare: 7 }), payday({ id: 'payday-entry-000005', periods: 0, saveShare: null, debtShare: 1 })]) {
+      expect((await post(body)).status).toBe(400);
+    }
   });
 });
 

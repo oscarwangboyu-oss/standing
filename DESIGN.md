@@ -199,7 +199,7 @@ Import from `@/ui`. All text comes from `src/copy`.
 
 **Actions**: `Button` (primary: an ink pill, one per screen; secondary: outlined; quiet: text; sizes lg 56, md 48, sm 44; `href` makes it a link), `IconButton` (round, 44px, needs a `label`).
 
-**Surfaces**: `Card` (raised, flat, sunk, or tinted with a `sector`; `pad` none, sm, md, lg), `Band` (a full-width tinted section whose top edge is a skyline silhouette; tones: a sector, `sunk`, `ink`; bands follow each other without a gap), `Rule`, `Sheet` (a native modal dialog: bottom sheet on a phone, centred panel from 700px; focus is trapped and returns to the opener; Escape and the backdrop close it).
+**Surfaces**: `Card` (raised, flat, sunk, or tinted with a `sector`; `pad` none, sm, md, lg), `Band` (a full-width tinted section whose top edge is a skyline silhouette; tones: a sector, `sunk`, `ink`; bands follow each other without a gap. The landing uses one `ink` band as its statement moment, "How to read a price"; at night ink is cream, so it becomes the one light band on a dark page, a deliberate contrast beat), `Rule`, `Sheet` (a native modal dialog: bottom sheet on a phone, centred panel from 700px; focus is trapped and returns to the opener; Escape and the backdrop close it).
 
 **Notices**: `Note` (info, care for the mind notice, plain), `BaselineNote` (the provisional-baseline statement; it stays on the result until real data replaces the baseline), `Toast` with `useToast`, `Skeleton`, `SkeletonText`, `SkeletonQuote` (still blocks, no shimmer).
 
@@ -228,9 +228,9 @@ Inside `sectorStyle()` a chart takes that sector's colour; outside it is ink.
 
 ## 8. The share image
 
-`ShareCard` draws it as SVG at any width; `renderShareCard(data)` returns the same card as a 1080 × 1350 PNG. The layout is one pure list of operations (`share/layout.ts`) used by both, so they cannot drift apart. The renderer waits for the fonts, turns the scene into an SVG image, draws it on a canvas, then paints the text.
+`ShareCard` draws it as SVG at any width; `renderShareCard(data, format)` returns the same card as a PNG. Two formats: **story**, 1080 × 1920 (9:16, the default in the share sheet, with the top 230px and the bottom 240px kept free of text for the Instagram interface), and **post**, 1080 × 1350 (4:5). The layout of each is one pure list of operations (`share/layout.ts`) used by both renderers, so they cannot drift apart. The renderer waits for the fonts, turns the scene into an SVG image, draws it on a canvas, then paints the text.
 
-On the card: the skyline at dusk with every light on, the ticker, the overall price, the type name, the five sector prices under their towers, "100 is the provisional median of my group." and "A personal index. Not a security." Never on the card: any answer, the cohort.
+On the card: the ticker and "Overall" top left, the overall price (decimals at 0.46 of the whole number, as on the result), the type name and its line, the skyline at dusk with every light on, the five sector prices under their towers, "100 is the provisional median of my group." and "A personal index. Not a security." at 28 to 30px, and the mark with "Standing" bottom right, with the site address under it once `brand.host` is set. Every line of text sits inside one sky band, clear of the band edges, the tallest possible tower, clouds and the sun; `tests/unit/ui/share.test.ts` checks this for both formats. The scene draws no stars of its own on the card; the layout places a few in the upper sky, away from the text. Never on the card: any answer, the cohort.
 
 ## 9. Motion
 
@@ -276,7 +276,7 @@ At `/styleguide#screens`, each at the width of the window. Screenshots in `desig
 ## 13. Do not
 
 - No grey pages, no pure black or pure white grounds at night.
-- No green or red outside the pill, the two limit tags and a field error.
+- No green or red outside the pill, the two limit tags and a field error. One exception: on the team dashboard (`/team`) the loss red on its wash marks a breach (a gate not met, a scoring test that warns, a value over a red line), always with a word.
 - No grids of identical cards. Use one feature and a list of rows, or a board.
 - No stock gradients, no glass blur, no emoji, no icon library, no image files for illustration.
 - No motion beyond section 9.

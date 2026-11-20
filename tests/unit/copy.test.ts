@@ -1,6 +1,7 @@
 // The copy rules of CLAUDE.md that a pattern can check, over every string in src/copy:
-// no em dash or en dash, no exclamation mark, no "not X but Y". The rest of the rules (short
-// declarative sentences, one market vocabulary, strengths first) need a reader.
+// no em dash or en dash, no exclamation mark, no "not X but Y", and the slogans a reviewer has
+// already sent back. The rest of the rules (short declarative sentences, one market vocabulary,
+// strengths first) need a reader.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -59,5 +60,12 @@ describe('interface copy', () => {
 
   it('has no "not X but Y"', () => {
     expect(where(all.filter((l) => /\bnot (only )?[^.,;:]{1,40}\bbut\b/i.test(l.text)))).toEqual([]);
+  });
+
+  it('has no slogan', () => {
+    // "Privacy comes first." and "Three questions, that fast." read as slogans. A step that comes
+    // first in an order ("A full check comes first.") is a fact and stays allowed.
+    const slogans = [/(^|[.?] )\w+ comes first\b/i, /\bthat fast\b/i];
+    expect(where(all.filter((l) => slogans.some((re) => re.test(l.text))))).toEqual([]);
   });
 });

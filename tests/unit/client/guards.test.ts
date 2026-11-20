@@ -131,7 +131,8 @@ describe('the frame of a route', () => {
     expect(shellDefaultsFor('/market').nav).toBe('market');
     expect(shellDefaultsFor('/log/win').nav).toBe('log');
     expect(shellDefaultsFor('/settings')).toMatchObject({ nav: 'settings', footer: true });
-    expect(shellDefaultsFor('/compare')).toMatchObject({ nav: null, width: 'wide' });
+    // Compare is reached from the market's entries, so the navigation marks Market.
+    expect(shellDefaultsFor('/compare')).toMatchObject({ nav: 'market', width: 'wide' });
     expect(shellDefaultsFor('/check')).toMatchObject({ nav: undefined, fill: true });
     expect(shellDefaultsFor('/result').nav).toBeUndefined();
     expect(shellDefaultsFor('/start').nav).toBeUndefined();

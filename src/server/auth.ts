@@ -77,10 +77,15 @@ export function profileOf(user: UserRow): UserProfile {
 export async function requireTeam(request: Request, deps: Deps): Promise<void> {
   const expected = deps.env.adminPassphrase;
   if (!expected) throw new ApiError(403, 'team_closed', 'the team dashboard is closed: no passphrase is configured');
-  // Guesses are not rate limited here (serverless instances share no memory), so production
-  // needs a passphrase too long to guess. A short one keeps the dashboard closed.
-  if (deps.env.environment === 'production' && expected.length < MIN_TEAM_PASSPHRASE_LENGTH) {
-    throw new ApiError(403, 'team_closed', `the team dashboard is closed: ADMIN_PASSPHRASE needs ${MIN_TEAM_PASSPHRASE_LENGTH} characters or more in production`);
+  // Guesses are not rate limited here (serverless instances share no memory), so every hosted
+  // deployment (production and previews) needs a passphrase too long to guess. A short one
+  // keeps the dashboard closed. Local development may use a short one.
+  if (deps.env.environment !== 'local' && expected.length < MIN_TEAM_PASSPHRASE_LENGTH) {
+    throw new ApiError(
+      403,
+      'team_closed',
+      `the team dashboard is closed: ADMIN_PASSPHRASE needs ${MIN_TEAM_PASSPHRASE_LENGTH} characters or more outside local development`,
+    );
   }
   const given = bearer(request);
   // Compare even when nothing was sent, so both failures take the same time.

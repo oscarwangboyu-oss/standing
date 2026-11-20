@@ -25,10 +25,12 @@ import {
   Entry,
   EntryList,
   Field,
+  IconBook,
   IconCalendar,
-  IconDownload,
-  IconInfo,
   IconClose,
+  IconDoc,
+  IconDownload,
+  IconLock,
   Note,
   Rule,
   Sheet,
@@ -157,7 +159,15 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
               {copy.recovery.codeLabel}
             </span>
             <output className={styles.code} aria-labelledby={`${codeId}-label`} data-hidden={!shown || undefined}>
-              {shown ? code : copy.recovery.hidden}
+              {shown ? (
+                code
+              ) : (
+                <>
+                  {/* The shape of the code with every character masked; read aloud as "Hidden". */}
+                  <span aria-hidden="true">{code.replace(/[A-Za-z0-9]/g, '•')}</span>
+                  <span className="vh">{copy.recovery.hidden}</span>
+                </>
+              )}
             </output>
           </div>
         ) : (
@@ -165,21 +175,30 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
             <p>{copy.recovery.notHere}</p>
           </Note>
         )}
-        <div className={styles.actions}>
-          {code && (
-            <>
+        {code ? (
+          <>
+            <div className={styles.actions}>
               <Button variant="secondary" size="sm" onClick={() => setShown((s) => !s)} aria-pressed={shown}>
                 {shown ? copy.recovery.hide : copy.recovery.show}
               </Button>
               <Button variant="secondary" size="sm" onClick={copyCode}>
                 {copy.recovery.copy}
               </Button>
-            </>
-          )}
-          <Button variant={code ? 'quiet' : 'secondary'} size="sm" onClick={() => setAsking(true)}>
-            {copy.recovery.rotate}
-          </Button>
-        </div>
+            </div>
+            {/* The less common action on a line of its own, its label in line with the text above. */}
+            <div className={styles.quietLine}>
+              <Button variant="quiet" size="sm" inline onClick={() => setAsking(true)}>
+                {copy.recovery.rotate}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className={styles.actions}>
+            <Button variant="secondary" size="sm" onClick={() => setAsking(true)}>
+              {copy.recovery.rotate}
+            </Button>
+          </div>
+        )}
       </Card>
       <Sheet open={asking} onClose={() => !busy && setAsking(false)} title={copy.recovery.rotateTitle}>
         <p className={styles.text}>{copy.recovery.rotateText}</p>
@@ -553,9 +572,9 @@ function AboutBlock({ versions }: { versions: { algo: number; bank: string; norm
     <Block title={copy.about.title} id="settings-about">
       <Card pad="none">
         <EntryList label={copy.about.label}>
-          <Entry href={ROUTES.method} icon={<IconInfo />} title={copy.about.method} detail={copy.about.methodText} />
-          <Entry href={ROUTES.privacy} icon={<IconInfo />} title={copy.about.privacy} detail={copy.about.privacyText} />
-          <Entry href={ROUTES.terms} icon={<IconInfo />} title={copy.about.terms} detail={copy.about.termsText} />
+          <Entry href={ROUTES.method} icon={<IconBook />} title={copy.about.method} detail={copy.about.methodText} />
+          <Entry href={ROUTES.privacy} icon={<IconLock />} title={copy.about.privacy} detail={copy.about.privacyText} />
+          <Entry href={ROUTES.terms} icon={<IconDoc />} title={copy.about.terms} detail={copy.about.termsText} />
         </EntryList>
       </Card>
       <p className={styles.versions}>

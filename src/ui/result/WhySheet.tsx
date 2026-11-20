@@ -131,7 +131,7 @@ export function WhySheet({ target, onClose, state, data, onRetry }: WhySheetProp
   const breakdown = data?.breakdown ?? null;
   const price = target && breakdown ? (target === 'overall' ? breakdown.overall : breakdown.sectors[target]) : null;
   return (
-    <Sheet open={target !== null} onClose={onClose} title={copy.title}>
+    <Sheet open={target !== null} onClose={onClose} title={target && target !== 'overall' ? copy.titleFor(AREA_CODE[target]) : copy.title}>
       {target === null ? null : state === 'first' ? (
         <p className={styles.whyNote}>{copy.first}</p>
       ) : state === 'unsaved' ? (

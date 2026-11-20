@@ -30,9 +30,23 @@ import {
   sectorStyle,
   useToast,
 } from '@/ui';
-import { daysWithoutRecord, streakWeek } from '@/ui/market/live';
+import { countWindow, daysWithoutRecord, openDays, streakWeek } from '@/ui/market/live';
 import { dailyReminderIcs, isReminderTime } from '@/ui/micro/ics';
-import { Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, Pills, errorMessage } from '@/ui/micro/parts';
+import {
+  Facts,
+  Meter,
+  More,
+  Moved,
+  MicroClosed,
+  MicroError,
+  MicroHead,
+  MicroSkeleton,
+  MicroState,
+  Pills,
+  Recorded,
+  errorMessage,
+  useTopOnChange,
+} from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
 import { rememberDaily, useDailyLog, type DailyLogView } from './dailyLog';
 
@@ -85,7 +99,8 @@ export default function OpenPage() {
 function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: DailyLogView }) {
   const params = getAlgo().live.dailyOpen;
   const yesterday = addDays(live.today, -1);
-  const canYesterday = live.streak.canBackfill.includes(yesterday);
+  // Never a day before the first check: there was no price to keep yet.
+  const canYesterday = openDays(live.streak).includes(yesterday);
   const recordedToday = live.streak.recordedToday;
 
   // The day being entered. null: nothing to enter, the screen shows today's open.
@@ -96,6 +111,8 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ which: Which; stored: boolean } | null>(null);
   const toast = useToast();
+  // The done state starts at the top, with focus on its heading.
+  const top = useTopOnChange(which ?? 'done');
 
   const breakdown = useAsync(() => api.dayBreakdown({ day: live.today, today: live.today }), [live.today, live.sectors.B.target, live.sectors.M.target], {
     enabled: which === null,
@@ -148,10 +165,16 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
     </Note>
   );
 
+  const counted = countWindow(live.apps.dailyOpen);
   const streakCard = (
     <Card variant="flat">
-      <Streak days={week} count={live.streak.current} />
+      <Streak days={week} count={live.streak.current} fresh={saved?.which === 'today' && saved.stored} />
       <p className={styles.skyNote}>{copy.streakRule}</p>
+      {counted && (
+        <div className={styles.meterGap}>
+          <Meter window={counted} text={copy.meter(counted.have, counted.need, counted.of)} sector="BODY" />
+        </div>
+      )}
     </Card>
   );
 
@@ -218,15 +241,25 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
   // ---------------------------------------------------------------- today's open
   const overall = live.overall;
   const todayTaps = log.tapsOf(live.today);
+  const filledYesterday = saved?.which === 'yesterday' && saved.stored;
   return (
     <>
       {notice}
-      <MicroHead title={saved?.which === 'yesterday' && saved.stored ? copy.doneYesterday : copy.doneToday} sectors={['BODY', 'MIND']} />
+      <Recorded
+        level={1}
+        headingRef={top}
+        sector="BODY"
+        fresh={saved?.stored === true}
+        title={filledYesterday ? copy.doneYesterday : copy.doneToday}
+        detail={shared.recordedOn(formatDay(filledYesterday ? yesterday : live.today))}
+      />
       {saved && !saved.stored && (
         <Note className={styles.noteTop}>
           <p>{copy.alreadyRecorded}</p>
         </Note>
       )}
+      <div className={styles.streakCard}>{streakCard}</div>
+
       {overall.price !== null && (
         <div className={styles.resultHead}>
           <p className={styles.resultLabel}>{copy.priceToday}</p>
@@ -256,7 +289,6 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
           <p>{copy.unlisted}</p>
         </Note>
       )}
-      <p className={`${styles.resultLine} ${styles.note}`}>{copy.rules(live.moveLimit, params.minDays, params.windowDays)}</p>
 
       {todayTaps && (
         <Card variant="flat" className={styles.note}>
@@ -271,8 +303,6 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
           </dl>
         </Card>
       )}
-
-      <div className={styles.note}>{streakCard}</div>
 
       {canYesterday && (
         <div className={`${styles.actions} ${styles.note}`}>
@@ -290,6 +320,10 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
           </Button>
         </div>
       )}
+
+      <More className={styles.note}>
+        <Facts sector="BODY" title={copy.rulesTitle} items={copy.rulesList(live.moveLimit, params.minDays, params.windowDays)} />
+      </More>
 
       <Calendar startDay={live.today} onSaved={toast.show} />
       <Toast>{toast.message}</Toast>

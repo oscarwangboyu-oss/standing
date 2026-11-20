@@ -72,7 +72,7 @@ describe('saving share: savings divided by take-home income, as a band of W5 "sa
     const three = [payday(14, 1000, 700, 100), payday(28, 1000, 700, 200), payday(42, 1000, 600, 360)];
     const result = paydayBandsFor({ setup, entries: three, baseline: null });
     expect(result.local.averageSaveShare).toBeCloseTo(0.22, 12);
-    expect(result.bands).toEqual({ day: day(42), periods: 3, saveShare: 3, runway: null, baselineDay: null });
+    expect(result.bands).toEqual({ day: day(42), periods: 3, saveShare: 3, debtShare: null, runway: null, baselineDay: null });
     // A fourth payday pushes the first out: 20%, 36% and 0% give 18.67%.
     const four = [...three, payday(56, 1000, 1000, 0)];
     const next = paydayBandsFor({ setup, entries: four, baseline: null });
@@ -98,7 +98,7 @@ describe('saving share: savings divided by take-home income, as a band of W5 "sa
     expect(gap.bands).toMatchObject({ periods: 1, saveShare: 2 });
     expect(gap.local.saveShare).toBeNull();
     const none = paydayBandsFor({ setup, entries: [payday(14, 0, 400, 0)], baseline: null });
-    expect(none.bands).toEqual({ day: day(14), periods: 0, saveShare: null, runway: null, baselineDay: null });
+    expect(none.bands).toEqual({ day: day(14), periods: 0, saveShare: null, debtShare: null, runway: null, baselineDay: null });
   });
 });
 
@@ -176,8 +176,8 @@ describe('amounts stay on the device', () => {
       entries: [payday(14, 4321.09, 2345.67, 987.65), payday(28, 4321.09, 2000, 1234.56)],
       baseline: { day: D, runwayKey: 'base', runwayOption: 2 },
     });
-    expect(Object.keys(bands).sort()).toEqual(['baselineDay', 'day', 'periods', 'runway', 'saveShare']);
-    for (const value of [bands.periods, bands.saveShare, bands.runway]) {
+    expect(Object.keys(bands).sort()).toEqual(['baselineDay', 'day', 'debtShare', 'periods', 'runway', 'saveShare']);
+    for (const value of [bands.periods, bands.saveShare, bands.debtShare ?? null, bands.runway]) {
       expect(value === null || (Number.isInteger(value) && value >= 0 && value <= 4)).toBe(true);
     }
     expect(JSON.stringify(bands)).not.toMatch(/4321|2345|987|1234|2000/);
@@ -259,5 +259,55 @@ describe('what the timeline does with payday bands', () => {
       expect(Math.abs((wealth[i].price as number) - (wealth[i - 1].price as number))).toBeLessThanOrEqual(2 + 1e-12);
     }
     expect(wealth[30].price).toBe(wealth[30].target);
+  });
+});
+
+describe('the numbers of PROMPT.md section 10: money available now and debt paid', () => {
+  const now = (n: number, income: number, balance: number, debt: number, savings: number): PaydayAmounts => ({ day: day(n), income, balance, debt, savings });
+
+  it('months of savings are the money available now over a month of essential spending', () => {
+    const texts = versionOf('W3', 'base').opts.map((o) => o.en);
+    const runwayOf = (balance: number) => paydayBandsFor({ setup, entries: [now(14, 2400, balance, 0, 0)], baseline: null }).bands;
+    // $2,000 a month of essentials.
+    expect(texts[runwayOf(500).runway as number]).toBe('Less than 2 weeks');
+    expect(texts[runwayOf(1000).runway as number]).toBe('2 weeks to 1 month');
+    expect(texts[runwayOf(3000).runway as number]).toBe('1 to 3 months');
+    expect(texts[runwayOf(8000).runway as number]).toBe('3 to 6 months');
+    expect(texts[runwayOf(15000).runway as number]).toBe('More than 6 months');
+    // It stands on its own: no baseline is needed or sent.
+    expect(runwayOf(3000).baselineDay).toBeNull();
+    expect(paydayBandsFor({ setup, entries: [now(14, 2400, 3000, 0, 0)], baseline: null }).local.runwayMonths).toBe(1.5);
+  });
+
+  it('the debt share is debt paid over take-home pay, averaged, as a band of W5 "debt"', () => {
+    const texts = versionOf('W5', 'debt').opts.map((o) => o.en);
+    // 0%, 10% and 30% give a mean of about 13%: "10% to 19%".
+    const three = paydayBandsFor({ setup, entries: [now(14, 1000, 0, 0, 0), now(28, 1000, 0, 100, 0), now(42, 1000, 0, 300, 0)], baseline: null });
+    expect(three.local.averageDebtShare).toBeCloseTo(0.4 / 3, 12);
+    expect(texts[three.bands.debtShare as number]).toBe('10% to 19%');
+    expect(three.bands.periods).toBe(3);
+    expect(texts[paydayBandsFor({ setup, entries: [now(14, 1000, 0, 0, 0)], baseline: null }).bands.debtShare as number]).toBe('No debt payments');
+    expect(texts[paydayBandsFor({ setup, entries: [now(14, 1000, 0, 400, 0)], baseline: null }).bands.debtShare as number]).toBe('36% or more');
+    // Older paydays without a debt figure are left out of the average.
+    const mixed = paydayBandsFor({ setup, entries: [payday(14, 1000, 600, 100), now(28, 1000, 0, 250, 0)], baseline: null });
+    expect(mixed.local.averageDebtShare).toBe(0.25);
+  });
+
+  it('the timeline puts the debt share on W5 "debt" and the runway on W3, whichever check is in force', () => {
+    const emp = backgroundFor('emp');
+    // W1 option 1 routes to a middle tier, which asks W5 in its "debt" wording.
+    const steps = walk(emp, (q) => (q.id === 'W1' ? 1 : 2));
+    const w5 = steps.find((st) => st.id === 'W5');
+    expect(w5?.key).toBe('debt');
+    const check = { day: D, background: emp, steps };
+    const bands: PaydayBands = { day: day(3), periods: 1, saveShare: null, debtShare: 4, runway: 4, baselineDay: null };
+    const input = timelineInputOn({ checks: [check], paydays: [bands] }, day(3));
+    expect(input?.overrides).toEqual([
+      { itemId: 'W5', k: 4, source: 'payday' },
+      { itemId: 'W3', k: 4, source: 'payday' },
+    ]);
+    const series = timeline({ checks: [check], paydays: [bands], until: day(10) });
+    const before = compute({ bank, background: emp, steps }).sectors.W.price as number;
+    expect(series.points[10].sectors.W.price).toBeGreaterThan(before);
   });
 });

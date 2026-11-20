@@ -209,7 +209,7 @@ export type MicroApp = (typeof MICRO_APPS)[number];
  * Every field a payday request may carry. Anything else is refused with amounts_not_accepted:
  * the three amounts and the setup stay on the device, and the server takes bands only.
  */
-export const PAYDAY_ENTRY_FIELDS = ['id', 'localDate', 'periods', 'saveShare', 'runway', 'baselineDay'] as const;
+export const PAYDAY_ENTRY_FIELDS = ['id', 'localDate', 'periods', 'saveShare', 'debtShare', 'runway', 'baselineDay'] as const;
 
 // ---------------------------------------------------------------- errors
 
@@ -650,7 +650,8 @@ export interface MeLive {
   /** True while the mind notice is shown, from the check or from the daily records. */
   mindNotice: boolean;
   /** The daily open streak. `canBackfill` lists the days before today that can still be filled in. */
-  streak: Streak;
+  /** `firstDay`: the day of the first full check. Days before it are not missed: the person had no price yet. */
+  streak: Streak & { firstDay: string };
   apps: {
     dailyOpen: LiveApp;
     payday: LiveApp & {
@@ -710,13 +711,18 @@ export interface PaydayEntryRequest {
   /** Made up by the client (CLIENT_ID_PATTERN) so a retried send is stored once. */
   id: string;
   localDate: string;
-  /** Pay periods behind the saving share: 0 without a share, otherwise 1 to averagePeriods. */
+  /** Pay periods behind the shares: 0 without a share, otherwise 1 to averagePeriods. */
   periods: number;
-  /** Option index of the saving-share question, or null. */
+  /** Option index of the saving-share question (W5 "save"), or null. */
   saveShare: number | null;
+  /** Option index of the debt-share question (W5 "debt" and "hh"), or null. Optional for older clients. */
+  debtShare?: number | null;
   /** Option index of the months-of-savings question, or null. */
   runway: number | null;
-  /** MeLive.apps.payday.baseline.day when a runway estimate was made from it, otherwise null. */
+  /**
+   * Older clients: MeLive.apps.payday.baseline.day when a runway estimate was made from it.
+   * null when the runway comes from the money available now, or there is none.
+   */
   baselineDay: string | null;
 }
 
@@ -1017,6 +1023,13 @@ export interface TeamOverviewResponse extends TeamDemoMark {
   totals: TeamStartedCompleted;
   byRole: Array<TeamStartedCompleted & { role: RoleId }>;
   /**
+   * Checks started in the last `days` days (`last`) and in the `days` days before them
+   * (`previous`), by the time a check was created. Completed: of those checks, the ones
+   * completed by now. People: distinct people who started one of them, and of those, who
+   * completed one.
+   */
+  recent: { days: number; last: TeamStartedCompleted; previous: TeamStartedCompleted };
+  /**
    * Correlation of the overall price between two checks by the same person taken
    * retestWindowDays apart. One pair per person: their earliest such pair.
    */
@@ -1025,8 +1038,11 @@ export interface TeamOverviewResponse extends TeamDemoMark {
   goCriteria: TeamGoCriteria;
   status: {
     completionRate: Rate & { met: boolean | null };
-    /** Highest skip rate of any question version, over all roles. */
-    /** count and of: the checks that skipped that version, of the checks shown it. A small `of` makes the share noisy. */
+    /**
+     * Highest skip rate of a question version, over all roles, among versions shown to at least
+     * `minShown` checks. count and of: the checks that skipped that version, of the checks shown
+     * it. All null (met null) while no version has been shown that often.
+     */
     maxItemSkipRate: {
       value: number | null;
       itemId: string | null;
@@ -1034,6 +1050,8 @@ export interface TeamOverviewResponse extends TeamDemoMark {
       count: number | null;
       of: number | null;
       met: boolean | null;
+      /** Fewest checks a version must be shown to before it counts. */
+      minShown: number;
     };
     retestCorrelation: { value: number | null; pairs: number; met: boolean | null };
   };
@@ -1048,11 +1066,12 @@ export interface TeamItemRow {
   area: string;
   /** Checks in which this version was shown. Denominator of skip and drop-off. */
   shown: number;
-  /** Of those shown, skipped. Red above redLines.skipRate. */
+  /** Of those shown, skipped. Red above redLines.skipRate, from definitions.minRecords shown. */
   skip: Rate & { red: boolean };
   /**
    * Of those shown, left without answering it and nothing since (the check is unfinished and
-   * has been idle for longer than dropOffIdleMinutes). Red above redLines.dropOffRate.
+   * has been idle for longer than dropOffIdleMinutes). Red above redLines.dropOffRate, from
+   * definitions.minRecords shown.
    */
   dropOff: Rate & { red: boolean };
   /** Checks that selected an option. Denominator of the option shares. */
@@ -1067,7 +1086,7 @@ export interface TeamItemRow {
     similarCount: number;
     /** Median of their median seconds. null with fewer than minSimilarStems of them. */
     similarMedianSeconds: number | null;
-    /** Median above redLines.timeVsSimilarStems times similarMedianSeconds. */
+    /** Median above redLines.timeVsSimilarStems times similarMedianSeconds, from definitions.minRecords answers. */
     red: boolean;
   };
   options: {
@@ -1075,18 +1094,20 @@ export interface TeamItemRow {
     counts: number[];
     /** counts / answered. null entries when answered is 0. */
     shares: Array<number | null>;
-    /** One share above redLines.optionShareMax, or any below redLines.optionShareMin. */
+    /** One share above redLines.optionShareMax, or any below redLines.optionShareMin, from definitions.minRecords answers. */
     red: boolean;
   };
   /**
    * Of those shown, checks that marked the question not applicable (`marked`) or selected an
    * option that is not scored (`unscoredOption`). count is the sum of the two, of is `shown`.
-   * Red above redLines.notApplicableRate. `hasOption`: the version has an unscored option.
+   * Red above redLines.notApplicableRate, from definitions.minRecords shown. `hasOption`: the
+   * version has an unscored option.
    */
   notApplicable: Rate & { red: boolean; hasOption: boolean; marked: number; unscoredOption: number };
   /**
    * People who selected an option of this version in two checks retestWindowDays apart, and how
-   * many chose a different one the second time. Red above redLines.retestChangeRate.
+   * many chose a different one the second time. Red above redLines.retestChangeRate, from
+   * definitions.minRecords pairs.
    */
   retest: Rate & { red: boolean };
 }
@@ -1105,6 +1126,8 @@ export interface TeamItemsResponse extends TeamDemoMark {
     minSimilarStems: number;
     dropOffIdleMinutes: number;
     retestWindowDays: { min: number; max: number };
+    /** Fewest records behind a value before it can be red. Below it the counts are shown, unjudged. */
+    minRecords: number;
   };
   /** In bank order. Only versions that were shown at least once. */
   rows: TeamItemRow[];
@@ -1170,11 +1193,23 @@ export interface TeamReturnRow {
   returns: Array<Rate & { day: number }>;
 }
 
+/** The return rates of the people whose first completed check fell in one calendar week. */
+export interface TeamReturnWeekRow {
+  /** Monday of the week of the first check. "all" for the total row. */
+  weekStart: string;
+  people: number;
+  /** As in TeamReturnRow: the day rows of the week added up. */
+  returns: Array<Rate & { day: number }>;
+}
+
 /** GET /api/team/returns. Return rates by the date of the first check. */
 export interface TeamReturnsResponse extends TeamDemoMark {
   generatedAt: string;
   returnDays: number[];
+  /** The total row first, then one row per first-check day, oldest first. The CSV has these. */
   rows: TeamReturnRow[];
+  /** The same people by the calendar week (Monday to Sunday) of the first check: the total row first, then oldest first. */
+  weeks: TeamReturnWeekRow[];
 }
 
 export interface TeamReportRow {
@@ -1211,13 +1246,29 @@ export interface TeamDailyRow {
   dailyOpen: Rate;
 }
 
-/** GET /api/team/daily. Share of active people who did the daily open, day by day. */
+/** The daily open over one calendar week, counted in person-days: one active person on one day. */
+export interface TeamDailyWeekRow {
+  /** Monday of the week. "all" for the total row. */
+  weekStart: string;
+  /** Distinct people active on at least one day of the week. */
+  people: number;
+  /** Active person-days in the week. */
+  active: number;
+  /** `of`: active person-days with the health consent. `count`: those with a daily open recorded that day. */
+  dailyOpen: Rate;
+}
+
+/** GET /api/team/daily. Share of active people who did the daily open, day by day and week by week. */
 export interface TeamDailyResponse extends TeamDemoMark {
   generatedAt: string;
   /** The table covers this many days up to today. */
   days: number;
-  /** The total row first, then one row per day, oldest first. Days without an active person are left out. */
+  /** The total row first, then one row per day, oldest first. Days without an active person are left out. The CSV has these. */
   rows: TeamDailyRow[];
+  /** Monday of the first week in `weeks`: the week of the first of the `days` days, so every week is whole up to today. */
+  weeksFrom: string;
+  /** The total row first, then one row per calendar week from weeksFrom, oldest first. Weeks without an active person are left out. */
+  weeks: TeamDailyWeekRow[];
 }
 
 export interface TeamAppRow {

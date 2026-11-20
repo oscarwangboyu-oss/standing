@@ -22,7 +22,7 @@ export function TopBar({ right, homeHref, nav, navItems, wide = false, mid = fal
   return (
     <header className={cx(styles.top, wide && styles.topWide, mid && styles.topMid)}>
       <Wordmark href={homeHref} />
-      {nav !== undefined && <BottomNav placement="top" current={nav} items={navItems} />}
+      {nav !== undefined && <BottomNav placement="top" current={nav} items={navItems} className={styles.topNav} />}
       {right !== undefined && <div className={styles.topRight}>{right}</div>}
     </header>
   );
@@ -68,7 +68,8 @@ export function AppShell({ children, nav, navItems, headerRight, aside, width = 
         {split && <div className={styles.aside}>{aside}</div>}
         <main className={cx(styles.main, fill && styles.fill)}>{children}</main>
       </div>
-      {footer && <Footer className={styles.appFoot} />}
+      {/* With an aside, or on a wide screen, the footer spans the 1120 grid, as the top bar does. */}
+      {footer && <Footer className={styles.appFoot} wide={split || width === 'wide'} />}
       {hasNav && <BottomNav current={nav} items={navItems} />}
     </div>
   );

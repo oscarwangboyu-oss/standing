@@ -216,8 +216,12 @@ export async function postPayday(request: Request, deps: Deps): Promise<Response
     throw new ApiError(403, 'payday_not_eligible', 'the payday check is offered to people who live on their own earnings');
   }
   const saveShare = band(body.saveShare, bankVersion, params.saveShare.band, 'saveShare');
+  const debtShare = band(body.debtShare === undefined ? null : body.debtShare, bankVersion, params.debtShare.band, 'debtShare');
   const runway = band(body.runway, bankVersion, params.runway.band, 'runway');
-  if ((periods === 0) !== (saveShare === null)) throw invalid('periods is 0 exactly when saveShare is null');
+  if ((periods === 0) !== (saveShare === null && debtShare === null)) {
+    throw invalid('periods is 0 exactly when there is neither a saveShare nor a debtShare');
+  }
+  // A runway from the money available now has no baseline; an estimate (older clients) has one.
   let baselineDay: string | null = null;
   if (body.baselineDay !== null) {
     if (!isDay(body.baselineDay) || !started.person.checks.some((c) => c.day === body.baselineDay)) {
@@ -225,17 +229,16 @@ export async function postPayday(request: Request, deps: Deps): Promise<Response
     }
     baselineDay = body.baselineDay;
   }
-  if (runway !== null && baselineDay === null) throw invalid('runway needs the baselineDay it was estimated from');
 
   const day = started.today;
   let stored = false;
   if (!(await alreadyStored(deps, 'payday_entries', user.id, id, day))) {
     const inserted = await deps.db.query(
-      `insert into payday_entries (user_id, id, day, periods, save_share, runway, baseline_day, at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+      `insert into payday_entries (user_id, id, day, periods, save_share, burden_share, runway, baseline_day, at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        on conflict do nothing
        returning id`,
-      [user.id, id, day, periods, saveShare, runway, baselineDay, started.now.toISOString()],
+      [user.id, id, day, periods, saveShare, debtShare, runway, baselineDay, started.now.toISOString()],
     );
     stored = inserted.length > 0;
   }

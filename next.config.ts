@@ -37,6 +37,9 @@ const SECURITY_HEADERS = [
 ];
 
 const config: NextConfig = {
+  // The flow tests build into a folder of their own (playwright.config.ts), so they never
+  // replace the build a running `npm run preview` serves. Unset everywhere else.
+  distDir: process.env.STANDING_DIST_DIR || '.next',
   // PGlite (the embedded Postgres used locally) ships WASM and must not be bundled.
   serverExternalPackages: ['@electric-sql/pglite'],
   // Type checking runs through `npm run typecheck` so the build does not depend on it.

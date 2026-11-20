@@ -18,10 +18,11 @@
 .sheet[open] { display: flex; flex-direction: column; }
 /* ::backdrop does not inherit custom properties in older browsers, so the scrim has a fallback. */
 .sheet::backdrop { background: var(--scrim, rgb(20 26 49 / 0.46)); }
-.sheet::before {
-  content: "";
-  flex: none;
-  align-self: center;
+/* The top of the sheet: the handle and the head. On a phone it can be dragged down to close
+   the sheet (Sheet.tsx), so the browser does not scroll or refresh on a drag there. */
+.grip { flex: none; display: grid; touch-action: none; -webkit-user-select: none; user-select: none; }
+.handle {
+  justify-self: center;
   width: 40px;
   height: 4px;
   margin-top: 10px;
@@ -63,7 +64,8 @@
     margin: auto;
     border-radius: var(--r-xl);
   }
-  .sheet::before { display: none; }
+  .grip { touch-action: auto; -webkit-user-select: auto; user-select: auto; }
+  .handle { display: none; }
   .head { padding: var(--s-4) var(--s-4) 0 var(--s-6); }
   .body { padding: var(--s-3) var(--s-6) var(--s-6); }
 }

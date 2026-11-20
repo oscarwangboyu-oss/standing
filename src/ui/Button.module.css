@@ -44,6 +44,8 @@
   text-decoration-color: var(--line-2);
   text-underline-offset: 0.24em;
 }
+/* A quiet button that starts a line: the label lines up with the text above it. */
+.quiet.inline { margin-inline-start: calc(-1 * var(--s-3)); }
 
 @media (hover: hover) {
   .primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-3); }

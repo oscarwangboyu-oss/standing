@@ -21,7 +21,7 @@ npm run seed:demo    # optional: 330 simulated people, so the dashboard and the 
 npm run dev          # http://localhost:3000
 ```
 
-`npm run seed:demo` also makes one more simulated person, the demo viewer (ticker DEMO), with two checks and 45 days of steady Daily Open, Weekly Win, People Nudge and Payday records. It prints that person's recovery code. Open http://localhost:3000/settings?restore=1, enter the code, and the market home, the price chart, "Why it moved" and the log all show 45 days of history. Every screen of that record says "Simulated data". `--no-viewer` leaves it out.
+`npm run seed:demo` also makes one more simulated person, the demo viewer (ticker DEMO), with two checks and 45 days of steady Daily Open, Weekly Win, People Nudge and Payday records. It prints that person's recovery code. Open http://localhost:3000/settings?restore=1, enter the code, and the market home, the price chart, "Why it moved" and the log all show 45 days of history. Every screen of that record says "Simulated data". `--no-viewer` leaves it out. A database seeded before refuses the same seed: run `npm run seed:demo -- --reset` (with `npm run dev` stopped) to replace every simulated person, the viewer included. Its history ends the day before the seed, so run it again after a few days away; Body and Mind halt 14 days after its last record.
 
 No account is needed. The database is an embedded Postgres (PGlite) in `.data/local`, created and migrated on first use. The team dashboard is at `/team`; the local passphrase is in `.env.development`. Add `?debug=1` to any app address to get the developer panel, which starts a random check and answers one to the end. It works locally and on preview deployments, never in production, where its random checks would count as real people. `npm run dev` also answers on http://127.0.0.1:3000, a second origin with its own device storage: handy for looking at the app as a new visitor while localhost holds a record.
 
@@ -189,25 +189,27 @@ New norms go the same way: add an entry to `NORMS` in `config.ts`, point `CURREN
 | Back on day 7, 25% or more; day 30, 12% or more | People who used Standing on day N after the local date of their first completed check (a visit, or a micro-app entry), of people whose day N is over (two UTC dates later) |
 | Payday Check share, 50% or more | Of people active in the last 30 days to whom Payday Check is offered, those who recorded one in that window. This gate is from the brief, not the roadmap |
 
-**Overview.** Checks started and completed, people started and completed (a person who takes the check twice counts once), the same by role, and the retest correlation.
+**Needs attention.** The top card lists every gate not met (actual against the gate), the five question versions with the most red lines, and the scoring tests that warn, each linking to its row.
+
+**Overview.** Checks started and completed, people started and completed (a person who takes the check twice counts once), the same by role, and the retest correlation. **Last 7 days** puts the checks started, the checks completed, the people completed and the finish rate of the last 7 days next to the 7 before, by the day a check was started.
 
 **Questions**, one row per question version that was shown, for all roles or one:
 
 - *Shown*: checks with any event for the version.
-- *Skip*: of those shown, checks that skipped it. Red above 10%.
-- *Drop-off*: of those shown, checks that did not answer, skip or mark it, are unfinished and have been idle for more than 30 minutes. Red above 3%.
-- *Time*: median seconds to select an option, against the median of the medians of other versions whose stems are of similar length (within a ratio of 1.5, at least 3 of them). Red above twice that.
+- *Skip*: of those shown, checks that skipped it. Red above 10%, from 30 checks shown.
+- *Drop-off*: of those shown, checks that did not answer, skip or mark it, are unfinished and have been idle for more than 30 minutes. Red above 3%, from 30 checks shown.
+- *Time*: median seconds to select an option, against the median of the medians of other versions whose stems are of similar length (within a ratio of 1.5, at least 3 of them). Red above twice that, from 30 answers.
 - *Options*: share of the selections on each option. Red when one option is above 60% or any is below 3%.
-- *Not applicable*: of those shown, checks that marked it not applicable or chose an option with no score. Red above 15%.
-- *Retest*: of people who chose an option of this version in two checks 10 to 21 days apart, the share who chose another one the second time. Red above 30%.
+- *Not applicable*: of those shown, checks that marked it not applicable or chose an option with no score. Red above 15%, from 30 checks shown.
+- *Retest*: of people who chose an option of this version in two checks 10 to 21 days apart, the share who chose another one the second time. Red above 30%, from 30 pairs.
 
 **Prices.** Per sector and cohort (everyone, by role, by age band, role with age band): each person once, with their latest completed check; head count, median, minimum, maximum, and a histogram in bands of 15 points from 55 to 145.
 
 **Norms.** The same cohorts over the internal 0 to 1 sector values: median, mean, sample standard deviation and n, next to the norm in force. This is the table to read before replacing the provisional norm.
 
-**Returns.** By the date of the first completed check: people, and for day 1, 7 and 30 the share who came back, as in the gates.
+**Returns.** By the calendar week of the first completed check (the CSV keeps one row per day): people, and for day 1, 7 and 30 the share who came back, as in the gates.
 
-**Micro apps.** A person is active on a day when they had completed a check and opened Standing or recorded an entry that day. Per app: active people in the window (7 days; 30 for payday), those the app is offered to (Daily Open: with the Body and Mind consent; Payday: own earnings and an eligible role; the weekly apps: everyone), those with an entry, and the entries. Day by day: the share of active people with the consent who did the Daily Open. Week by week: the share of active people with a Weekly Win and with a People Nudge.
+**Micro apps.** A person is active on a day when they had completed a check and opened Standing or recorded an entry that day. Per app: active people in the window (7 days; 30 for payday), those the app is offered to (Daily Open: with the Body and Mind consent; Payday: own earnings and an eligible role; the weekly apps: everyone), those with an entry, and the entries. Week by week, in person-days: the share of active people with the consent who did the Daily Open (the CSV keeps one row per day). Week by week: the share of active people with a Weekly Win and with a People Nudge.
 
 **Scoring tests.** The seven tests of `src/engine/evaluation.ts`, the same as `npm run eval`: range (the overall price spreads and few prices sit on a limit), stability (retest correlation), response (points per changed answer between consecutive checks), validity (objective position against the ladder answer, and no two sectors correlating above 0.85), fairness (largest gap between role medians and between age-band medians), gaming (all-best answers, speeding, grade C), version effect (old against new prices where a second version is stored). Each gives pass, warn or not enough data (fewer than 30 records). The thresholds are `EVALUATION` in `config.ts`.
 
@@ -237,12 +239,14 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - The ticker is set when a check starts. Settings shows it and links to a retake; there is no endpoint to change it alone.
 - The steps of `/start` are kept for the life of the browser tab (sessionStorage, `src/client/startDraft.ts`), so a reload comes back to the same step; a new tab starts at the introduction. The check itself resumes at the same question on any device with the token.
 - Daily records count once 4 of the last 7 days are recorded, and the screen reaches today and yesterday. A price cannot move from Daily Open before the fourth day.
-- The Daily Open streak shows the days before a person's first check as missed, and offers yesterday for backfill on the first day.
+- The Daily Open streak shows the days before a person's first check as empty windows. Yesterday is offered for filling in only from the second day on; the server still accepts it on the first day.
 - Payday amounts, win titles, people's names and invite links live in the browser. Clearing its data, or moving to another device, loses them. The export file includes what the browser holds.
 - A Payday Check moves Wealth only for people whose check asked the two questions it can answer (see Open decisions).
 - The embedded local database takes one process: stop the dev server before running a script against it.
-- Social images resolve their address from Vercel's own variables. With a custom domain, set `metadataBase` in `app/layout.tsx`.
-- Not verified in a browser by anyone: a version marker on the price chart, the "Resumed" tag, the retake prompt on day 90, and the offline paths of the micro apps. The engine and server rules behind them have unit tests.
+- Social images resolve their address from Vercel's own variables. With a custom domain, set `metadataBase` in `app/layout.tsx`, and set `host` in `brand` (`src/copy/common.ts`) to the bare domain (for example `standing.example`): the share image then prints it under "Standing".
+- The landing page is static, so it reads the stage switches when it is built. Turning a switch on takes a redeploy, as every change of an environment variable on Vercel does.
+- An invite code travels in the link's path (`/i/CODE`), so it appears in the host's request logs while it is valid (14 days, one use). The database keeps only its hash, and `Referrer-Policy: no-referrer` keeps it out of other sites' logs. Moving it into the fragment (`/i#CODE`) would keep it out of the host's logs as well.
+- The version marker on the price chart, the "Resumed" tag, the retake prompt on day 90 and the offline paths of the micro apps were checked in a browser on 2026-11-20, with the browser clock moved and `/api/me` answers built from real engine output. They have no flow test of their own, because a flow test cannot move the server's clock.
 - The flow tests run in Chrome only, at 360 and 412 wide. Safari on a real iPhone has not been tested.
 
 ## Open decisions for the founder
@@ -262,4 +266,5 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 13. **Vercel plan.** Hobby is for non-commercial use. Decide before the first paying user, at the latest.
 14. **When to replace the provisional norm**, and with how many people per cohort. The Norms table shows n for each.
 15. **The cohort line under the ticker** uses short role names (`src/copy/market.ts`, `roleNames`). They are our wording, not the bank's.
-16. **The skip-rate gate and small numbers.** The gate takes the highest skip rate of any question version, as the deck says, however few checks saw it. Role-specific versions are seen by few people early on, so one or two skips can hold the gate red: the demo data shows 28.6% for a version seen by 7 checks. The card prints the counts behind the share ("C_lic/oth, skipped in 2 of 7 checks"). A minimum, for example judging only versions seen by 30 checks or more, would make the gate steadier; it is a change to the rule, so it is left to the team.
+16. **The skip-rate gate and small numbers.** A share is judged only when at least 30 records stand behind it: checks shown the question for skip, drop-off and not applicable; answers for the option spread and the median time; retest pairs for the retest change. Below that the dashboard prints the counts, draws the figure lighter and never marks it red. The skip-rate gate takes the highest skip rate among question versions shown to 30 or more checks, and says "No data yet" until one has been, so a role-specific version seen by a handful of people no longer holds the gate red on one or two skips. The deck says "no question skipped by over 10%" without a minimum; 30 is our reading. The minimum is `DASHBOARD_READING.minRecords` in `src/engine/config.ts`, the same number the scoring tests need.
+17. **What withdrawing the Body and Mind consent does.** From that moment the live price, Why it moved, comparisons and the team's price and norm tables leave Body and Mind out, and the Daily Open closes. Results already recorded stay as they were on the result page, and the raw answers stay until the person deletes their data; the per-question table of the dashboard still counts their past Body and Mind answers. Whether withdrawal should also delete those answers, or offer to, is for the lawyer to decide.

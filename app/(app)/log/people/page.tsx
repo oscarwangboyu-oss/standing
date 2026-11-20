@@ -15,8 +15,22 @@ import { people as copy, shared } from '@/copy/micro';
 import { NUDGE_CATEGORIES, dayNumber, getAlgo, weekOf, type NudgeCategory } from '@/engine';
 import type { MeLive } from '@/shared/api';
 import { Button, Card, Field, IconCheck, Note, formatDay, sectorStyle } from '@/ui';
-import { daysWithoutRecord, nextMonday } from '@/ui/market/live';
-import { Facts, Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, Pills, errorMessage } from '@/ui/micro/parts';
+import { countWindow, daysWithoutRecord, nextMonday } from '@/ui/market/live';
+import {
+  Facts,
+  Meter,
+  More,
+  Moved,
+  MicroClosed,
+  MicroError,
+  MicroHead,
+  MicroSkeleton,
+  MicroState,
+  Pills,
+  Recorded,
+  errorMessage,
+  useTopOnChange,
+} from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
 
 const BACK = { href: ROUTES.log, label: shared.backLabel, name: shared.back };
@@ -47,12 +61,7 @@ export default function PeoplePage() {
     );
   }
   if (!me.data.live) return <MicroSkeleton />;
-  return (
-    <>
-      {head}
-      <PeopleNudge live={me.data.live} />
-    </>
-  );
+  return <PeopleNudge live={me.data.live} />;
 }
 
 function PeopleNudge({ live }: { live: MeLive }) {
@@ -70,12 +79,19 @@ function PeopleNudge({ live }: { live: MeLive }) {
   // The week's log on the server may come from another device. This device knows what it sent
   // only when it sent it in this visit, or holds a person it marked as reached.
   const knowsLog = sentHere || reached.length > 0;
+  const recorded = done && knowsLog;
+  const screen = thisWeek.length === 0 || picking ? 'pick' : recorded ? 'done' : 'log';
+  const top = useTopOnChange(screen);
+  // Once the week's log is saved, the line that says so is the heading of the screen.
+  const head = screen === 'done' ? <MicroHead sectors={['NETW']} back={BACK} /> : <MicroHead title={copy.title} lead={copy.lead} sectors={['NETW']} back={BACK} />;
+  const counted = countWindow(live.apps.peopleNudge);
 
   const privacy = (
     <Note title={copy.privacyTitle} className={styles.noteTop}>
       <p>{copy.privacy}</p>
     </Note>
   );
+  const privacyFacts = <Facts sector="NETW" title={copy.privacyTitle} items={copy.privacyFacts} />;
   const rules = (
     <Facts
       sector="NETW"
@@ -89,9 +105,10 @@ function PeopleNudge({ live }: { live: MeLive }) {
     </Note>
   );
 
-  if (thisWeek.length === 0 || picking) {
+  if (screen === 'pick') {
     return (
       <>
+        {head}
         {halted}
         {done && thisWeek.length === 0 && (
           <Note className={styles.noteTop}>
@@ -108,7 +125,10 @@ function PeopleNudge({ live }: { live: MeLive }) {
             setPicking(false);
           }}
         />
-        <div className={styles.note}>{rules}</div>
+        <More className={styles.note}>
+          {rules}
+          {privacyFacts}
+        </More>
       </>
     );
   }
@@ -117,10 +137,27 @@ function PeopleNudge({ live }: { live: MeLive }) {
 
   return (
     <>
+      {head}
       {halted}
+      {recorded && (
+        <Recorded
+          level={1}
+          headingRef={top}
+          sector="NETW"
+          fresh={sentHere}
+          title={copy.recordedTitle}
+          detail={copy.recordedDetail(reached.length, thisWeek.length)}
+        />
+      )}
+      {done && !knowsLog && (
+        <Note className={styles.noteTop}>
+          <p>{copy.doneNoLocal}</p>
+        </Note>
+      )}
       <ReachLog
         people={thisWeek}
-        recorded={done && knowsLog}
+        recorded={recorded}
+        upToDate={copy.upToDate(formatDay(nextMonday(live.today)))}
         onSaved={(next) => {
           setSentHere(true);
           applyLive(next);
@@ -132,38 +169,32 @@ function PeopleNudge({ live }: { live: MeLive }) {
         </Button>
       </div>
 
-      {done && (
-        <>
-          <div className={styles.note}>
-            <Moved
-              live={live}
-              areas={['N']}
-              label={copy.doneTitle}
-              breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
-            />
-          </div>
-          <Card className={styles.note} sector="NETW">
-            <div className={styles.facts}>
-              <p className={styles.resultLabel}>{copy.doneTitle}</p>
-              {knowsLog ? <h2 className="t-h3">{copy.summary(reached.length, thisWeek.length)}</h2> : <p className={styles.resultLine}>{copy.doneNoLocal}</p>}
-              <p className={styles.resultLine}>{copy.nextDue(formatDay(nextMonday(live.today)))}</p>
-            </div>
-          </Card>
-          {knowsLog && <div className={styles.note}>
-            <Facts
-              sector="NETW"
-              title={copy.sentTitle}
-              items={[
-                copy.sentPlanned(thisWeek.length),
-                copy.sentReached(counts.map((x) => copy.sentCount(x.n, copy.categories[x.c]))),
-                copy.sentNoNames,
-              ]}
-            />
-          </div>}
-        </>
+      {counted && (
+        <Card className={styles.note}>
+          <Meter window={counted} text={copy.meter(counted.have, counted.need, counted.of)} sector="NETW" />
+        </Card>
       )}
-      <div className={styles.note}>{rules}</div>
-      <div className={styles.note}>{privacy}</div>
+      {done && (
+        <div className={styles.note}>
+          <Moved
+            live={live}
+            areas={['N']}
+            label={copy.doneTitle}
+            breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
+          />
+        </div>
+      )}
+      <More className={styles.note}>
+        {recorded && (
+          <Facts
+            sector="NETW"
+            title={copy.sentTitle}
+            items={[copy.sentPlanned(thisWeek.length), copy.sentReached(counts.map((x) => copy.sentCount(x.n, copy.categories[x.c])))]}
+          />
+        )}
+        {rules}
+        {privacyFacts}
+      </More>
     </>
   );
 }
@@ -228,7 +259,19 @@ function PickForm({ max, current, today, onSave }: { max: number; current: Local
 }
 
 /** Tick who was reached, then save. Each save sends the whole week again; the last one of the week counts. */
-function ReachLog({ people, recorded, onSaved }: { people: LocalPerson[]; recorded: boolean; onSaved: (live: MeLive | null) => void }) {
+function ReachLog({
+  people,
+  recorded,
+  upToDate,
+  onSaved,
+}: {
+  people: LocalPerson[];
+  /** The server holds this week's log from this device. */
+  recorded: boolean;
+  /** The status line once the log is saved and nothing was ticked since. */
+  upToDate: string;
+  onSaved: (live: MeLive | null) => void;
+}) {
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(people.filter((p) => p.reachedOn !== null).map((p) => p.id)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -291,7 +334,6 @@ function ReachLog({ people, recorded, onSaved }: { people: LocalPerson[]; record
                     <span className={styles.reachName}>{p.name}</span>
                     <span className={styles.reachMeta}>{copy.categories[p.category]}</span>
                   </span>
-                  <span className={styles.reachState}>{on ? copy.reached : copy.notYet}</span>
                 </button>
               </li>
             );
@@ -299,12 +341,19 @@ function ReachLog({ people, recorded, onSaved }: { people: LocalPerson[]; record
         </ul>
       </Card>
       <MicroError>{error}</MicroError>
-      <div className={styles.actions}>
-        <Button size="lg" full onClick={() => void save()} disabled={saving || !dirty}>
-          {saving ? shared.saving : recorded ? copy.saveAgain : copy.save}
-        </Button>
-        {!dirty && recorded && <p className={styles.skyNote}>{copy.nothingNew}</p>}
-      </div>
+      {recorded && !dirty && !saving ? (
+        // Nothing to save: a line that says so, not a button that cannot be pressed.
+        <p className={styles.status} role="status">
+          <IconCheck size={20} />
+          <span>{upToDate}</span>
+        </p>
+      ) : (
+        <div className={styles.actions}>
+          <Button size="lg" full onClick={() => void save()} disabled={saving || !dirty}>
+            {saving ? shared.saving : recorded ? copy.saveAgain : copy.save}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

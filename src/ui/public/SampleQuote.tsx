@@ -183,7 +183,6 @@ export function SampleQuote() {
         </div>
 
         <div className={styles.foot}>
-          <span className={styles.note}>{sample.note}</span>
           {changed && (
             <Button variant="quiet" size="sm" icon={<IconRetake size={18} />} onClick={() => setPrices(initial)}>
               {copy.reset}

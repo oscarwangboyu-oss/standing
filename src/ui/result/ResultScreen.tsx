@@ -16,7 +16,7 @@ import { ROUTES } from '@/client/nav';
 import { useLocation } from '@/client/runtime';
 import { check, useReveal } from '@/client/session';
 import { useShell } from '@/client/shell';
-import { quote } from '@/copy/common';
+import { nav, quote } from '@/copy/common';
 import * as copy from '@/copy/result';
 import { compute, getBank, type AreaId, type Result } from '@/engine';
 import type { MeResponse, ReportSection } from '@/shared/api';
@@ -25,13 +25,17 @@ import {
   Block,
   Button,
   Card,
+  Entry,
+  EntryList,
   IconCompare,
+  IconMarket,
   IconShare,
   ISSUE_PRICE,
   Note,
   Pentagon,
   PriceChart,
   QuoteHead,
+  Ruler,
   SECTOR_CODES,
   SectorBoard,
   SectorRow,
@@ -308,11 +312,23 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
     </Card>
   );
 
+  // The market is where the prices go on after a check. Every person with a result has one.
+  const hasMarket = me?.live !== undefined && me?.live !== null;
+
   useShell({
     headerRight: (
-      <Button variant="secondary" size="sm" icon={<IconShare size={18} />} onClick={() => setSharing(true)}>
-        {copy.actions.shareShort}
-      </Button>
+      <span className={styles.headRight}>
+        {hasMarket && (
+          <span className={styles.headMarket}>
+            <Button variant="quiet" size="sm" href={ROUTES.market}>
+              {nav.market}
+            </Button>
+          </span>
+        )}
+        <Button variant="secondary" size="sm" icon={<IconShare size={18} />} onClick={() => setSharing(true)}>
+          {copy.actions.shareShort}
+        </Button>
+      </span>
     ),
     aside: (
       <div className={styles.asideStack}>
@@ -333,6 +349,7 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
   const codes = (areas: readonly AreaId[]) => SECTOR_CODES.filter((code) => areas.includes(CODE_AREA[code]));
   const unlisted = views.filter((v) => v.status === 'unlisted').map((v) => v.code);
   const insufficient = views.filter((v) => v.status === 'insufficient').map((v) => v.code);
+  const unpriced = views.filter((v) => v.price === null).map((v) => v.code);
   const todayPrice = live?.overall.price ?? null;
   const movedSince = todayPrice !== null && result.overall !== null && round2(todayPrice) !== round2(result.overall);
   const position = result.socialPosition;
@@ -388,21 +405,36 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
       <div ref={report.mark(S.stats)}>
         <StatStrip
           className={styles.stats}
-          stats={[
-            { label: quote.issuePrice, value: formatPrice(ISSUE_PRICE) },
-            { label: quote.high, value: stats.high === null ? copy.head.none : formatPrice(stats.high) },
-            { label: quote.low, value: stats.low === null ? copy.head.none : formatPrice(stats.low) },
-            { label: quote.grade, value: result.grade },
-          ]}
+          stats={
+            // On a first record the high and the low are the price itself: they say nothing yet.
+            stats.high === null || stats.low === null || round2(stats.high) === round2(stats.low)
+              ? [
+                  { label: quote.issuePrice, value: formatPrice(ISSUE_PRICE) },
+                  { label: copy.head.listed, value: copy.head.listedOf(market.pricedCount, SECTOR_CODES.length) },
+                  { label: quote.grade, value: result.grade },
+                ]
+              : [
+                  { label: quote.issuePrice, value: formatPrice(ISSUE_PRICE) },
+                  { label: quote.high, value: formatPrice(stats.high) },
+                  { label: quote.low, value: formatPrice(stats.low) },
+                  { label: quote.grade, value: result.grade },
+                ]
+          }
         />
       </div>
       <Rate report={report} sections={S.head} />
 
       <Block title={copy.history.title} id="r-history">
         <Card>
-          {chart.points.length > 0 ? (
+          {chart.points.length > 1 ? (
             <div ref={report.mark(S.chart)}>
-              <PriceChart points={chart.points} spacing={chart.spacing} open={open} caption={chart.points.length === 1 ? copy.history.oneRecord : undefined} />
+              <PriceChart points={chart.points} spacing={chart.spacing} open={open} />
+            </div>
+          ) : chart.points.length === 1 && result.overall !== null ? (
+            // One record has no line to draw. The ruler shows where the price sits on the whole scale instead.
+            <div className={styles.oneRecord} ref={report.mark(S.chart)}>
+              <Ruler value={result.overall} />
+              <p className={styles.caption}>{copy.history.oneRecord}</p>
             </div>
           ) : (
             <p className={styles.plain} ref={report.mark(S.chart)}>
@@ -481,7 +513,10 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
           <div ref={report.mark(S.radar)}>
             <Pentagon prices={prices} />
           </div>
-          <p className={styles.caption}>{copy.shape.caption}</p>
+          <p className={styles.caption}>
+            {copy.shape.caption}
+            {unpriced.length > 0 && ` ${copy.shape.partial(unpriced)}`}
+          </p>
         </Card>
         <Rate report={report} sections={S.shape} />
       </Block>
@@ -582,6 +617,20 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
           {copy.actions.compare}
         </Button>
       </div>
+
+      {/* After a check the prices go on in the market. Without this row a first-time person would not find it. */}
+      {hasMarket && source.isLatest && me?.live && (
+        <Card pad="none" className={styles.onward}>
+          <EntryList label={copy.actions.onwardLabel}>
+            <Entry
+              href={ROUTES.market}
+              icon={<IconMarket />}
+              title={copy.actions.market}
+              detail={me.live.apps.dailyOpen.enabled && me.live.apps.dailyOpen.available ? copy.actions.marketDaily : copy.actions.marketPlain}
+            />
+          </EntryList>
+        </Card>
+      )}
 
       <WhySheet target={why} onClose={() => setWhy(null)} state={whyState} data={breakdown.data} onRetry={() => void breakdown.refresh()} />
       <ShareSheet open={sharing} onClose={() => setSharing(false)} data={shareData} onShared={() => report.share()} />

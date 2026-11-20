@@ -170,18 +170,18 @@ export const ALGO_PARAMS: Record<number, AlgoParamsV1> = deepFreeze({
       // part-time or gigs, freelance, or own a business. Set in the brief.
       eligibleRoles: ['emp', 'gig', 'free', 'owner'],
       eligibleMoney: ['own'],
-      // Months of savings (W3). The three numbers are flows and the question asks for a
-      // stock, so the answer of the last full check is the starting range, and the savings
-      // and shortfalls logged since move that range. The answer is replaced only when the
-      // whole range has left the band that was answered. Only the wording that asks for
-      // months in these bands is replaced.
+      // Months of savings (W3): the money that can be used now divided by the essential
+      // spending of a month (PROMPT.md section 10). Paydays recorded before that field
+      // existed bound the check's answer with the savings logged since instead. Only the
+      // wording that asks for months in these bands is replaced.
       runwayItemId: 'W3',
       runway: { versionKeys: ['base'], band: 'W3' },
-      // Share saved (W5). Only the high-tier wording "save" asks for the share of take-home
-      // pay saved. The other wordings ask for the share that goes to debt payments, which the
-      // three numbers do not hold, so they keep the questionnaire answer.
+      // W5: the high-tier wording "save" asks for the share of take-home pay saved; the
+      // "debt" and "hh" wordings ask for the share that goes to debt payments. Each is
+      // averaged over the last pay periods and replaces the answer of its own wording.
       shareItemId: 'W5',
       saveShare: { versionKey: 'save', band: 'W5:save' },
+      debtShare: { versionKeys: ['debt', 'hh'], band: 'W5:debt' },
     },
     // Weekly win: one entry a week, a course, a certificate or a skill improved. Designed
     // without data. Every value below is an initial setting.
@@ -357,6 +357,19 @@ export const DASHBOARD_RED_LINES = deepFreeze({
   notApplicableRate: 0.15,
   // Share of people whose answer differs between two checks taken 10 to 21 days apart.
   retestChangeRate: 0.3,
+} as const);
+
+// How the team dashboard reads small numbers and recent change. Initial settings.
+export const DASHBOARD_READING = deepFreeze({
+  // Fewest records behind a share (checks shown a question, answers, retest pairs, people in a
+  // cohort) before the dashboard judges it. Below this a share is printed with its counts and
+  // drawn lighter, it is never marked red, and a question version shown to fewer checks does not
+  // count toward the skip-rate gate: 2 skips in 7 checks is 28.6% and says little. The same
+  // number the seven scoring tests need for a verdict (EVALUATION.minRecords).
+  minRecords: 30,
+  // The overview compares checks started in the last this-many days with the same number of
+  // days before them.
+  recentDays: 7,
 } as const);
 
 // Two checks by the same person count as a retest when they are this many days apart. Initial

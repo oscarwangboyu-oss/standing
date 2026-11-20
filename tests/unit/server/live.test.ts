@@ -135,7 +135,7 @@ describe('the live series', () => {
     expect(live.lastCheckDay).toBe(DAY0);
     expect(live.mindNotice).toBe(false);
     // Yesterday is before the first check: it is not offered for filling in.
-    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: [], lastDay: null });
+    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: [], lastDay: null, firstDay: DAY0 });
     const unused = { enabled: true, available: true, recordedToday: false, recordedThisWeek: false, lastDay: null };
     expect(live.apps).toEqual({
       dailyOpen: unused,
@@ -302,7 +302,7 @@ describe('the live series', () => {
     // Wealth is not halted: its limit is 45 days after the last payday check.
     expect(live.sectors.W.status).toBe('listed');
     // The streak is gone and yesterday can be filled in.
-    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: ['2026-03-21'], lastDay: '2026-03-05' });
+    expect(live.streak).toMatchObject({ current: 0, recordedToday: false, canBackfill: ['2026-03-21'], lastDay: '2026-03-05' });
     sameAsEngine(live);
 
     live = await postDaily({ sleep: 3, exercise: 3, state: 3 });

@@ -16,13 +16,18 @@
  *   "na") plus checks that selected an option whose score is null.
  * - retest: people who selected an option of this version in two checks RETEST_WINDOW_DAYS
  *   apart (one pair per person); share who selected a different option the second time.
+ *
+ * A red line needs a denominator: a value is marked red only when at least MIN_RECORDS records
+ * stand behind it (checks shown the version for skip, drop-off and not applicable; answers for
+ * the option spread and the time; retest pairs for the retest change). Below that the counts are
+ * still returned, unjudged.
  */
 import type { TeamItemRow, TeamItemsResponse } from '../../shared/api';
 import { CURRENT, getAlgo, getBank, readUnits, type Bank, type Lang, type RoleId } from '../../engine';
 import { DROP_OFF_IDLE_MINUTES, MIN_SIMILAR_STEMS, SIMILAR_STEM_BAND } from '../config';
 import type { Db } from '../db';
 import { csv, type CsvCell } from '../http';
-import { demoCounts, median, rate, RED_LINES, RETEST_WINDOW, retestPairsCte } from './shared';
+import { demoCounts, judged, median, MIN_RECORDS, rate, RED_LINES, RETEST_WINDOW, retestPairsCte } from './shared';
 
 interface CountRow {
   item_id: string;
@@ -144,6 +149,7 @@ export async function teamItems(
     const shares = optionCounts.map((n) => (c.answered > 0 ? n / c.answered : null));
     const realShares = shares.filter((s): s is number => s !== null);
     const optionsRed =
+      c.answered >= MIN_RECORDS &&
       realShares.length > 0 &&
       (Math.max(...realShares) > RED_LINES.optionShareMax || Math.min(...realShares) < RED_LINES.optionShareMin);
 
@@ -162,8 +168,8 @@ export async function teamItems(
       versionKey: c.version_key,
       area: item.area,
       shown: c.shown,
-      skip: { ...skip, red: skip.rate !== null && skip.rate > RED_LINES.skipRate },
-      dropOff: { ...dropOff, red: dropOff.rate !== null && dropOff.rate > RED_LINES.dropOffRate },
+      skip: { ...skip, red: judged(skip) && skip.rate > RED_LINES.skipRate },
+      dropOff: { ...dropOff, red: judged(dropOff) && dropOff.rate > RED_LINES.dropOffRate },
       answered: c.answered,
       time: {
         medianSeconds: c.median_seconds,
@@ -176,12 +182,12 @@ export async function teamItems(
       options: { counts: optionCounts, shares, red: optionsRed },
       notApplicable: {
         ...na,
-        red: na.rate !== null && na.rate > RED_LINES.notApplicableRate,
+        red: judged(na) && na.rate > RED_LINES.notApplicableRate,
         hasOption: version.s.includes(null),
         marked: c.marked_na,
         unscoredOption,
       },
-      retest: { ...retest, red: retest.rate !== null && retest.rate > RED_LINES.retestChangeRate },
+      retest: { ...retest, red: judged(retest) && retest.rate > RED_LINES.retestChangeRate },
     });
   }
 
@@ -199,6 +205,7 @@ export async function teamItems(
       const reference = median(similar.map((other) => other.time.medianSeconds as number));
       row.time.similarMedianSeconds = reference;
       row.time.red =
+        row.answered >= MIN_RECORDS &&
         row.time.medianSeconds !== null &&
         reference !== null &&
         row.time.medianSeconds > RED_LINES.timeVsSimilarStems * reference;
@@ -226,6 +233,7 @@ export async function teamItems(
       minSimilarStems: MIN_SIMILAR_STEMS,
       dropOffIdleMinutes: DROP_OFF_IDLE_MINUTES,
       retestWindowDays: RETEST_WINDOW,
+      minRecords: MIN_RECORDS,
     },
     rows,
   };

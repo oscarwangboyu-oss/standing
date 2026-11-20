@@ -26,6 +26,12 @@ export const shared = {
   limit: (limit: number) => `A sector moves at most ${limit} points a day. A larger move carries over to the next days.`,
   resumed: (name: string) => `${name} resumed today.`,
   haltedTitle: (name: string) => `${name} is halted`,
+  /** The closed section with the rules and the fine print of an app. */
+  more: 'How this counts',
+  /** "Recorded Nov 20." */
+  recordedOn: (day: string) => `Recorded ${day}.`,
+  /** Next to the windows of a counting rule: "1 of 4". */
+  meterFig: (have: number, need: number) => `${have} of ${need}`,
   errors: {
     network: 'The server did not answer. Nothing was lost. Check the connection and try again.',
     feature_off: 'This part of Standing is switched off for now. Nothing was recorded.',
@@ -86,9 +92,17 @@ export const open = {
   yourTaps: 'What you recorded',
   tapsLabels: { sleep: 'Sleep', exercise: 'Exercise', state: 'How you feel' },
   tapSkipped: 'Skipped',
+  rulesTitle: 'How it counts',
   /** The two rules that explain a price that has not moved, or has not finished moving. */
-  rules: (limit: number, minDays: number, windowDays: number) =>
-    `Prices move at most ${limit} points a day, so a larger move carries over to the next days. Daily records replace your check answers once ${minDays} of the last ${windowDays} days are recorded.`,
+  rulesList: (limit: number, minDays: number, windowDays: number) => [
+    `Daily records replace your check answers once ${minDays} of the last ${windowDays} days are recorded.`,
+    `Prices move at most ${limit} points a day, so a larger move carries over to the next days.`,
+  ],
+  /** With the window from the server: "3 of the last 7 days are recorded." */
+  meter: (have: number, need: number, of: number) =>
+    have >= need
+      ? `${have} of the last ${of} days ${have === 1 ? 'is' : 'are'} recorded. Your daily records count toward Body and Mind.`
+      : `${have} of the last ${of} days ${have === 1 ? 'is' : 'are'} recorded. Daily records count toward Body and Mind from ${need}.`,
   streakTitle: 'Streak',
   streakRule: 'One missed day does not reset the streak. Two missed days in a row do.',
 
@@ -126,8 +140,12 @@ export const payday = {
   title: 'Payday Check',
   lead: 'Three numbers each payday. No bank link.',
   privacyTitle: 'Amounts stay on this device',
-  privacy:
-    'The amounts you type are stored only in this browser. This device turns them into bands, the same kind of ranges the check uses, and sends only the bands. The server never receives an amount, and it refuses a request that carries one.',
+  privacy: 'The server receives ranges only, never an amount.',
+  privacyFacts: [
+    'The amounts you type are stored only in this browser.',
+    'This device turns them into bands, the same kind of ranges the check uses, and sends only the bands.',
+    'The server never receives an amount, and it refuses a request that carries one.',
+  ],
 
   setupTitle: 'Set up once',
   setupLead: 'Two facts about how you are paid. Both stay on this device.',
@@ -162,6 +180,8 @@ export const payday = {
   },
 
   savedTitle: 'Payday recorded',
+  /** "Recorded Nov 20. No amount was sent." */
+  savedDetail: (day: string) => `Recorded ${day}. No amount was sent.`,
   wealthNow: 'Wealth now',
   sinceYesterday: 'since yesterday',
   sentTitle: 'What was sent',
@@ -171,7 +191,6 @@ export const payday = {
   sentShareUnused: 'The share is stored and does not move your price: your check asked about debt payments, which it cannot answer.',
   sentRunway: (band: string) => `Months of savings: the band "${band}".`,
   sentNoRunway: 'Months of savings: nothing. Your check answer still stands.',
-  sentNothingElse: 'No amount was sent.',
 
   compareTitle: 'This payday against the last',
   compareNote: 'Computed on this device.',
@@ -180,6 +199,8 @@ export const payday = {
   spendShare: 'Share spent',
   averageShare: (periods: number) => `Mean share saved, last ${periods} ${periods === 1 ? 'payday' : 'paydays'}`,
   monthsSinceCheck: 'Months of essential spending added since the check',
+  /** On the day of the check: a payday counts toward months of savings from the day after it. */
+  monthsFromNext: (day: string) => `Savings count toward months of savings from your next payday, around ${day}.`,
   last: 'Last',
   now: 'Now',
   noShare: 'No income',
@@ -236,17 +257,19 @@ export const win = {
   incomplete: 'Answer the questions above first.',
 
   doneTitle: 'Logged this week',
+  recordedTitle: 'Win logged',
+  /** "Logged Nov 20. The name was not sent." */
+  recordedDetail: (day: string, named: boolean) => (named ? `Logged ${day}. The name was not sent.` : `Logged ${day}.`),
   doneNoLocal: 'This week has an entry. Its name is kept only on the device that entered it.',
   nextDue: (day: string) => `The next week starts on ${day}.`,
   replace: "Replace this week's entry",
   replaceNote: 'One entry a week counts. A new one replaces the earlier one of the same week.',
-  sentTitle: 'What was sent',
+  /** What a win was, in words: what the server received for it. */
   sent: {
     course: (hours: string) => `A course, ${hours.toLowerCase()}.`,
     courseNoHours: 'A course.',
     certificate: (level: string, exam: boolean) => `A certificate, ${level.toLowerCase()}, ${exam ? 'with an exam' : 'without an exam'}.`,
     skill: 'A skill.',
-    noTitle: 'The name was not sent.',
   },
   rulesTitle: 'How it counts',
   rules: {
@@ -259,6 +282,11 @@ export const win = {
     skill: 'A skill counts as the win of this week.',
     halt: (days: number) => `Capability is halted after ${days} days without a Weekly Win.`,
   },
+  /** With the window from the server. */
+  meter: (have: number, need: number, of: number) =>
+    have >= need
+      ? `${have} of the last ${of} weeks ${have === 1 ? 'has' : 'have'} a win. Your wins count toward Capability.`
+      : `${have} of the last ${of} weeks ${have === 1 ? 'has' : 'have'} a win. Wins count toward Capability from ${need}.`,
   halted: (day: string, days: number) =>
     `Capability has been halted since ${day}: no Weekly Win for ${days} days. Its price holds still. Log a win to resume.`,
   historyTitle: 'On this device',
@@ -277,8 +305,12 @@ export const people = {
   title: 'People Nudge',
   lead: 'Three people to reconnect with this week, and a log of who you reached.',
   privacyTitle: 'Names stay on this device',
-  privacy:
-    'The names are stored only in this browser. When you save the log, the server receives how many people you picked and what each person you reached is to you. It never receives a name.',
+  privacy: 'The server receives counts and who each person is to you, never a name.',
+  privacyFacts: [
+    'The names are stored only in this browser.',
+    'When you save the log, the server receives how many people you picked and what each person you reached is to you.',
+    'It never receives a name.',
+  ],
 
   pickTitle: 'Pick three people for this week',
   pickLead: 'One to three people you have not been in touch with lately.',
@@ -301,22 +333,21 @@ export const people = {
 
   logTitle: 'Who did you reach?',
   logLead: 'Tick each person once you have been in touch.',
-  reached: 'Reached',
-  notYet: 'Not yet',
   markReached: (name: string) => `Mark ${name} as reached`,
   save: "Save this week's log",
   saveAgain: 'Update the log',
-  nothingNew: 'The log is up to date.',
+  /** In place of the button once the log is saved and nothing changed: "The log is up to date. The next week starts on Nov 23." */
+  upToDate: (day: string) => `The log is up to date. The next week starts on ${day}.`,
+  recordedTitle: 'Log saved',
+  /** "1 of 2 reached this week. No name was sent." */
+  recordedDetail: (reached: number, planned: number) => `${reached} of ${planned} reached this week. No name was sent.`,
 
   doneTitle: 'Logged this week',
   doneNoLocal: 'This week has a log. The names are kept only on the device that entered them.',
-  summary: (reached: number, planned: number) => `${reached} of ${planned} reached this week.`,
-  nextDue: (day: string) => `The next week starts on ${day}.`,
   sentTitle: 'What was sent',
   sentPlanned: (planned: number) => `${planned} ${planned === 1 ? 'person' : 'people'} picked.`,
   sentReached: (parts: readonly string[]) => (parts.length ? `Reached: ${parts.join(', ')}.` : 'Nobody reached yet.'),
   sentCount: (count: number, category: string) => `${count} ${category.toLowerCase()}`,
-  sentNoNames: 'No name was sent.',
   rulesTitle: 'How it counts',
   rules: {
     reach: (max: number, minWeeks: number, windowWeeks: number) =>
@@ -325,6 +356,11 @@ export const people = {
       'Reaching a mentor in 2 different weeks of a year reads as talking a few times a year. In 3 weeks of the last 91 days it reads as at least monthly. It replaces your check answer only upward.',
     halt: (days: number) => `Network is halted after ${days} days without a People Nudge.`,
   },
+  /** With the window from the server. */
+  meter: (have: number, need: number, of: number) =>
+    have >= need
+      ? `${have} of the last ${of} weeks ${have === 1 ? 'has' : 'have'} a log. Your logs count toward Network.`
+      : `${have} of the last ${of} weeks ${have === 1 ? 'has' : 'have'} a log. Logs count toward Network from ${need}.`,
   halted: (day: string, days: number) =>
     `Network has been halted since ${day}: no People Nudge for ${days} days. Its price holds still. Log this week to resume.`,
 } as const;

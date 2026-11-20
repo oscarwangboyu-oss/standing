@@ -132,12 +132,13 @@ describe('accepting', () => {
     expect(ok.body.comparison.other.ticker).toBe('AAA');
     expect(ok.body.comparison.me.ticker).toBe('LATE');
 
-    // The code is used up, for the same person and for anyone else.
+    // The person who accepted it asks again (a lost response, a reload): the same comparison.
+    const repeat = await accept(api, late.deviceToken, code);
+    expect([repeat.status, repeat.body.created, repeat.body.comparison.id]).toEqual([200, false, ok.body.comparison.id]);
+    // For anyone else the code is used up.
     const c = await personWithCheck(api, 'CCC', 2);
-    for (const token of [late.deviceToken, c.token]) {
-      const again = await accept(api, token, code);
-      expect([again.status, again.body.error.code, again.body.error.details]).toEqual([410, 'invite_invalid', { status: 'accepted' }]);
-    }
+    const again = await accept(api, c.token, code);
+    expect([again.status, again.body.error.code, again.body.error.details]).toEqual([410, 'invite_invalid', { status: 'accepted' }]);
     expect(await countRows(api.db, 'comparisons')).toBe(2);
     expect((await accept(api, c.token, 'x'.repeat(22))).status).toBe(404);
     expect((await accept(api, '', code)).status).toBe(401);

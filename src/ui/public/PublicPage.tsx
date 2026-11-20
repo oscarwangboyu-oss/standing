@@ -107,7 +107,7 @@ export function PublicPage({ path, title, lead, towers, scale, isDraft = false, 
 /** A titled part of a public page that is laid out by hand (the about page). */
 export function PageBlock({ id, title, lead, children, className }: { id: string; title: string; lead?: string; children: ReactNode; className?: string }) {
   return (
-    <section className={cx(styles.block, className)} aria-labelledby={`${id}-title`}>
+    <section id={id} className={cx(styles.block, className)} aria-labelledby={`${id}-title`}>
       <header className={styles.blockHead}>
         <h2 id={`${id}-title`} className={styles.h2}>
           {title}

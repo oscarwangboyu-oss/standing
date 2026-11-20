@@ -42,7 +42,8 @@ export const market = {
   history: 'Price history',
   historyCaption: 'One point a day since your first full check. A ring marks a full check. The dashed line is 100, the issue price.',
   historyCaptionVersion: 'A vertical line marks a change of scoring version.',
-  historyOneDay: 'The chart starts tomorrow. It needs two days of prices.',
+  /** Under the ruler while there is only one day of prices. The price history block appears from the second day. */
+  historyOneDay: 'The price history starts tomorrow. It needs two days of prices.',
   versionLabel: (algo: number) => `Scoring v${algo}`,
   versionLabelOther: 'New version',
   more: 'Keep it current',
@@ -60,7 +61,7 @@ export const market = {
 /** The Daily Open as the feature of the day. */
 export const openFeature = {
   eyebrow: 'Daily Open',
-  title: 'Open today',
+  title: 'Not opened yet',
   detail: 'Three taps about sleep, exercise and how you feel. About 15 seconds.',
   action: 'Open today',
   doneTitle: 'Opened today',
@@ -103,7 +104,7 @@ export const entries = {
     detail: 'Three people to reconnect with, and who you reached.',
   },
   doneThisWeek: 'Done this week',
-  dueThisWeek: 'This week',
+  dueThisWeek: 'Due this week',
   log: { title: 'Log', detail: 'Recent moves and what caused them.' },
   result: { title: 'Latest result', detail: 'Your last full check, with your type and your shape.' },
   compare: { title: 'Compare', detail: 'Two skylines side by side, by invite link.' },

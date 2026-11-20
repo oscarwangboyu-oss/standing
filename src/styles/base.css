@@ -68,7 +68,7 @@ img { max-width: 100%; }
   font-size: var(--t-display);
   font-weight: 700;
   font-stretch: 88%;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
   line-height: var(--lh-tight);
 }
 /* The heading of a screen. */

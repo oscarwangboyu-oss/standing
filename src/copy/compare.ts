@@ -68,7 +68,7 @@ export const view = {
   sectors: 'Sector by sector',
   sectorHeading: 'Sector',
   tableCaption: (a: string, b: string) =>
-    `The middle column is ${a} minus ${b}, in points. Bars run from 70 to 130.`,
+    `The middle column is ${a} minus ${b}, in points. Bars run from 70 to 130. The tick is 100.`,
   shapes: 'Two shapes',
   shapesCaption: (a: string, b: string) => `Solid line: ${a}. Dotted line: ${b}. The dashed ring is 100.`,
   personLabel: (ticker: string, overall: string | null) =>

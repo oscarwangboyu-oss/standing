@@ -3,11 +3,11 @@
 /**
  * Small parts of the team dashboard: number formats, a share with its counts, status and
  * breach tags (always a word, never colour alone), the CSV button, a section frame and a
- * table that scrolls inside its own box.
+ * table that scrolls sideways inside its own box.
  */
 import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import { team as copy } from '@/copy/team';
-import { EVALUATION } from '@/engine';
+import { DASHBOARD_READING } from '@/engine/config';
 import type { Rate } from '@/shared/api';
 import type { StandingTeamClient, TeamTable } from '@/shared/client';
 import { Button, IconCheck, IconDownload, IconMinus, Note, SkeletonText, cx } from '@/ui';
@@ -18,10 +18,10 @@ import styles from './team.module.css';
 // ---------------------------------------------------------------- numbers
 
 /**
- * Below this many records a share is shown count first: "3 of 12" reads as what it is, where
- * "25.0%" would look exact. The same number the scoring tests need before they give a verdict.
+ * Below this many records a share is shown count first and lighter: "3 of 12" reads as what it
+ * is, where "25.0%" would look exact. The server marks nothing red below it either.
  */
-export const SMALL_N = EVALUATION.minRecords;
+export const SMALL_N = DASHBOARD_READING.minRecords;
 
 /**
  * A cohort smaller than this shows its head count and nothing else: with one or two people a
@@ -62,9 +62,12 @@ export interface RateViewProps {
   className?: string;
 }
 
+/** True when a share rests on fewer than SMALL_N records. */
+export const isSmall = (rate: Rate): boolean => rate.of > 0 && rate.of < SMALL_N;
+
 /**
  * A share, always with the counts it came from. With a small denominator the counts come
- * first and large, and the percentage second.
+ * first, and the whole figure is drawn lighter; the table explains it once in a footnote.
  */
 export function RateView({ rate, flag, className }: RateViewProps) {
   if (rate.of === 0 || rate.rate === null) {
@@ -73,38 +76,44 @@ export function RateView({ rate, flag, className }: RateViewProps) {
   const small = rate.of < SMALL_N;
   const counts = copy.common.of(rate.count, rate.of);
   return (
-    <span className={cx(styles.rate, className)}>
+    <span className={cx(styles.rate, small && styles.rateSmall, className)}>
       <span className={styles.rateMain}>{small ? counts : pct(rate.rate)}</span>
-      <span className={styles.rateSub}>
-        {small ? pct(rate.rate) : counts}
-        {small && <span className={styles.smallN}>{copy.common.smallN}</span>}
-      </span>
+      <span className={styles.rateSub}>{small ? pct(rate.rate) : counts}</span>
       {flag && <Flag>{flag}</Flag>}
     </span>
   );
 }
 
-/** A count that stands out when it is small. */
+/** A count, lighter when it is small. */
 export function Count({ n }: { n: number }) {
-  const small = n < SMALL_N;
+  return <span className={cx(styles.count, n < SMALL_N && styles.countSmall)}>{n}</span>;
+}
+
+/** The one footnote of a table with lighter figures. */
+export function SmallNote({ show, children }: { show: boolean; children?: ReactNode }) {
+  if (!show && !children) return null;
   return (
-    <span className={cx(styles.count, small && styles.countSmall)}>
-      {n}
-      {small && <span className={styles.smallN}>{copy.common.smallN}</span>}
-    </span>
+    <p className={styles.footnote}>
+      {show && copy.common.smallNote(SMALL_N)}
+      {show && children ? ' ' : null}
+      {children}
+    </p>
   );
 }
 
 // ---------------------------------------------------------------- tags
 
-/** A red-line breach: an ink pill with a word. */
+/** A red-line breach: a word on the loss wash, outlined. The loudest mark on the page. */
 export function Flag({ children }: { children: ReactNode }) {
   return <span className={styles.flag}>{children}</span>;
 }
 
 export type StatusKind = 'met' | 'not_met' | 'none';
 
-/** Met, Not met, No data yet. The word and the glyph carry the state; the fill only supports it. */
+/**
+ * Met, Not met, No data yet. The word and the glyph carry the state; the fill only supports it.
+ * Met is quiet, an outline. Not met is the loss red on its wash, so a failure outweighs a pass.
+ */
 export function Status({ kind, children }: { kind: StatusKind; children: ReactNode }) {
   return (
     <span className={cx(styles.status, styles[`status_${kind}`])}>
@@ -226,21 +235,21 @@ export function Loaded<T>({ view, children }: { view: AsyncView<T>; children: (d
 export interface TableBoxProps {
   /** The caption of the table, read by screen readers. */
   caption: string;
-  /** Cap the height and scroll inside, for a table with one row per day. */
-  tall?: boolean;
   children: ReactNode;
   className?: string;
 }
 
 /**
- * A table inside its own scrolling box, so a wide table never makes the page scroll sideways.
- * The box can take keyboard focus, so it can be scrolled with the arrow keys.
+ * A table inside its own box that scrolls sideways, so a wide table never makes the page scroll
+ * sideways. It never scrolls up and down inside: the page does that. The box can take keyboard
+ * focus, so it can be scrolled with the arrow keys. The table keeps its role when CSS lays its
+ * rows out as cards.
  */
-export function TableBox({ caption, tall = false, children, className }: TableBoxProps) {
+export function TableBox({ caption, children, className }: TableBoxProps) {
   const id = useId();
   return (
-    <div className={cx(styles.tableBox, tall && styles.tall, className)} role="region" aria-labelledby={id} tabIndex={0}>
-      <table className={styles.table}>
+    <div className={cx(styles.tableBox, className)} role="region" aria-labelledby={id} tabIndex={0}>
+      <table className={styles.table} role="table">
         <caption id={id} className="vh">
           {caption}
         </caption>

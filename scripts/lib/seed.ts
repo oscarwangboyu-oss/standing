@@ -509,7 +509,16 @@ async function insertVisits(db: Db, personId: string, days: ReadonlySet<string>)
 
 interface LiveRows {
   daily: Array<{ day: string; logged_on: string; sleep: number | null; exercise: number | null; state: number | null; at: string }>;
-  paydays: Array<{ id: string; day: string; periods: number; save_share: number | null; runway: number | null; baseline_day: string | null; at: string }>;
+  paydays: Array<{
+    id: string;
+    day: string;
+    periods: number;
+    save_share: number | null;
+    burden_share: number | null;
+    runway: number | null;
+    baseline_day: string | null;
+    at: string;
+  }>;
   wins: Array<{ id: string; day: string; kind: string; hours: number | null; exam: boolean | null; level: string | null; at: string }>;
   nudges: Array<{ id: string; day: string; planned: number } & Record<`reached_${NudgeCategory}`, number> & { at: string }>;
   /** Days on which the person opened the app. They also count as visits. */
@@ -621,7 +630,11 @@ function buildLive(
       const day = dayAt(offset);
       const income = Math.round(((monthlyIncome * every) / 30) * (1 + rng.normal(0, 0.05)));
       const spending = Math.round(income * clamp01(1.05 - 0.45 * person.level.W + rng.normal(0, 0.12)) * 1.1);
-      amounts.push({ day, income, spending, savings: Math.max(0, Math.round((income - spending) * 0.8)) });
+      // Money available now: a few months of essential spending, more for a stronger wealth level.
+      const balance = Math.max(0, Math.round(setup.essentialMonthly * (0.3 + 7 * person.level.W) * (1 + rng.normal(0, 0.15))));
+      // Debt paid in the period: a share of take-home pay that shrinks as the wealth level grows.
+      const debt = Math.max(0, Math.round(income * clamp01(0.38 - 0.4 * person.level.W + rng.normal(0, 0.06))));
+      amounts.push({ day, income, savings: Math.max(0, Math.round((income - spending) * 0.8)), balance, debt });
       // The check in force on the payday: the latest one completed on or before it.
       let inForce: { day: string; steps: Step[] } | null = null;
       for (const check of completed) {
@@ -634,6 +647,7 @@ function buildLive(
         day,
         periods: bands.periods,
         save_share: bands.saveShare,
+        burden_share: bands.debtShare ?? null,
         runway: bands.runway,
         baseline_day: bands.baselineDay,
         at: timeOn(day),
@@ -655,10 +669,10 @@ async function insertLive(db: Db, personId: string, rows: LiveRows): Promise<voi
   }
   if (rows.paydays.length > 0) {
     await db.query(
-      `insert into payday_entries (user_id, id, day, periods, save_share, runway, baseline_day, at)
-       select $1, x.id, x.day, x.periods, x.save_share, x.runway, x.baseline_day, x.at
-       from jsonb_to_recordset($2::jsonb) as x(id text, day text, periods integer, save_share integer, runway integer,
-         baseline_day text, at text)`,
+      `insert into payday_entries (user_id, id, day, periods, save_share, burden_share, runway, baseline_day, at)
+       select $1, x.id, x.day, x.periods, x.save_share, x.burden_share, x.runway, x.baseline_day, x.at
+       from jsonb_to_recordset($2::jsonb) as x(id text, day text, periods integer, save_share integer, burden_share integer,
+         runway integer, baseline_day text, at text)`,
       [personId, JSON.stringify(rows.paydays)],
     );
   }

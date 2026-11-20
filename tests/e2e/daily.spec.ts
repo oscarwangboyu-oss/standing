@@ -43,14 +43,24 @@ test.describe('Daily Open', () => {
     await expect(streak(page)).toHaveText(/^1\s*day in a row$/);
     expect(sent).toHaveLength(1);
     expect(sent[0].postDataJSON()).toEqual({ localDate: utcDay(), day: utcDay(), sleep: 0, exercise: 0, state: 1 });
-    // One day of records does not replace a check answer: the price stands.
-    await expect(page.getByRole('list', { name: 'Body and Mind prices' }).getByText('No move today.')).toHaveCount(2);
+    // One day of records does not replace a check answer: the price stands. (The check was
+    // answered at random, so a sector may lack a price; no row may show a change either way.)
+    // When no row moved, the rows carry no line of their own: the breakdown under them says why.
+    const dayOne = page.getByRole('list', { name: 'Body and Mind prices' });
+    await expect(dayOne.getByText('No move today.')).toHaveCount(0);
+    await expect(dayOne.getByText(/[+−]\d+\.\d\d/)).toHaveCount(0);
 
-    // Yesterday can be filled in today.
-    await page.getByRole('button', { name: 'Fill in yesterday' }).click();
-    await threeTaps(page, 'Under 5 hours', 'None', 'Bad');
+    // Yesterday was before the first check, so the screen does not offer it.
+    await expect(page.getByRole('button', { name: 'Fill in yesterday' })).toHaveCount(0);
+    // The server still takes it, the way an older screen would have sent it.
+    const token0 = await deviceToken(page);
+    const backfill = await page.request.post('/api/daily', {
+      headers: { authorization: `Bearer ${token0}` },
+      data: { localDate: utcDay(), day: utcDay(-1), sleep: 0, exercise: 0, state: 1 },
+    });
+    expect(backfill.status()).toBe(201);
+    await page.reload();
     await expect(streak(page)).toHaveText(/^2\s*days in a row$/);
-    expect(sent[1].postDataJSON()).toMatchObject({ localDate: utcDay(), day: utcDay(-1) });
 
     // A second entry for a day is not stored: the first one stands.
     const token = await deviceToken(page);
@@ -102,6 +112,8 @@ test.describe('Daily Open', () => {
     const shown = (await board.innerText()).match(/[+−-]\d+\.\d\d/g) ?? [];
     expect(shown.length).toBeGreaterThan(0);
     for (const figure of shown) expect(Math.abs(Number(figure.replace('−', '-')))).toBeLessThanOrEqual(LIMIT);
+    // The rules sit in the closed "How this counts" section.
+    await page.getByText('How this counts').click();
     await expect(page.getByText(/Prices move at most 2 points a day/)).toBeVisible();
     await expect(streak(page)).toHaveText(/^4\s*days in a row$/);
 
@@ -206,9 +218,12 @@ test('People Nudge records counts and the names stay on the device', async ({ pa
 
   await page.getByRole('checkbox', { name: 'Mark Marisol Quint as reached' }).check();
   await page.getByRole('button', { name: "Save this week's log" }).click();
-  await expect(page.getByRole('heading', { name: '1 of 2 reached this week.' })).toBeVisible();
-  await expect(page.getByText('Reached: 1 friend.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Log saved');
+  await expect(page.getByText('1 of 2 reached this week.')).toBeVisible();
   await expect(page.getByText('No name was sent.')).toBeVisible();
+  // What was sent sits in the closed "How this counts" section.
+  await page.getByText('How this counts').click();
+  await expect(page.getByText('Reached: 1 friend.')).toBeVisible();
 
   expect(sent).toHaveLength(1);
   const raw = sent[0].postData() ?? '';

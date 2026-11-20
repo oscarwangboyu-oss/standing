@@ -1,14 +1,18 @@
 /**
- * Team dashboard: started, completed, completion rate, counts by role, the retest correlation
- * of the overall price, and the go criteria with their current values.
+ * Team dashboard: started, completed, completion rate, counts by role, the last days against the
+ * days before them, the retest correlation of the overall price, and the go criteria with their
+ * current values.
  */
 import type { TeamOverviewResponse, TeamStartedCompleted } from '../../shared/api';
 import { CURRENT, ROLE_IDS, type RoleId } from '../../engine';
+import { DASHBOARD_READING } from '../../engine/config';
 import type { Db } from '../db';
 import { first } from '../db';
 import { csv, type CsvCell } from '../http';
 import { teamItems } from './items';
-import { demoCounts, GO, rate, RED_LINES, RETEST_WINDOW, retestPairsCte, shownResultCte } from './shared';
+import { demoCounts, GO, MIN_RECORDS, rate, RED_LINES, RETEST_WINDOW, retestPairsCte, shownResultCte } from './shared';
+
+const DAY_MS = 86_400_000;
 
 interface StartedRow {
   role: RoleId | null;
@@ -19,7 +23,9 @@ interface StartedRow {
   people_completed: number;
 }
 
-function startedCompleted(row: StartedRow | undefined): TeamStartedCompleted {
+type Counts = Pick<StartedRow, 'sessions_started' | 'sessions_completed' | 'people_started' | 'people_completed'>;
+
+function startedCompleted(row: Counts | undefined): TeamStartedCompleted {
   return {
     sessions: rate(row?.sessions_completed ?? 0, row?.sessions_started ?? 0),
     people: rate(row?.people_completed ?? 0, row?.people_started ?? 0),
@@ -38,6 +44,27 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
      group by grouping sets ((role), ())`,
   );
   const totals = startedCompleted(started.find((r) => r.is_total === 1));
+
+  // The last DASHBOARD_READING.recentDays days against the same number of days before them, by
+  // the time a check was created. Timestamps are ISO text in UTC, so text order is time order.
+  const days = DASHBOARD_READING.recentDays;
+  const at = (daysBack: number) => new Date(now.getTime() - daysBack * DAY_MS).toISOString();
+  const recentRows = await db.query<Counts & { is_last: boolean }>(
+    `select created_at >= $2 as is_last,
+       count(*)::int as sessions_started,
+       count(completed_at)::int as sessions_completed,
+       count(distinct user_id)::int as people_started,
+       (count(distinct user_id) filter (where completed_at is not null))::int as people_completed
+     from sessions
+     where created_at >= $1 and created_at <= $3
+     group by 1`,
+    [at(2 * days), at(days), now.toISOString()],
+  );
+  const recent = {
+    days,
+    last: startedCompleted(recentRows.find((r) => r.is_last)),
+    previous: startedCompleted(recentRows.find((r) => !r.is_last)),
+  };
   const byRole = ROLE_IDS.flatMap((role) => {
     const row = started.find((r) => r.is_total === 0 && r.role === role);
     return row ? [{ role, ...startedCompleted(row) }] : [];
@@ -58,12 +85,13 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
 
   const demo = await demoCounts(db);
 
-  // Highest skip rate of any question version, over all roles.
+  // Highest skip rate of a question version, over all roles. Only versions shown to at least
+  // MIN_RECORDS checks count: 2 skips in 7 checks is 28.6% and decides nothing.
   const items = await teamItems(db, now, null);
   // On a tie the version seen by more checks wins: its share is the firmer one.
   let worst: { value: number; itemId: string; versionKey: string; count: number; of: number } | null = null;
   for (const row of items.rows) {
-    if (row.skip.rate === null) continue;
+    if (row.skip.rate === null || row.skip.of < MIN_RECORDS) continue;
     if (worst === null || row.skip.rate > worst.value || (row.skip.rate === worst.value && row.skip.of > worst.of)) {
       worst = { value: row.skip.rate, itemId: row.itemId, versionKey: row.versionKey, count: row.skip.count, of: row.skip.of };
     }
@@ -77,6 +105,7 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
     demoChecks: demo.checks,
     totals,
     byRole,
+    recent,
     retest: { pairs, correlation, windowDays: RETEST_WINDOW },
     goCriteria: GO,
     status: {
@@ -88,6 +117,7 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
         count: worst?.count ?? null,
         of: worst?.of ?? null,
         met: worst === null ? null : worst.value <= GO.maxItemSkipRate,
+        minShown: MIN_RECORDS,
       },
       retestCorrelation: {
         value: correlation,

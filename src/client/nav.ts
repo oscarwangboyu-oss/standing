@@ -149,15 +149,16 @@ export interface ShellDefaults {
 
 /**
  * Bottom navigation "where appropriate": on the four places and their sub-screens, and on
- * compare with no item current. Not on start, check and result (one task, no way out by
- * accident), not on an invite (the visitor may have no check) and not on the team dashboard.
+ * compare with Market current (compare is reached from the market's list of entries). Not on
+ * start, check and result (one task, no way out by accident), not on an invite (the visitor
+ * may have no check) and not on the team dashboard.
  */
 export function shellDefaultsFor(pathname: string): ShellDefaults {
   const path = clean(pathname);
   const place = navPlaceFor(path);
   const base: ShellDefaults = { nav: undefined, fill: false, width: 'col', footer: false };
   if (place) return { ...base, nav: place, footer: place === 'settings' };
-  if (under(path, ROUTES.compare)) return { ...base, nav: null, width: 'wide' };
+  if (under(path, ROUTES.compare)) return { ...base, nav: 'market', width: 'wide' };
   if (path === ROUTES.check) return { ...base, fill: true };
   if (under(path, ROUTES.result)) return { ...base, footer: true };
   if (path === ROUTES.start) return { ...base, footer: true };

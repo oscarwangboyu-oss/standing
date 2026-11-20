@@ -88,6 +88,7 @@ interface PaydayRow {
   day: string;
   periods: number;
   save_share: number | null;
+  burden_share: number | null;
   runway: number | null;
   baseline_day: string | null;
 }
@@ -171,7 +172,7 @@ export async function loadPerson(db: Db, userId: string, today: string, health: 
   const [dailyRows, paydayRows, winRows, nudgeRows] = await Promise.all([
     db.query<DailyRow>('select day, logged_on, sleep, exercise, state from daily_entries where user_id = $1 order by day', [userId]),
     db.query<PaydayRow>(
-      'select day, periods, save_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
+      'select day, periods, save_share, burden_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
       [userId],
     ),
     db.query<WinRow>('select day, kind, hours, exam, level from weekly_wins where user_id = $1 order by at, id', [userId]),
@@ -200,6 +201,7 @@ export async function loadPerson(db: Db, userId: string, today: string, health: 
     day: r.day,
     periods: r.periods,
     saveShare: r.save_share,
+    debtShare: r.burden_share,
     runway: r.runway,
     baselineDay: r.baseline_day,
   }));
@@ -352,7 +354,7 @@ export function liveOf(
   const counted = dailyStreak(daily, until, tl.versions.algo);
   // A day before the first full check is not offered for filling in: there was no price yet.
   const firstCheckDay = person.checks[0].day;
-  const streak = { ...counted, canBackfill: counted.canBackfill.filter((day) => day >= firstCheckDay) };
+  const streak = { ...counted, canBackfill: counted.canBackfill.filter((day) => day >= firstCheckDay), firstDay: firstCheckDay };
   const week = weekOf(dayNumber(until));
   const appOf = (enabled: boolean, available: boolean, days: readonly string[]): LiveApp => {
     let lastDay: string | null = null;

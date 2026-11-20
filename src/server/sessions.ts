@@ -51,10 +51,17 @@ export async function loadSession(db: Db, userId: string, sessionId: string): Pr
   return row;
 }
 
+/**
+ * The check in progress: the newest unfinished one started after the person's latest completed
+ * check. An older unfinished one (a start whose answer was lost, then retried with other
+ * answers) is never resumed over a newer completed check.
+ */
 export async function latestOpenSession(db: Db, userId: string): Promise<SessionRow | null> {
   return first<SessionRow>(
     db,
-    `select ${SESSION_COLUMNS} from sessions where user_id = $1 and completed_at is null
+    `select ${SESSION_COLUMNS} from sessions
+     where user_id = $1 and completed_at is null
+       and created_at > coalesce((select max(completed_at) from sessions where user_id = $1 and completed_at is not null), '')
      order by created_at desc, id desc limit 1`,
     [userId],
   );

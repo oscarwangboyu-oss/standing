@@ -18,7 +18,12 @@
   transition: transform 320ms var(--ease-out), visibility 0s linear 320ms;
 }
 .show { transform: none; visibility: visible; transition: transform 320ms var(--ease-out), visibility 0s; }
-.fact { min-width: 0; font-size: var(--t-13); font-weight: 600; line-height: 1.25; color: var(--ink-2); }
+.fact { min-width: 0; font-size: var(--t-13); font-weight: 600; line-height: 1.25; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* At 360 the fact keeps one line next to the button. */
+@media (max-width: 379px) {
+  .bar { gap: var(--s-2); padding: 6px 6px 6px var(--s-4); }
+  .fact { font-size: var(--t-12); }
+}
 @media (min-width: 700px) {
   .bar { display: none; }
 }

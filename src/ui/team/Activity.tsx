@@ -4,13 +4,19 @@
 import { team as copy } from '@/copy/team';
 import type { TeamAppsResponse, TeamDailyResponse, TeamReportResponse, TeamReturnsResponse } from '@/shared/api';
 import { formatDay } from '@/ui';
-import { Count, RateView, Status, TableBox } from './parts';
+import { Count, RateView, SMALL_N, SmallNote, Status, TableBox, isSmall } from './parts';
 import styles from './team.module.css';
 
+/**
+ * Return rates by the calendar week of the first check. A week of fewer than SMALL_N people is
+ * drawn lighter, with one footnote under the table. The CSV keeps one row per day.
+ */
 export function Returns({ data }: { data: TeamReturnsResponse }) {
-  if (data.rows.length === 0) return <p className={styles.panel}>{copy.common.noRows}</p>;
+  if (data.weeks.length <= 1 && data.weeks[0]?.people === 0) return <p className={styles.panel}>{copy.common.noRows}</p>;
+  const anySmall = data.weeks.some((w) => w.people < SMALL_N || w.returns.some(isSmall));
   return (
-    <TableBox caption={copy.returns.caption} tall>
+    <>
+    <TableBox caption={copy.returns.caption}>
       <thead>
         <tr>
           <th scope="col">{copy.returns.firstDay}</th>
@@ -25,9 +31,9 @@ export function Returns({ data }: { data: TeamReturnsResponse }) {
         </tr>
       </thead>
       <tbody>
-        {data.rows.map((row) => (
-          <tr key={row.firstDay} className={row.firstDay === 'all' ? styles.totalRow : undefined}>
-            <th scope="row">{row.firstDay === 'all' ? copy.returns.all : formatDay(row.firstDay)}</th>
+        {data.weeks.map((row) => (
+          <tr key={row.weekStart} className={row.weekStart === 'all' ? styles.totalRow : row.people < SMALL_N ? styles.dimRow : undefined}>
+            <th scope="row">{row.weekStart === 'all' ? copy.returns.all : formatDay(row.weekStart)}</th>
             <td className={styles.numCol}>
               <Count n={row.people} />
             </td>
@@ -39,11 +45,15 @@ export function Returns({ data }: { data: TeamReturnsResponse }) {
         ))}
       </tbody>
     </TableBox>
+    <SmallNote show={anySmall}>{copy.returns.csvNote}</SmallNote>
+    </>
   );
 }
 
 export function AppsSummary({ data }: { data: TeamAppsResponse }) {
+  const anySmall = data.summary.some((row) => isSmall(row.participated) || (row.active > 0 && row.active < SMALL_N));
   return (
+    <>
     <TableBox caption={copy.apps.summaryCaption}>
       <thead>
         <tr>
@@ -78,12 +88,16 @@ export function AppsSummary({ data }: { data: TeamAppsResponse }) {
         ))}
       </tbody>
     </TableBox>
+    <SmallNote show={anySmall} />
+    </>
   );
 }
 
 export function AppsWeeks({ data }: { data: TeamAppsResponse }) {
   if (data.weeks.length === 0) return <p className={styles.panel}>{copy.common.noRows}</p>;
+  const anySmall = data.weeks.some((row) => row.active < SMALL_N);
   return (
+    <>
     <TableBox caption={copy.apps.weeksCaption}>
       <thead>
         <tr>
@@ -112,26 +126,37 @@ export function AppsWeeks({ data }: { data: TeamAppsResponse }) {
         ))}
       </tbody>
     </TableBox>
+    <SmallNote show={anySmall} />
+    </>
   );
 }
 
+/** The daily open week by week, in person-days. A week of fewer than SMALL_N person-days is drawn lighter. */
 export function Daily({ data }: { data: TeamDailyResponse }) {
-  if (data.rows.length === 0) return <p className={styles.panel}>{copy.common.noRows}</p>;
+  if (data.weeks.length <= 1 && data.weeks[0]?.active === 0) return <p className={styles.panel}>{copy.common.noRows}</p>;
+  const anySmall = data.weeks.some((row) => row.active < SMALL_N || isSmall(row.dailyOpen));
   return (
-    <TableBox caption={copy.apps.dailyCaption} tall>
+    <>
+    <TableBox caption={copy.apps.dailyCaption}>
       <thead>
         <tr>
-          <th scope="col">{copy.apps.dayCol}</th>
+          <th scope="col">{copy.apps.weekCol}</th>
           <th scope="col" className={styles.numCol}>
-            {copy.apps.active}
+            {copy.apps.people}
+          </th>
+          <th scope="col" className={styles.numCol}>
+            {copy.apps.personDays}
           </th>
           <th scope="col">{copy.apps.names.daily_open}</th>
         </tr>
       </thead>
       <tbody>
-        {data.rows.map((row) => (
-          <tr key={row.day} className={row.day === 'all' ? styles.totalRow : undefined}>
-            <th scope="row">{row.day === 'all' ? copy.apps.allDays : formatDay(row.day)}</th>
+        {data.weeks.map((row) => (
+          <tr key={row.weekStart} className={row.weekStart === 'all' ? styles.totalRow : row.active < SMALL_N ? styles.dimRow : undefined}>
+            <th scope="row">{row.weekStart === 'all' ? copy.apps.allWeeks : formatDay(row.weekStart)}</th>
+            <td className={styles.numCol}>
+              <Count n={row.people} />
+            </td>
             <td className={styles.numCol}>
               <Count n={row.active} />
             </td>
@@ -142,6 +167,8 @@ export function Daily({ data }: { data: TeamDailyResponse }) {
         ))}
       </tbody>
     </TableBox>
+    <SmallNote show={anySmall}>{copy.apps.dailyCsvNote}</SmallNote>
+    </>
   );
 }
 

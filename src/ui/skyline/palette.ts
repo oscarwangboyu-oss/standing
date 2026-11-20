@@ -31,7 +31,9 @@ const day = {
   n1: '#C2CEE6',
   n2: '#A8B7D6',
   nwin: '#DFE8F7',
-  lit: '#FFF4C7',
+  // Lit glass is a warm, saturated yellow, and the glass of each tower (W below) is a darker
+  // shade of its front, so a tower with its lights on stands out by day as it does at night.
+  lit: '#FFE48A',
   crane: '#F3B52F',
   flag: '#F0553A',
   pool: '#58C6F0',
@@ -42,11 +44,12 @@ const day = {
   ghost: '#B5AB95',
   ink: '#141A31',
   horizon: '#5E7FB4',
-  skilF: '#2E5CE6', skilS: '#1E3FA8', skilL: '#4F7AF3', skilD: '#152B76', skilW: '#B4C8FB',
-  wlthF: '#E9A829', wlthS: '#BC7D12', wlthL: '#F6C655', wlthD: '#7C5008', wlthW: '#FCE7AE',
-  netwF: '#14A398', netwS: '#0C7870', netwL: '#36BEB2', netwD: '#075650', netwW: '#B2EAE3',
-  bodyF: '#F26B4B', bodyS: '#C94A2E', bodyL: '#F98C70', bodyD: '#8C2E1A', bodyW: '#FDD3C6',
-  mindF: '#8558E3', mindS: '#6238BD', mindL: '#A07BEF', mindD: '#42228C', mindW: '#DDCFF9',
+  // W, the glass of an unlit window: the front mixed 60% toward the dark trim.
+  skilF: '#2E5CE6', skilS: '#1E3FA8', skilL: '#4F7AF3', skilD: '#152B76', skilW: '#1F3FA3',
+  wlthF: '#E9A829', wlthS: '#BC7D12', wlthL: '#F6C655', wlthD: '#7C5008', wlthW: '#A87315',
+  netwF: '#14A398', netwS: '#0C7870', netwL: '#36BEB2', netwD: '#075650', netwW: '#0C756D',
+  bodyF: '#F26B4B', bodyS: '#C94A2E', bodyL: '#F98C70', bodyD: '#8C2E1A', bodyW: '#B5462E',
+  mindF: '#8558E3', mindS: '#6238BD', mindL: '#A07BEF', mindD: '#42228C', mindW: '#5D38AF',
   dayOn: '1',
   nightOn: '0',
   duskOn: '0',

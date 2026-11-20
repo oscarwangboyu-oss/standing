@@ -66,9 +66,21 @@
 .table tbody tr { border-top: 1px solid var(--line); }
 .table tbody th { width: 1%; padding-inline: var(--s-3); text-align: center; font-weight: 400; white-space: nowrap; }
 .gap { display: block; margin-top: 4px; font-size: var(--t-12); font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.bar { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar { position: relative; display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: var(--track); }
 .bar i { display: block; height: 100%; border-radius: 3px; background: var(--sector); }
 .table td:last-child .bar i { margin-left: auto; }
+/* 100 is the middle of 70 to 130 on both mirrored sides: the same tick as the position bars. */
+.bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+}
 .shape { display: grid; gap: var(--s-4); }
 @media (min-width: 960px) {
   .lower > section { margin-top: 0; }

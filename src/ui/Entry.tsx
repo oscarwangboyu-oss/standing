@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cx } from './cx';
-import { IconChevron } from './icons';
+import { IconCheck, IconChevron } from './icons';
 import type { SectorCode } from './sectors';
 import { sectorStyle } from './Tag';
 import styles from './Entry.module.css';
@@ -15,22 +15,29 @@ export interface EntryProps {
   icon?: ReactNode;
   /** Colour the icon with a sector: Payday is WLTH, Weekly Win is SKIL, People Nudge is NETW. */
   sector?: SectorCode;
-  /** One short status on the right, such as a Tag or "Due today". */
+  /** One short status, such as "Due this week", shown as a small pill. On the right; under the title below 380px. */
   status?: ReactNode;
+  /** done: the status carries a check ("Done today"). due: it is outlined in ink ("Due"). */
+  statusTone?: 'done' | 'due';
   className?: string;
 }
 
 /** One way onward from the market home: a row with an icon, a title, one fact and a chevron. */
-export function Entry({ href, title, detail, icon, sector, status, className }: EntryProps) {
+export function Entry({ href, title, detail, icon, sector, status, statusTone, className }: EntryProps) {
   return (
     <li className={cx(styles.item, className)} style={sector ? sectorStyle(sector) : undefined}>
-      <Link href={href} className={styles.entry}>
+      <Link href={href} className={cx(styles.entry, icon === undefined && styles.noIcon)}>
         {icon !== undefined && <span className={styles.icon}>{icon}</span>}
         <span className={styles.text}>
           <span className={styles.title}>{title}</span>
           {detail !== undefined && <span className={styles.detail}>{detail}</span>}
         </span>
-        {status !== undefined && <span className={styles.status}>{status}</span>}
+        {status !== undefined && (
+          <span className={cx(styles.status, statusTone && styles[statusTone])}>
+            {statusTone === 'done' && <IconCheck size={12} />}
+            {status}
+          </span>
+        )}
         <IconChevron className={styles.chevron} size={18} />
       </Link>
     </li>

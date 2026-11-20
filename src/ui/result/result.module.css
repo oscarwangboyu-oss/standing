@@ -53,6 +53,7 @@
 /* ---------- Blocks ---------- */
 .plain { font-size: var(--t-15); line-height: 1.5; color: var(--ink-2); }
 .caption { font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
+.oneRecord { display: grid; gap: var(--s-2); }
 .tape { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--line); }
 .tape + .caption { margin-top: var(--s-4); }
 .timing { margin-top: var(--s-6); }
@@ -139,6 +140,14 @@
 .actions { display: grid; gap: var(--s-3); margin-top: var(--s-6); }
 @media (min-width: 960px) {
   .actions { grid-template-columns: 1fr 1fr; }
+}
+.onward { margin-top: var(--s-6); }
+
+/* ---------- Top bar: Share, and from 960px a quiet way to the market ---------- */
+.headRight { display: inline-flex; align-items: center; gap: var(--s-1); }
+.headMarket { display: none; }
+@media (min-width: 960px) {
+  .headMarket { display: contents; }
 }
 
 /* ---------- Why it moved ---------- */

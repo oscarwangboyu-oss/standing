@@ -14,9 +14,9 @@ import { today as deviceToday } from '@/client/today';
 import { payday as copy, shared } from '@/copy/micro';
 import { PAY_FREQUENCIES, getAlgo, getBank, paydayBandsFor, type PayFrequency, type PaydayBands, type PaydayLocal, type PaydaySetup } from '@/engine';
 import type { MeLive, MeResponse } from '@/shared/api';
-import { Button, Card, Field, Note, OptionList, formatDay } from '@/ui';
-import { daysWithoutRecord } from '@/ui/market/live';
-import { Facts, Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, errorMessage } from '@/ui/micro/parts';
+import { Button, Card, Field, Note, OptionList, formatDay, sectorStyle } from '@/ui';
+import { daysWithoutRecord, nextPayday } from '@/ui/market/live';
+import { Facts, More, Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, Recorded, errorMessage, useTopOnChange } from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
 
 const BACK = { href: ROUTES.log, label: shared.backLabel, name: shared.back };
@@ -30,6 +30,11 @@ function parseAmount(text: string): number | null {
 }
 
 const money = (value: number): string => `${copy.currency}${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+/** On leaving a field: "2400" reads "2,400". Text that is not an amount stays as typed, so its error can say why. */
+const tidy = (text: string): string => {
+  const value = parseAmount(text);
+  return value === null ? text : value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
 const percent = (share: number | null): string => (share === null ? copy.noShare : `${Math.round(share * 100)}%`);
 const byDay = (a: LocalPayday, b: LocalPayday): number => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0);
 
@@ -68,12 +73,7 @@ export default function PaydayPage() {
       </>
     );
   }
-  return (
-    <>
-      {head}
-      <Payday me={me.data} live={live} />
-    </>
-  );
+  return <Payday me={me.data} live={live} />;
 }
 
 function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
@@ -81,6 +81,8 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
   const params = getAlgo().live.payday;
   const { setup, entries } = device.payday;
   const [mode, setMode] = useState<'auto' | 'entry' | 'setup'>('auto');
+  // A payday saved in this visit: the mark of the done state fills in once.
+  const [justSaved, setJustSaved] = useState(false);
   const breakdown = useAsync(() => api.dayBreakdown({ day: live.today, today: live.today }), [live.today, live.sectors.W.target], {
     enabled: live.apps.payday.recordedToday,
   });
@@ -103,20 +105,29 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
       ]}
     />
   );
+  const privacyFacts = <Facts sector="WLTH" title={copy.privacyTitle} items={copy.privacyFacts} />;
   const privacy = (
     <Note title={copy.privacyTitle} className={styles.noteTop}>
       <p>{copy.privacy}</p>
     </Note>
   );
+  const sorted = [...entries].sort(byDay);
+  const todayEntry = sorted.find((e) => e.day === live.today) ?? null;
+  const showDone = !!setup && mode === 'auto' && live.apps.payday.recordedToday;
+  const screen = !setup || mode === 'setup' ? 'setup' : showDone ? 'done' : 'entry';
+  const top = useTopOnChange(screen);
+  // Once a payday is recorded, the line that says so is the heading of the screen.
+  const head = showDone ? <MicroHead sectors={['WLTH']} back={BACK} /> : <MicroHead title={copy.title} lead={copy.lead} sectors={['WLTH']} back={BACK} />;
   const halted = live.sectors.W.status === 'halted' && live.sectors.W.haltedSince && (
     <Note title={shared.haltedTitle('Wealth')} className={styles.noteTop}>
       <p>{copy.halted(formatDay(live.sectors.W.haltedSince), daysWithoutRecord(live, 'W') ?? params.haltAfterDays)}</p>
     </Note>
   );
 
-  if (!setup || mode === 'setup') {
+  if (screen === 'setup' || !setup) {
     return (
       <>
+        {head}
         {privacy}
         <SetupForm
           initial={setup}
@@ -125,18 +136,18 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
             setMode(setup ? 'auto' : 'entry');
           }}
         />
-        <div className={styles.note}>{updates}</div>
+        <More className={styles.note}>
+          {privacyFacts}
+          {updates}
+        </More>
       </>
     );
   }
 
-  const sorted = [...entries].sort(byDay);
-  const todayEntry = sorted.find((e) => e.day === live.today) ?? null;
-  const showDone = mode === 'auto' && live.apps.payday.recordedToday;
-
-  if (!showDone) {
+  if (screen === 'entry') {
     return (
       <>
+        {head}
         {halted}
         {privacy}
         <EntryForm
@@ -146,6 +157,7 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
           baseline={baseline}
           onSaved={(live) => {
             applyLive(live);
+            setJustSaved(true);
             setMode('auto');
           }}
         />
@@ -154,7 +166,10 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
             {copy.changeSetup}
           </Button>
         </div>
-        <div className={styles.note}>{updates}</div>
+        <More className={styles.note}>
+          {privacyFacts}
+          {updates}
+        </More>
       </>
     );
   }
@@ -172,13 +187,24 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
   const shareBand = (k: number): string => bank.items[params.shareItemId]?.versions.find((v) => v.key === params.saveShare.versionKey)?.opts[k]?.en ?? '';
   const runwayBand = (k: number): string => bank.items[params.runwayItemId]?.versions.find((v) => v.key === baseline?.runwayKey)?.opts[k]?.en ?? '';
 
+  // Months of savings count paydays after the day of the check. On that day there is none yet.
+  const afterCheck = baseline ? sorted.some((e) => e.day > baseline.day) : true;
+
   return (
     <>
+      {head}
+      <Recorded
+        level={1}
+        headingRef={top}
+        sector="WLTH"
+        fresh={justSaved}
+        title={copy.savedTitle}
+        detail={copy.savedDetail(formatDay(todayEntry?.day ?? live.today))}
+      />
       <Moved
         live={live}
         areas={['W']}
         label={copy.wealthNow}
-        heading={copy.savedTitle}
         breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
       />
 
@@ -235,7 +261,7 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
                       <td>{percent(computed.local.averageSaveShare)}</td>
                     </tr>
                   )}
-                  {computed.local.runwayMonthsSinceCheck !== null && (
+                  {computed.local.runwayMonthsSinceCheck !== null && afterCheck && (
                     <tr>
                       <th scope="row">{copy.monthsSinceCheck}</th>
                       <td>{(Math.round(computed.local.runwayMonthsSinceCheck * 10) / 10).toFixed(1)}</td>
@@ -243,25 +269,13 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
                   )}
                 </tbody>
               </table>
+              {computed.local.runwayMonthsSinceCheck !== null && !afterCheck && (
+                <p className={styles.resultLine}>{copy.monthsFromNext(formatDay(nextPayday(live.today, setup.frequency)))}</p>
+              )}
             </div>
           </Card>
-
-          <div className={styles.note}>
-            <Facts
-              sector="WLTH"
-              title={copy.sentTitle}
-              items={[
-                computed.bands.saveShare !== null ? copy.sentShare(shareBand(computed.bands.saveShare), computed.bands.periods) : copy.sentNoShare,
-                computed.bands.saveShare !== null && !savesShare && copy.sentShareUnused,
-                computed.bands.runway !== null ? copy.sentRunway(runwayBand(computed.bands.runway)) : copy.sentNoRunway,
-                copy.sentNothingElse,
-              ]}
-            />
-          </div>
         </>
       )}
-
-      <div className={styles.note}>{updates}</div>
 
       {sorted.length > 0 && (
         <Card variant="flat" className={styles.note}>
@@ -276,7 +290,7 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
                   <li key={e.id} className={styles.row}>
                     <span className={styles.rowText}>
                       <span className={styles.rowTitle}>{formatDay(e.day)}</span>
-                      <span className={styles.rowDetail}>{copy.historyRow(money(e.income), money(e.spending), money(e.savings))}</span>
+                      <span className={styles.rowDetail}>{copy.historyRow(money(e.income), money(e.spending ?? 0), money(e.savings))}</span>
                     </span>
                   </li>
                 ))}
@@ -285,6 +299,22 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
           </div>
         </Card>
       )}
+
+      <More className={styles.note}>
+        {computed && (
+          <Facts
+            sector="WLTH"
+            title={copy.sentTitle}
+            items={[
+              computed.bands.saveShare !== null ? copy.sentShare(shareBand(computed.bands.saveShare), computed.bands.periods) : copy.sentNoShare,
+              computed.bands.saveShare !== null && !savesShare && copy.sentShareUnused,
+              computed.bands.runway !== null ? copy.sentRunway(runwayBand(computed.bands.runway)) : copy.sentNoRunway,
+            ]}
+          />
+        )}
+        {updates}
+        {privacyFacts}
+      </More>
 
       <div className={`${styles.actions} ${styles.note}`}>
         <Button variant="secondary" full onClick={() => setMode('entry')}>
@@ -302,7 +332,7 @@ function Payday({ me, live }: { me: MeResponse; live: MeLive }) {
 
 function SetupForm({ initial, onSave }: { initial: PaydaySetup | null; onSave: (setup: PaydaySetup) => void }) {
   const [frequency, setFrequency] = useState<PayFrequency | null>(initial?.frequency ?? null);
-  const [essential, setEssential] = useState(initial ? String(initial.essentialMonthly) : '');
+  const [essential, setEssential] = useState(initial ? tidy(String(initial.essentialMonthly)) : '');
   const [tried, setTried] = useState(false);
   const amount = parseAmount(essential);
   const essentialError = tried && (amount === null || amount <= 0) ? copy.errors.essential : undefined;
@@ -313,7 +343,7 @@ function SetupForm({ initial, onSave }: { initial: PaydaySetup | null; onSave: (
     onSave({ frequency, essentialMonthly: amount });
   };
   return (
-    <form className={styles.form} onSubmit={submit} noValidate>
+    <form className={styles.form} onSubmit={submit} noValidate style={sectorStyle('WLTH')}>
       <h2 className={styles.formTitle}>{copy.setupTitle}</h2>
       <p className={styles.formLead}>{copy.setupLead}</p>
       <div className={styles.group}>
@@ -337,6 +367,7 @@ function SetupForm({ initial, onSave }: { initial: PaydaySetup | null; onSave: (
         error={essentialError}
         value={essential}
         onChange={(e) => setEssential(e.target.value)}
+        onBlur={() => setEssential(tidy)}
       />
       <div className={styles.actions}>
         <Button type="submit" size="lg" full>
@@ -363,9 +394,9 @@ function EntryForm({
   onSaved: (live: MeLive | null) => void;
 }) {
   const last = entries[entries.length - 1] ?? null;
-  const [income, setIncome] = useState(correcting ? String(correcting.income) : last ? String(last.income) : '');
-  const [spending, setSpending] = useState(correcting ? String(correcting.spending) : '');
-  const [savings, setSavings] = useState(correcting ? String(correcting.savings) : '');
+  const [income, setIncome] = useState(correcting ? tidy(String(correcting.income)) : last ? tidy(String(last.income)) : '');
+  const [spending, setSpending] = useState(correcting ? tidy(String(correcting.spending)) : '');
+  const [savings, setSavings] = useState(correcting ? tidy(String(correcting.savings)) : '');
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -405,7 +436,7 @@ function EntryForm({
   };
 
   return (
-    <form className={styles.form} onSubmit={submit} noValidate>
+    <form className={styles.form} onSubmit={submit} noValidate style={sectorStyle('WLTH')}>
       <h2 className={styles.formTitle}>{correcting ? copy.correctTitle : copy.entryTitle}</h2>
       <p className={styles.formLead}>{copy.setupSummary(copy.frequencies[setup.frequency], money(setup.essentialMonthly))}</p>
       <Field
@@ -416,6 +447,7 @@ function EntryForm({
         error={fieldError(values.income)}
         value={income}
         onChange={(e) => setIncome(e.target.value)}
+        onBlur={() => setIncome(tidy)}
       />
       <Field
         label={copy.spending}
@@ -425,6 +457,7 @@ function EntryForm({
         error={fieldError(values.spending)}
         value={spending}
         onChange={(e) => setSpending(e.target.value)}
+        onBlur={() => setSpending(tidy)}
       />
       <Field
         label={copy.savings}
@@ -433,6 +466,7 @@ function EntryForm({
         error={fieldError(values.savings)}
         value={savings}
         onChange={(e) => setSavings(e.target.value)}
+        onBlur={() => setSavings(tidy)}
       />
       <MicroError>{error}</MicroError>
       <div className={styles.actions}>

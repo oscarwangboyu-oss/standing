@@ -339,3 +339,44 @@ describe('ownership and state', () => {
     expect(names.filter((n) => /(^|_)(ip|addr|address|agent|ua|device_name|fingerprint)(_|$)/.test(n))).toEqual([]);
   });
 });
+
+describe('the check in progress', () => {
+  it('is never an older unfinished check once a newer one is completed', async () => {
+    const api = await makeApi({ now: '2026-03-01T10:00:00.000Z' });
+    const user = await newUser(api);
+    // A start whose answer was lost: it stays open on the server.
+    await newSession(api, user.deviceToken, { healthConsent: true });
+    api.setNow('2026-03-01T10:05:00.000Z');
+    const { completedCheck } = await import('./helpers/api');
+    await completedCheck(api, user.deviceToken, { healthConsent: true });
+    api.setNow('2026-03-20T10:00:00.000Z');
+    const open = await api.call('GET', '/api/sessions/open', { token: user.deviceToken });
+    expect(open.body.open).toBeNull();
+    const me = await api.call('GET', '/api/me', { token: user.deviceToken });
+    expect(me.body.openSession).toBeNull();
+  });
+
+  it('a question taken off the path by a withdrawn consent is no longer pending', async () => {
+    const api = await makeApi();
+    const user = await newUser(api, { health: true });
+    const session = await newSession(api, user.deviceToken, { healthConsent: true });
+    // Answer up to the first Body question and show it.
+    let steps: Step[] = [];
+    for (let turn = 0; turn < 60; turn += 1) {
+      const next = nextQuestion(bank, emp, steps, {});
+      if (!next || next.section === 'B') break;
+      steps = await answer(api, user.deviceToken, session.id, emp, () => 1, { excludedAreas: [], limit: 1, startSteps: steps });
+    }
+    const q = nextQuestion(bank, emp, steps, {});
+    expect(q?.section).toBe('B');
+    if (!q) return;
+    const shown = await api.call('POST', `/api/sessions/${session.id}/events`, {
+      token: user.deviceToken,
+      body: { events: [shownEvent(q, steps.length)] },
+    });
+    expect(shown.status).toBe(200);
+    expect((await api.call('GET', `/api/sessions/${session.id}`, { token: user.deviceToken })).body.pending?.itemId).toBe(q.id);
+    await api.call('POST', '/api/consent', { token: user.deviceToken, body: { kind: 'health', granted: false } });
+    expect((await api.call('GET', `/api/sessions/${session.id}`, { token: user.deviceToken })).body.pending).toBeNull();
+  });
+});
