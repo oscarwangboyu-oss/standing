@@ -63,9 +63,9 @@ supabase/migrations/  The schema, applied in file-name order
 scripts/              migrate, recompute, eval, seed-demo
 tests/unit/           Vitest
 tests/e2e/            Playwright flows
-design/shots/         Screenshots, not in git. final/ has every screen at 390 wide, light and dark
+design/shots/         Screenshots, not in git. final/ has every screen at 390 wide in light and dark, and nine at 1440 (npm run shots)
 reference/            The verified question bank, reference engine and golden vectors. Read-only
-docs/                 The roadmap text
+docs/                 The roadmap text. screens/ has three contact sheets of the key screens, made from design/shots/final
 ```
 
 ## Environment variables
@@ -187,7 +187,7 @@ New norms go the same way: add an entry to `NORMS` in `config.ts`, point `CURREN
 | Highest skip rate of one question, 10% or less | The largest skip rate of any question version on the per-question table, over all roles |
 | Retest correlation, 0.75 or more | Pearson correlation of the overall price in two checks of the same person 10 to 21 days apart, one pair per person (their earliest) |
 | Back on day 7, 25% or more; day 30, 12% or more | People who used Standing on day N after the local date of their first completed check (a visit, or a micro-app entry), of people whose day N is over (two UTC dates later) |
-| Payday Check share, 50% or more | Of people active in the last 30 days to whom Payday Check is offered, those who recorded one in that window. This gate is from the brief, not the roadmap |
+| Payday Check share, 50% or more | Of people active in the last 30 days to whom Payday Check is offered, those who recorded one in that window. This gate is from the brief, not the roadmap. It counts in the Stage 2 score like the deck's two gates |
 
 **Needs attention.** The top card lists every gate not met (actual against the gate), the five question versions with the most red lines, and the scoring tests that warn, each linking to its row.
 
@@ -248,6 +248,7 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - An invite code travels in the link's path (`/i/CODE`), so it appears in the host's request logs while it is valid (14 days, one use). The database keeps only its hash, and `Referrer-Policy: no-referrer` keeps it out of other sites' logs. Moving it into the fragment (`/i#CODE`) would keep it out of the host's logs as well.
 - The version marker on the price chart, the "Resumed" tag, the retake prompt on day 90 and the offline paths of the micro apps were checked in a browser on 2026-11-20, with the browser clock moved and `/api/me` answers built from real engine output. They have no flow test of their own, because a flow test cannot move the server's clock.
 - The flow tests run in Chrome only, at 360 and 412 wide. Safari on a real iPhone has not been tested.
+- The interface uses US spelling. The English text of question bank 2.1 has British spelling in a few places ("licence" in the capability questions). The bank is read-only in `reference/`; changing its text means a new bank version.
 
 ## Open decisions for the founder
 

@@ -98,6 +98,8 @@
 .resultLine { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
 .movedBreakdown { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--line); }
 .skyNote { margin-top: var(--s-2); padding-inline: var(--s-1); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
+/* The same small note inside a card, flush with the card's other text. */
+.cardNote { margin-top: var(--s-2); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
 
 /* ---------- Recorded: the top of a done state ---------- */
 .recorded { display: flex; align-items: center; gap: var(--s-4); margin-bottom: var(--s-5); }
@@ -140,6 +142,8 @@
   padding-top: var(--s-4);
   border-top: 1px solid color-mix(in srgb, var(--sector-line, var(--ink-3)) 38%, transparent);
 }
+/* On a plain card with no sector colour, the warm hairline used everywhere else. */
+.meterGapPlain { border-top-color: var(--line); }
 
 /* ---------- More: the fine print, closed until asked for ---------- */
 .more { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

@@ -108,7 +108,7 @@ export interface SectorCopy {
   building: string;
   /** How many questions, from the bank. */
   count: string;
-  /** What its questions ask about. Summarised from the items of the sector in bank 2.1. */
+  /** What its questions ask about. Summarized from the items of the sector in bank 2.1. */
   asks: readonly string[];
   /** One real question from the bank, word for word. */
   question: string;
@@ -120,7 +120,7 @@ export interface SectorCopy {
 
 export const sectors = {
   title: 'Five sectors, five buildings',
-  lead: 'Each sector has its own ticker, colour and building. The questions change with your situation. A student is not asked about years of work.',
+  lead: 'Each sector has its own ticker, color and building. The questions change with your situation. A student is not asked about years of work.',
   /** Names the scrolling row of sector cards on a phone. */
   railLabel: 'The five sectors',
   asksLabel: 'The questions ask about',
@@ -134,7 +134,7 @@ export const sectors = {
       count: '8 to 10 questions, depending on your situation',
       asks: [
         'Your experience and the level of your work or study',
-        'Education, licences and certifications',
+        'Education, licenses and certifications',
         'Hours of courses and training in the past 12 months',
         'The languages you can work in',
         'One question on compound interest',
@@ -164,7 +164,7 @@ export const sectors = {
       building: 'Two slim towers joined by skybridges.',
       count: '5 or 6 questions',
       asks: [
-        'The kinds of people you could ask for a small favour',
+        'The kinds of people you could ask for a small favor',
         'Who would recommend you for a job or lend you $500',
         'Groups you take an active part in',
         'A mentor, or people you guide yourself',

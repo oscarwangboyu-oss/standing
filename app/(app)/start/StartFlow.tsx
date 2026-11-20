@@ -380,7 +380,7 @@ export function StartFlow() {
             spellCheck={false}
             enterKeyHint="next"
             disabled={busy}
-            hint={suggested ? copy.ticker.hint(suggested) : copy.ticker.hintKept}
+            hint={suggested && ticker === suggested ? copy.ticker.hint(suggested) : copy.ticker.hintKept}
             error={tickerError ? copy.ticker.error : undefined}
           />
           <div className={styles.actions}>

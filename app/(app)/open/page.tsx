@@ -30,11 +30,12 @@ import {
   ProgressTape,
   Streak,
   Toast,
+  cx,
   formatDay,
   sectorStyle,
   useToast,
 } from '@/ui';
-import { countWindow, daysWithoutRecord, openDays, streakWeek } from '@/ui/market/live';
+import { countWindow, daysWithoutRecord, litToday, openDays, streakWeek } from '@/ui/market/live';
 import { dailyReminderIcs, isReminderTime } from '@/ui/micro/ics';
 import {
   Facts,
@@ -60,6 +61,16 @@ type StepName = (typeof STEPS)[number];
 type Taps = Record<StepName, number | null>;
 const NO_TAPS: Taps = { sleep: null, exercise: null, state: null };
 const NO_PENDING: PendingDailyState = Object.freeze({ waiting: [], delivered: [] });
+
+/** The line under the skyline names exactly the towers that are lit. */
+function litCaption(live: MeLive): string | undefined {
+  const lit = litToday(live);
+  if (lit.SKIL || lit.WLTH || lit.NETW) return copy.litUpdated;
+  if (lit.BODY && lit.MIND) return copy.litLine;
+  if (lit.BODY) return copy.litBody;
+  if (lit.MIND) return copy.litMind;
+  return undefined;
+}
 
 export default function OpenPage() {
   const me = useMe();
@@ -206,9 +217,9 @@ function DailyOpen({ me, live, log, waiting }: { me: MeResponse; live: MeLive; l
   const streakCard = (
     <Card variant="flat">
       <Streak days={week} count={live.streak.current} fresh={saved?.which === 'today' && saved.stored} />
-      <p className={styles.skyNote}>{copy.streakRule}</p>
+      <p className={styles.cardNote}>{copy.streakRule}</p>
       {counted && (
-        <div className={styles.meterGap}>
+        <div className={cx(styles.meterGap, styles.meterGapPlain)}>
           <Meter window={counted} text={copy.meter(counted.have, counted.need, counted.of)} sector="BODY" />
         </div>
       )}
@@ -327,7 +338,7 @@ function DailyOpen({ me, live, log, waiting }: { me: MeResponse; live: MeLive; l
             live={live}
             areas={['B', 'M']}
             label={copy.bodyMindLabel}
-            skyNote={live.sectors.B.status === 'listed' || live.sectors.M.status === 'listed' ? copy.litLine : undefined}
+            skyNote={litCaption(live)}
             breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
           />
         </div>

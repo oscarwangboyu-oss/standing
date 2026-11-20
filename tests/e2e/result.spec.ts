@@ -85,7 +85,7 @@ test('the result shows every section', async ({ page }) => {
 
   // "Why it moved" opens from a sector and says this is the first record.
   await board.getByRole('button', { name: /^SKIL / }).click();
-  const why = page.getByRole('dialog');
+  const why = page.getByRole('dialog', { name: 'SKIL on your first check' });
   await expect(why.getByText(/This is your first record/)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(why).toBeHidden();

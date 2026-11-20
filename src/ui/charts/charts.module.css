@@ -98,7 +98,9 @@
 /* ---------- Ruler ---------- */
 .ruler { padding-top: 34px; }
 .rulerTrack { position: relative; height: 10px; border-radius: var(--r-pill); background: var(--track); }
-.rulerFill { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: var(--sector, var(--ink)); opacity: 0.9; }
+/* Square ends: one sits under the median tick, the other under the pin. A rounded cap would peek out
+   beside the tick as a thin crescent when the price is close to 100. */
+.rulerFill { position: absolute; top: 0; bottom: 0; background: var(--sector, var(--ink)); opacity: 0.9; }
 .rulerTick { position: absolute; top: 14px; width: 1.5px; height: 6px; margin-left: -0.75px; background: var(--line-2); }
 .rulerTickPar { top: -4px; height: 24px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
 .rulerPin {

@@ -131,7 +131,7 @@ export const team = {
     tests: 'Scoring tests that warn',
     testsNone: 'No scoring test warns.',
     /** "4 of 7 tests have too little data for a verdict." */
-    testsShort: (n: number, of: number) => `${n} of ${of} tests have too little data for a verdict.`,
+    testsShort: (n: number, of: number) => `${n} of ${of} tests ${n === 1 ? 'has' : 'have'} too little data for a verdict.`,
     failed: 'This part could not be loaded.',
   },
 
@@ -356,9 +356,9 @@ export const team = {
     weeksCaption: 'Weekly Win and People Nudge per calendar week',
     week: 'Week of',
     daily: 'Daily Open, week by week',
-    /** "... Weeks from Sep 21." */
+    /** "... Weeks from Oct 5. ..." The first week listed, not the first week of the window. */
     dailyLead: (from: string) =>
-      `Active people with the Body and Mind consent who recorded the Daily Open, in person-days: one active person on one day. Weeks from ${from}.`,
+      `Active people with the Body and Mind consent who recorded the Daily Open, in person-days: one active person on one day. Weeks from ${from}. A week with no active person is left out.`,
     dailyCaption: 'Daily Open participation per calendar week, in person-days',
     weekCol: 'Week of',
     people: 'People',

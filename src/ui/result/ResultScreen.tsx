@@ -494,7 +494,7 @@ function ResultView({ source, me }: { source: Source; me: MeResponse | null }) {
               ))}
             </SectorBoard>
             <div className={styles.boardNotes}>
-              <p>{copy.sectors.hint}</p>
+              {whyState !== 'first' && <p>{copy.sectors.hint}</p>}
               {result.overall !== null && result.overallLeftOut.length > 0 && <p>{copy.sectors.covers(codes(result.overallCovers), codes(result.overallLeftOut))}</p>}
               {unlisted.length > 0 && <p>{copy.sectors.unlisted(unlisted)}</p>}
               {insufficient.length > 0 && <p>{copy.sectors.insufficient(insufficient, Math.round(params.sector.minOwnScoredShare * 100))}</p>}

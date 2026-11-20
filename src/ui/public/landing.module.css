@@ -577,7 +577,8 @@
 .together { display: grid; gap: var(--s-12); }
 .shareBlock, .compareBlock { display: grid; gap: var(--s-6); align-content: start; }
 .shareArt { width: min(64%, 280px); margin: var(--s-2) 0 var(--s-2) var(--s-3); transform: rotate(-3deg); }
-.blockText { display: grid; gap: var(--s-2); max-width: 30rem; }
+/* Positioned, so the text paints above the transformed share card and its shadow. */
+.blockText { position: relative; z-index: 1; display: grid; gap: var(--s-2); max-width: 30rem; }
 .blockText > p { color: var(--ink-2); }
 .blockText > .caption { color: var(--ink-3); }
 .pairArt {

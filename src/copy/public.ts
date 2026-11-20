@@ -239,9 +239,10 @@ export const method = {
     {
       id: 'limits',
       title: 'What a price is not',
+      // The footer of every page carries the formal statements. This section says what they mean in use.
       text: [
-        'Standing is not a medical diagnosis, not financial advice and not a credit score.',
-        'The price is a way of showing a personal index. It is not a security and it cannot be traded.',
+        'A price places your answers next to the median of your group. It describes those answers on the day you gave them. It says nothing about what a person is worth.',
+        'No one else sees your prices unless you share an image or compare with a friend. There is no public ranking.',
       ],
     },
   ] as readonly PageSection[],

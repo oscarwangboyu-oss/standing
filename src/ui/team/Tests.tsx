@@ -108,7 +108,7 @@ export function viewsOf(data: TeamTestsResponse): TestView[] {
         groups.length > 0 ? (
           <details className={styles.details}>
             <summary className={styles.detailsSummary}>{copy.tests.groups}</summary>
-            <TableBox caption={copy.tests.groupsCaption} className={styles.gapTop}>
+            <TableBox caption={copy.tests.groupsCaption} spaced>
               <thead>
                 <tr>
                   <th scope="col">{copy.tests.group}</th>

@@ -226,6 +226,8 @@ Hand-written SVG in `src/ui/charts/`. The math is pure and tested (`scale.ts`). 
 - `Pentagon`: the five sectors; centre 70, rim 130, the dashed ring is 100; an optional second shape as a dotted outline for compare, so it never reads as the dashed 100 ring.
 - `Ruler`: the full scale, 55 to 145, with one marker.
 
+The fill of a `Ruler` and a `PositionBar` runs from the 100 tick to the marker with square ends: the tick covers one end and the marker the other. A rounded cap would show as a thin crescent beside the tick when the price is close to 100.
+
 Inside `sectorStyle()` a chart takes that sector's colour; outside it is ink.
 
 ## 8. The share image
@@ -282,6 +284,7 @@ At `/styleguide#screens`, each at the width of the window. Screenshots in `desig
 
 - No grey pages, no pure black or pure white grounds at night.
 - No green or red outside the pill, the two limit tags and a field error. One exception: on the team dashboard (`/team`) the loss red on its wash marks a breach (a gate not met, a scoring test that warns, a value over a red line), always with a word.
+- A table wider than its box scrolls sideways inside it, and a fade at the right edge shows while columns are hidden there. A `details` summary always carries a chevron that turns when it opens; a summary laid out with flex loses the native marker, so it draws its own.
 - No grids of identical cards. Use one feature and a list of rows, or a board.
 - No stock gradients, no glass blur, no emoji, no icon library, no image files for illustration.
 - No motion beyond section 9.

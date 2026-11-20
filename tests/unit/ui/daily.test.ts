@@ -4,9 +4,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { Streak } from '@/engine';
+import type { MeLive } from '@/shared/api';
 import { getBank } from '@/engine';
 import { isLongQuestion, splitQuestion } from '@/ui/check/question';
-import { countWindow, nextPayday, openDays, streakWeek } from '@/ui/market/live';
+import { countWindow, moveDays, nextPayday, openDays, streakWeek } from '@/ui/market/live';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // 2026-11-20 is a Friday.
@@ -113,5 +114,40 @@ describe('splitQuestion', () => {
   it('sets a long question a size smaller', () => {
     expect(isLongQuestion('How long did you sleep last night?')).toBe(false);
     expect(isLongQuestion('x'.repeat(91))).toBe(true);
+  });
+});
+
+describe('moveDays', () => {
+  // Only the fields moveDays reads.
+  function live(series: Array<number | null>, price: number | null, sinceCheck: number | null, start = TODAY): MeLive {
+    return {
+      today: TODAY,
+      lastCheckDay: start,
+      series: { start, overall: series },
+      markers: [{ kind: 'full_check', day: start }],
+      overall: { price, sinceCheck },
+    } as unknown as MeLive;
+  }
+
+  it('lists a move on the day of the first check, measured from the price the check gave', () => {
+    // The check alone gave 104.37. A payday the same day moved the overall price to 104.77.
+    expect(moveDays(live([104.77], 104.77, 0.4))).toEqual([{ day: TODAY, price: 104.77, change: 0.4, fullCheck: true, versionChange: false }]);
+  });
+
+  it('lists nothing on the first day when nothing moved since the check', () => {
+    expect(moveDays(live([104.37], 104.37, 0))).toEqual([]);
+  });
+
+  it('measures the first day from the check price and later days from the day before', () => {
+    const moves = moveDays(live([104.77, 104.77, 105.27], 105.27, 0.9, '2026-11-18'));
+    expect(moves.map((m) => [m.day, m.change])).toEqual([
+      ['2026-11-20', 0.5],
+      ['2026-11-18', 0.4],
+    ]);
+  });
+
+  it('leaves the first day out once a later full check is the one in force', () => {
+    const value = live([104.77, 106.0], 106.0, 0, '2026-11-19');
+    expect(moveDays({ ...value, lastCheckDay: TODAY }).map((m) => m.day)).toEqual(['2026-11-20']);
   });
 });

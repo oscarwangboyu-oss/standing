@@ -148,6 +148,8 @@ export const mindNotice = {
 /** "Why it moved": the breakdown of one day's move, in a sheet. */
 export const moved = {
   title: (code: string) => `Why ${code} moved`,
+  /** A sector that has not moved since yesterday or since the last full check: "SKIL today". */
+  stillTitle: (code: string) => `${code} today`,
   dayTitle: (day: string) => `Moves on ${day}`,
   price: 'Price today',
   target: "Today's data gives",

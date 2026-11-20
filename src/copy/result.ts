@@ -119,7 +119,7 @@ export const sectors = {
 
 export const shape = {
   title: 'Your shape',
-  caption: 'The dashed ring is 100, the issue price. The rim is 130 and the centre is 70.',
+  caption: 'The dashed ring is 100, the issue price. The rim is 130 and the center is 70.',
   /** Under the pentagon when some sectors have no price. Their spokes are dashed. */
   partial: (codes: readonly string[]) =>
     `${listOf(codes)} ${plural(codes.length, 'has', 'have')} no price, so ${plural(codes.length, 'its spoke is', 'their spokes are')} dashed. The shape joins the sectors that do.`,
@@ -236,6 +236,9 @@ export const why = {
   title: 'Why it moved',
   /** For one sector, as on the market: "Why SKIL moved". */
   titleFor: (code: string) => `Why ${code} moved`,
+  /** On a first record nothing has moved yet: "SKIL on your first check". */
+  firstTitle: 'Your first check',
+  firstTitleFor: (code: string) => `${code} on your first check`,
   overall: 'Overall price',
   between: (from: string, to: string) => `From your check of ${from} to your check of ${to}.`,
   before: 'Before',

@@ -93,6 +93,10 @@ export const open = {
   bodyMind: 'Body and Mind today',
   bodyMindLabel: 'Body and Mind prices',
   litLine: 'The lights are on in Body and Mind.',
+  litBody: 'The lights are on in Body.',
+  litMind: 'The lights are on in Mind.',
+  /** After a full check today every listed tower is lit, not only Body and Mind. */
+  litUpdated: 'The lights are on in every sector updated today.',
   yourTaps: 'What you recorded',
   tapsLabels: { sleep: 'Sleep', exercise: 'Exercise', state: 'How you feel' },
   tapSkipped: 'Skipped',
@@ -116,7 +120,7 @@ export const open = {
 
   consentTitle: 'Daily Open needs your consent for Body and Mind',
   consent:
-    'It records sleep, exercise and how you feel. Some states treat answers like these as protected health data, so Standing asks for them separately. Without that consent Body and Mind stay not listed and Daily Open stays closed.',
+    'It records sleep, exercise and how you feel. Some states treat answers like these as protected health data, so Standing asks for them separately. Without that consent, Body and Mind are not listed and the Daily Open stays closed.',
   consentAfter: 'After you give consent, a retake of the check lists Body and Mind. Daily Open keeps them current from then on.',
   consentAction: 'Open Settings',
   unlistedTitle: 'Body and Mind are not listed yet',
@@ -280,7 +284,7 @@ export const win = {
   kindQuestion: 'What was it?',
   kinds: {
     course: { label: 'A course or training', hint: 'Structured learning: a class, a workshop, an online course.' },
-    certificate: { label: 'A licence or certificate', hint: 'One you gained this week.' },
+    certificate: { label: 'A license or certificate', hint: 'One you gained this week.' },
     skill: { label: 'A skill', hint: 'Something you got better at through practice.' },
   },
   hoursQuestion: 'How many hours this week?',
@@ -288,7 +292,7 @@ export const win = {
   examQuestion: 'Did it require an exam?',
   exam: { yes: 'Yes', no: 'No' },
   levelQuestion: 'What level is it?',
-  levels: { entry: 'Entry level', advanced: 'Advanced, or a state licence' },
+  levels: { entry: 'Entry level', advanced: 'Advanced, or a state license' },
   titleLabel: 'A name for it (optional)',
   titleHint: 'Stays on this device. The server receives the kind and the choices above, never this name.',
   save: 'Log this win',
@@ -316,7 +320,7 @@ export const win = {
     course: (minWeeks: number) =>
       `Course hours add up over the past 12 months. Once courses are logged in ${minWeeks} different weeks, the total replaces your check answer on learning hours when it reaches a higher band.`,
     certificateExam: 'A certificate with an exam counts as one more than you answered in the check.',
-    certificateNoExam: 'A certificate without an exam does not change your answer on licences. It counts as the win of this week.',
+    certificateNoExam: 'A certificate without an exam does not change your answer on licenses. It counts as the win of this week.',
     skill: 'A skill counts as the win of this week.',
     halt: (days: number) => `Capability is halted after ${days} days without a Weekly Win.`,
   },
@@ -364,7 +368,7 @@ export const people = {
   },
   mentorHint: 'A mentor is someone more experienced who actively helps your studies or career.',
   savePicks: 'Keep these for the week',
-  picksSavedHere: 'Kept on this device. Nothing was sent.',
+  picksSavedHere: 'These names stay on this device. The server never receives them.',
   pickError: 'Add at least one name.',
   categoryError: 'Choose who each person is to you.',
   changePicks: 'Change the people',

@@ -81,6 +81,8 @@
   /* The top bar spans the 1120 grid on every screen: the wordmark always at its left edge, the
      navigation and the control on the right. Only the content column changes width. */
   .top, .topMid { max-width: calc(var(--wide) + 2 * var(--gutter)); min-height: 72px; }
+  /* The app footer follows the top bar onto the 1120 grid, whatever the content column. */
+  .appFoot .footInner { max-width: calc(var(--wide) + 2 * var(--gutter)); }
 }
 
 /* ---------- Public pages ---------- */

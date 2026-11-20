@@ -20,7 +20,7 @@ export const TYPES: readonly TypeEntry[] = [
   {
     pair: ['SKIL', 'WLTH'],
     name: 'The Builder',
-    line: 'Your skills and your finances are your two strongest sectors. What you can do is turning into footing.',
+    line: 'Capability and wealth lead. You have useful skills and money set aside.',
   },
   {
     pair: ['SKIL', 'NETW'],

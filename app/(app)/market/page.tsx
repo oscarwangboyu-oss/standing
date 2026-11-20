@@ -82,6 +82,13 @@ function cohortOf(me: MeResponse): string | undefined {
   return ages ? copy.cohort(ages, roleNames[role]) : undefined;
 }
 
+/** "Why SKIL moved" once the sector has moved, "SKIL today" while it has not. */
+function sheetTitle(live: MeLive, area: AreaId): string {
+  const code = SECTOR_CODES.find((c) => areaOf(c) === area) ?? '';
+  const sector = live.sectors[area];
+  return (sector.change ?? 0) !== 0 || (sector.sinceCheck ?? 0) !== 0 ? moved.title(code) : moved.stillTitle(code);
+}
+
 export default function MarketPage() {
   const me = useMe();
   const device = useDevice();
@@ -391,7 +398,7 @@ function Market({ me, live, week }: { me: MeResponse; live: MeLive; week: Streak
 
       {me.latest?.result.normProvisional && <BaselineNote className={styles.baseline} />}
 
-      <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected ? moved.title(SECTOR_CODES.find((c) => areaOf(c) === selected) ?? '') : ''}>
+      <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected ? sheetTitle(live, selected) : ''}>
         {selected && (
           <SectorSheet
             live={live}

@@ -95,9 +95,10 @@ export function Gates({ data }: { data: TeamGatesResponse }) {
       {stages.map(({ stage, title, rule }) => {
         const gates = data.gates.filter((g) => g.stage === stage);
         if (gates.length === 0) return null;
-        const met = gates.filter((g) => g.from === 'deck' && g.met === true).length;
-        const notMet = gates.filter((g) => g.from === 'deck' && g.met === false).length;
-        const deck = gates.filter((g) => g.from === 'deck').length;
+        // Every row the card lists counts, the brief's gate too, so the header agrees with the rows and with Needs attention.
+        const met = gates.filter((g) => g.met === true).length;
+        const notMet = gates.filter((g) => g.met === false).length;
+        const deck = gates.length;
         return (
           <div key={stage} className={styles.stage}>
             <div className={styles.stageHead}>
@@ -201,7 +202,7 @@ export function Overview({ data }: { data: TeamOverviewResponse }) {
         ]}
       />
       <p className={styles.footnote}>{copy.overview.retestWindow(data.retest.windowDays.min, data.retest.windowDays.max)}</p>
-      <TableBox caption={copy.overview.caption} className={styles.gapTop}>
+      <TableBox caption={copy.overview.caption} spaced>
         <thead>
           <tr>
             <th scope="col">{copy.common.role}</th>

@@ -299,12 +299,15 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
               <Loaded view={apps}>{(data) => <AppsWeeks data={data} />}</Loaded>
             </div>
             <div>
-              <SubHead
-                title={copy.apps.daily}
-                lead={daily.data ? copy.apps.dailyLead(formatDay(daily.data.weeksFrom)) : undefined}
-                tools={<CsvButton client={client} table="daily" name={copy.apps.dailyTable} file="standing-daily" />}
-              />
-              <Loaded view={daily}>{(data) => <Daily data={data} />}</Loaded>
+              <SubHead title={copy.apps.daily} tools={<CsvButton client={client} table="daily" name={copy.apps.dailyTable} file="standing-daily" />} />
+              <Loaded view={daily}>
+                {(data) => (
+                  <>
+                    <Daily data={data} />
+                    <p className={styles.footnote}>{copy.apps.dailyLead(formatDay(data.weeks.find((w) => w.weekStart !== 'all')?.weekStart ?? data.weeksFrom))}</p>
+                  </>
+                )}
+              </Loaded>
             </div>
           </div>
         </Section>

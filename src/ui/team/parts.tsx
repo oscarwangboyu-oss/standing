@@ -5,7 +5,7 @@
  * breach tags (always a word, never colour alone), the CSV button, a section frame and a
  * table that scrolls sideways inside its own box.
  */
-import { createContext, useContext, useId, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { team as copy } from '@/copy/team';
 import { DASHBOARD_READING } from '@/engine/config';
 import type { Rate } from '@/shared/api';
@@ -237,6 +237,8 @@ export interface TableBoxProps {
   caption: string;
   children: ReactNode;
   className?: string;
+  /** Space above the table. */
+  spaced?: boolean;
 }
 
 /**
@@ -245,16 +247,35 @@ export interface TableBoxProps {
  * focus, so it can be scrolled with the arrow keys. The table keeps its role when CSS lays its
  * rows out as cards.
  */
-export function TableBox({ caption, children, className }: TableBoxProps) {
+export function TableBox({ caption, children, className, spaced = false }: TableBoxProps) {
   const id = useId();
+  const box = useRef<HTMLDivElement>(null);
+  // True while columns are hidden past the right edge: a fade there says the table scrolls.
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    if (el.firstElementChild) observer?.observe(el.firstElementChild);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      observer?.disconnect();
+    };
+  }, []);
   return (
-    <div className={cx(styles.tableBox, className)} role="region" aria-labelledby={id} tabIndex={0}>
-      <table className={styles.table} role="table">
-        <caption id={id} className="vh">
-          {caption}
-        </caption>
-        {children}
-      </table>
+    <div className={cx(styles.tableWrap, more && styles.tableMore, spaced && styles.gapTop)}>
+      <div ref={box} className={cx(styles.tableBox, className)} role="region" aria-labelledby={id} tabIndex={0}>
+        <table className={styles.table} role="table">
+          <caption id={id} className="vh">
+            {caption}
+          </caption>
+          {children}
+        </table>
+      </div>
     </div>
   );
 }

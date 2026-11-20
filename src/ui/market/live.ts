@@ -140,6 +140,17 @@ export function moveDays(live: MeLive, max = 14): MoveDay[] {
     const day = addDays(live.series.start, i);
     out.push({ day, price: now, change, fullCheck: full.has(day), versionChange: version.has(day) });
   }
+  // The first day has no day before it. While it is also the day of the last full check, its move
+  // is measured from the price the check alone gave: today's price less the change since the check.
+  const first = series[0];
+  const { price, sinceCheck } = live.overall;
+  if (out.length < max && first !== null && first !== undefined && price !== null && sinceCheck !== null && live.lastCheckDay === live.series.start) {
+    const change = round2(first - round2(price - sinceCheck));
+    if (change !== 0) {
+      const day = live.series.start;
+      out.push({ day, price: first, change, fullCheck: full.has(day), versionChange: version.has(day) });
+    }
+  }
   return out;
 }
 
