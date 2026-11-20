@@ -157,8 +157,10 @@ export function shellDefaultsFor(pathname: string): ShellDefaults {
   const path = clean(pathname);
   const place = navPlaceFor(path);
   const base: ShellDefaults = { nav: undefined, fill: false, width: 'col', footer: false };
-  if (place) return { ...base, nav: place, footer: place === 'settings' };
-  if (under(path, ROUTES.compare)) return { ...base, nav: 'market', width: 'wide' };
+  // The footer carries the required statements (not a diagnosis, not advice, not a security),
+  // so every screen a person reads prices on has it.
+  if (place) return { ...base, nav: place, footer: true };
+  if (under(path, ROUTES.compare)) return { ...base, nav: 'market', width: 'wide', footer: true };
   if (path === ROUTES.check) return { ...base, fill: true };
   if (under(path, ROUTES.result)) return { ...base, footer: true };
   if (path === ROUTES.start) return { ...base, footer: true };

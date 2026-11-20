@@ -90,7 +90,7 @@ export const sectorLines = {
 export const entries = {
   payday: {
     title: 'Payday Check',
-    detail: 'Three numbers each payday. Amounts stay on this device.',
+    detail: 'Four numbers each payday. Amounts stay on this device.',
     doneToday: 'Done today',
     last: (day: string) => `Last: ${day}`,
     setUp: 'Set up',
@@ -183,6 +183,13 @@ export const moved = {
   extraFallback: 'A record from a micro app',
   version: 'A change of scoring version',
   other: 'The combined effect of several changes',
+  /** In place of the earlier option when the question was worded another way before. */
+  askedAnotherWay: 'Asked another way',
+  /** The line "other" after a full check in another situation or age band. */
+  situation: (from: string, to: string) => `Your situation changed from ${from} to ${to}.`,
+  ageBand: (from: string, to: string) => `Your age band was ${from} and is now ${to}.`,
+  reworded: 'Some questions were asked another way, so part of the move cannot be put on one answer.',
+  unassigned: 'Part of the move cannot be put on one answer.',
   sources: {
     questionnaire: 'Check',
     daily_open: 'Daily Open',

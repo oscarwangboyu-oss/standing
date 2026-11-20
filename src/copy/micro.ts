@@ -35,7 +35,7 @@ export const shared = {
   errors: {
     network: 'The server did not answer. Nothing was lost. Check the connection and try again.',
     feature_off: 'This part of Standing is switched off for now. Nothing was recorded.',
-    check_required: 'A full check comes first. The price starts from it.',
+    check_required: 'This needs a full check first. The price starts from it.',
     day_closed: 'That day is closed. A Daily Open can be recorded for today or filled in for yesterday.',
     health_consent_required: 'Daily Open needs your consent for Body and Mind answers. You can give it in Settings.',
     payday_not_eligible: 'Payday Check is offered to people who live on their own earnings.',
@@ -84,6 +84,10 @@ export const open = {
   doneYesterday: 'Yesterday is filled in',
   recorded: 'Recorded.',
   alreadyRecorded: 'That day was already recorded. The first record stands.',
+  /** The taps did not reach the server (offline or a server error) and wait on the device. */
+  pendingTitle: 'Saved on this device',
+  pendingDetail: 'It is sent when the connection returns.',
+  thenTodayPending: 'Yesterday is saved on this device. Now today.',
   priceToday: "Today's price",
   sinceYesterday: 'since yesterday',
   bodyMind: 'Body and Mind today',
@@ -138,7 +142,7 @@ export const open = {
 export const payday = {
   name: 'Payday Check',
   title: 'Payday Check',
-  lead: 'Three numbers each payday. No bank link.',
+  lead: 'Four numbers each payday. No bank link.',
   privacyTitle: 'Amounts stay on this device',
   privacy: 'The server receives ranges only, never an amount.',
   privacyFacts: [
@@ -164,11 +168,13 @@ export const payday = {
 
   entryTitle: 'This payday',
   correctTitle: "Correct today's payday",
-  income: 'Take-home income this pay period',
-  incomeHint: 'After taxes. Filled in from last time. Change it if it differs.',
+  income: 'Take-home pay this pay period',
+  incomeHint: 'After taxes. Filled in from your last payday. Change it if it differs.',
   incomeHintFirst: 'After taxes.',
-  spending: 'Spending this pay period',
-  spendingHint: 'Everything that went out, saving left aside.',
+  balance: 'Money you can use now',
+  balanceHint: 'Checking, savings and cash. Leave out credit cards and credit lines.',
+  debt: 'Paid toward debt this pay period',
+  debtHint: 'Mortgage, car loan, credit cards and student loans. Enter 0 if you paid none.',
   savings: 'Saved or invested this pay period',
   currency: '$',
   save: 'Save this payday',
@@ -183,38 +189,57 @@ export const payday = {
   /** "Recorded Nov 20. No amount was sent." */
   savedDetail: (day: string) => `Recorded ${day}. No amount was sent.`,
   wealthNow: 'Wealth now',
-  sinceYesterday: 'since yesterday',
-  sentTitle: 'What was sent',
-  sentShare: (band: string, periods: number) =>
-    `Share saved: the band "${band}", from ${periods} ${periods === 1 ? 'payday' : 'paydays'}.`,
-  sentNoShare: 'Share saved: nothing, because the take-home income was 0.',
-  sentShareUnused: 'The share is stored and does not move your price: your check asked about debt payments, which it cannot answer.',
-  sentRunway: (band: string) => `Months of savings: the band "${band}".`,
-  sentNoRunway: 'Months of savings: nothing. Your check answer still stands.',
+
+  /** The heading of the done state: what the money you can use now would cover. */
+  runway: {
+    months: (months: string) => `About ${months} months of essential spending`,
+    oneMonth: 'About 1 month of essential spending',
+    weeks: (weeks: number) => `About ${weeks} ${weeks === 1 ? 'week' : 'weeks'} of essential spending`,
+    underWeek: 'Less than a week of essential spending',
+    note: (essential: string) => `What the money you can use now would cover at ${essential} a month. Computed on this device.`,
+  },
 
   compareTitle: 'This payday against the last',
   compareNote: 'Computed on this device.',
   compareFirst: 'This is your first payday here. The comparison starts with the next one.',
-  saveShare: 'Share saved',
-  spendShare: 'Share spent',
-  averageShare: (periods: number) => `Mean share saved, last ${periods} ${periods === 1 ? 'payday' : 'paydays'}`,
-  monthsSinceCheck: 'Months of essential spending added since the check',
-  /** On the day of the check: a payday counts toward months of savings from the day after it. */
-  monthsFromNext: (day: string) => `Savings count toward months of savings from your next payday, around ${day}.`,
+  /** The payday before was recorded with spending, before money now and debt were asked. */
+  compareOlder: 'Your last payday has no figure for money now or debt. The comparison starts with the next one.',
+  runwayRow: 'Months of essential spending',
+  saveShare: 'Share of pay saved',
+  debtShare: 'Share of pay to debt',
+  /** The mean of the share of the row above it. */
+  averageShare: (periods: number) => `Mean of the last ${periods} paydays`,
   last: 'Last',
   now: 'Now',
   noShare: 'No income',
-  points: (value: string) => `${value} points`,
+  notRecorded: 'Not recorded',
+
+  sentTitle: 'What was sent',
+  sentRunway: (band: string) => `Months of savings: the band "${band}".`,
+  sentNoRunway: 'Months of savings: nothing. Your check answer still stands.',
+  sentShare: (band: string, periods: number) =>
+    `Share of pay saved: the band "${band}", from ${periods} ${periods === 1 ? 'payday' : 'paydays'}.`,
+  sentNoShare: 'Share of pay saved: nothing, because the take-home pay was 0.',
+  sentDebt: (band: string, periods: number) =>
+    `Share of pay to debt: the band "${band}", from ${periods} ${periods === 1 ? 'payday' : 'paydays'}.`,
+  sentNoDebt: 'Share of pay to debt: nothing, because the take-home pay was 0.',
+  /** Which of the two shares moves the price, from the wording of the check in force. */
+  sentCounts: {
+    save: 'Your check asked for the share you save, so that band moves your price. The debt band is stored only.',
+    debt: 'Your check asked for the share that goes to debt, so that band moves your price. The saving band is stored only.',
+    none: 'Your check did not ask for either share, so neither band moves your price.',
+  },
 
   updatesTitle: 'What this updates',
   updates: {
-    shareSave: (periods: number) =>
-      `Share of income saved. The mean of your last ${periods} paydays replaces your check answer.`,
-    shareDebt:
-      'Share of income that goes to debt payments. Your check asked for this, and the three numbers hold no debt payment. It stays as answered in the check.',
     runway:
-      'Months of savings. Your check answer is the starting range. Savings and shortfalls since the check move that range. The answer is replaced only when the whole range has left the band you answered.',
+      'Months of savings: the money you can use now divided by your essential spending in a month. The band it falls in replaces your check answer.',
     runwayStays: 'Months of savings stays as answered in the check.',
+    shareSave: (periods: number) =>
+      `Share of take-home pay saved: the mean of your last ${periods} paydays replaces your check answer.`,
+    shareDebt: (periods: number) =>
+      `Share of take-home pay that goes to debt: the mean of your last ${periods} paydays replaces your check answer.`,
+    shareStays: 'Your check did not ask for a share of pay. The shares are stored and move nothing.',
     stays:
       'Income before taxes, how you would pay an emergency expense, net worth and how tight money feels stay as answered in the check.',
     halt: (days: number) => `Wealth is halted after ${days} days without a Payday Check.`,
@@ -223,7 +248,20 @@ export const payday = {
   historyTitle: 'On this device',
   historyNote: 'Only this browser has these amounts. Clearing its data removes them.',
   historyLabel: 'Paydays stored on this device',
-  historyRow: (income: string, spending: string, savings: string) => `In ${income}, out ${spending}, saved ${savings}`,
+  /**
+   * One payday's numbers, formatted. Paydays recorded before money now and debt existed have
+   * spending instead; each part shows only when the payday has it.
+   */
+  historyRow: (n: { income: string; balance: string | null; debt: string | null; spending: string | null; savings: string }) =>
+    [
+      `Take-home ${n.income}`,
+      n.balance !== null ? `money now ${n.balance}` : null,
+      n.debt !== null ? `to debt ${n.debt}` : null,
+      n.spending !== null ? `spent ${n.spending}` : null,
+      `saved ${n.savings}`,
+    ]
+      .filter((part) => part !== null)
+      .join(', '),
 
   notEligibleTitle: 'Payday Check is not offered for your situation',
   notEligible:
@@ -382,7 +420,7 @@ export const hub = {
     halted: 'Halted',
   },
   payday: {
-    never: 'Three numbers each payday. Amounts stay on this device.',
+    never: 'Four numbers each payday, no bank link. Amounts stay on this device.',
     next: (day: string) => `Next payday around ${day}.`,
     dueNow: (day: string) => `A payday was due around ${day}.`,
     last: (day: string) => `Last recorded ${day}.`,

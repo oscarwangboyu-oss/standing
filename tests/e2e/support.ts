@@ -26,7 +26,9 @@ export const test = base.extend<{ watch: Watch }>({
       const origin = new URL(baseURL ?? 'http://127.0.0.1').origin;
       const errors: string[] = [];
       const foreign: string[] = [];
-      const allowed: RegExp[] = [];
+      // Chrome logs ERR_NETWORK_IO_SUSPENDED when the operating system suspends network I/O
+      // (a busy or sleeping machine). It never comes from the app, so it does not fail a test.
+      const allowed: RegExp[] = [/net::ERR_NETWORK_IO_SUSPENDED/];
       const watchPage = (page: Page) => {
         page.on('console', (message) => {
           if (message.type() === 'error') errors.push(`${page.url()} console: ${message.text()}`);

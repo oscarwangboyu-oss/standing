@@ -814,8 +814,9 @@ const WALKS: Walk[] = [
         await page.getByLabel('Essential spending in a month').fill('2400');
         await camera.shot(page, 'payday-setup');
         await page.getByRole('button', { name: 'Continue' }).click();
-        await page.getByLabel('Take-home income this pay period').fill('2350');
-        await page.getByLabel('Spending this pay period').fill('1640');
+        await page.getByLabel('Take-home pay this pay period').fill('2350');
+        await page.getByLabel('Money you can use now').fill('5400');
+        await page.getByLabel('Paid toward debt this pay period').fill('260');
         await page.getByLabel('Saved or invested this pay period').fill('400');
         await camera.shot(page, 'payday-entry');
         await page.getByRole('button', { name: 'Save this payday' }).click();
@@ -849,7 +850,7 @@ const WALKS: Walk[] = [
         await page.getByRole('checkbox', { name: 'Mark Maya as reached' }).check();
         await camera.shot(page, 'people-log');
         await page.getByRole('button', { name: "Save this week's log" }).click();
-        await page.getByRole('heading', { name: /reached this week\.$/ }).waitFor();
+        await page.getByRole('heading', { level: 1, name: 'Log saved' }).waitFor();
         await camera.shot(page, 'people-done');
       }
 

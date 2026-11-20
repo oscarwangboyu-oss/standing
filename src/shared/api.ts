@@ -610,6 +610,13 @@ export interface LiveApp {
   recordedThisWeek: boolean;
   /** The last day with an entry. null when the app was never used. */
   lastDay: string | null;
+  /**
+   * Progress toward the rule that lets the records count: `have` of the last `of` periods have
+   * an entry, and `need` are needed. Daily Open counts days, Weekly Win and People Nudge count
+   * calendar weeks, all from the algorithm in force. null for Payday Check, which has no such
+   * window.
+   */
+  window: { have: number; need: number; of: number } | null;
 }
 
 /** GET /api/me, `live`. Prices in `series` are rounded to two decimals; the other numbers are not rounded. */
@@ -806,6 +813,8 @@ export interface BreakdownEnd {
  *
  * In `breakdown`, the lines of each price add up to its `delta`. A line names a question id,
  * the option before and after, and its points; the app shows the question text from the bank.
+ * `breakdown.cohorts` is the situation (role) and age band of each check and nothing else of
+ * the background, so the app can say why a line of kind `other` is there when they differ.
  */
 export interface BreakdownResponse {
   /** null when there is no earlier check to compare with. */
@@ -831,7 +840,8 @@ export interface DayPrices {
  *
  * `breakdown` explains target prices, what the data of each day gives: its lines add up to the
  * change of `target` between the two days. The shown price can trail its target by the daily
- * limit or a halt; `prices` carries both for the two days.
+ * limit or a halt; `prices` carries both for the two days. `breakdown.cohorts` is the
+ * situation and age band of the check in force on each day, as in BreakdownResponse.
  */
 export interface DayBreakdownResponse {
   /** null when there is no such pair of days. */

@@ -139,4 +139,11 @@ describe('the frame of a route', () => {
     expect(shellDefaultsFor('/i/abc').nav).toBeUndefined();
     expect(shellDefaultsFor('/team')).toMatchObject({ nav: undefined, width: 'wide' });
   });
+
+  it('puts the footer with the required statements on every screen that shows prices', () => {
+    for (const path of ['/market', '/open', '/log', '/log/payday', '/settings', '/compare', '/result', '/start']) {
+      expect(shellDefaultsFor(path).footer, path).toBe(true);
+    }
+    expect(shellDefaultsFor('/check').footer).toBe(false);
+  });
 });

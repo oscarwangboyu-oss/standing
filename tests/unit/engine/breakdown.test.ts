@@ -203,6 +203,25 @@ describe('what is not an answer', () => {
     expectSums(partial, before, without);
   });
 
+  it('the line "other" comes after every answer line, however large it is', () => {
+    const gig = backgroundFor('gig');
+    const b = breakdown(input(middle), { bank, background: gig, steps: walk(gig, () => 3) });
+    let seen = 0;
+    let largerThanAnAnswer = 0;
+    for (const price of [...AREA_IDS.map((a) => b.sectors[a]), b.overall]) {
+      const kinds = price.lines.map((l) => l.kind);
+      if (!kinds.includes('other')) continue;
+      seen += 1;
+      expect(kinds.filter((k) => k === 'other')).toHaveLength(1);
+      expect(kinds[kinds.length - 1]).toBe('other');
+      const rest = price.lines.slice(0, -1).map((l) => Math.abs(l.points));
+      expect(rest).toEqual([...rest].sort((x, y) => y - x));
+      if (Math.abs(price.lines[price.lines.length - 1].points) > Math.min(...rest)) largerThanAnAnswer += 1;
+    }
+    expect(seen).toBeGreaterThan(0);
+    expect(largerThanAnAnswer).toBeGreaterThan(0);
+  });
+
   it('a sector without a price on either side has no change to explain', () => {
     const sparse = withAnswer(withAnswer(withAnswer(middle, 'B1', null), 'B2', null), 'B3', null);
     const b = breakdown(input(sparse), input(middle));
@@ -212,6 +231,46 @@ describe('what is not an answer', () => {
 
   it('scaling is bounded by BREAKDOWN.maxScale', () => {
     expect(BREAKDOWN.maxScale).toBe(3);
+  });
+});
+
+describe('a retake in another situation and age band', () => {
+  // The review case: employed full-time aged 25 to 29, then a bachelor's student aged 18 to 20.
+  const ug4 = backgroundFor('ug4', {}, 0);
+  const first = walk(emp, (q) => q.index % q.version.opts.length);
+  const second = walk(ug4, (q) => (q.index + 1) % q.version.opts.length);
+  const before = input(first);
+  const after: ComputeInput = { bank, background: ug4, steps: second };
+  const b = breakdown(before, after);
+
+  it('carries the situation and the age band of each side, and nothing else of the background', () => {
+    expect(b.cohorts).toEqual({ before: { role: 'emp', age: 2 }, after: { role: 'ug4', age: 0 } });
+    expect(Object.keys(b.cohorts.before).sort()).toEqual(['age', 'role']);
+    expect(Object.keys(b.cohorts.after).sort()).toEqual(['age', 'role']);
+    expectSums(b, before, after);
+  });
+
+  it('lists the part no answer accounts for last, after the answer lines', () => {
+    expect(b.overall.method).toBe('remainder');
+    const kinds = b.overall.lines.map((l) => l.kind);
+    expect(kinds).toContain('other');
+    expect(kinds[kinds.length - 1]).toBe('other');
+    expect(kinds.slice(0, -1).every((k) => k === 'answer')).toBe(true);
+  });
+
+  it('a question asked in both checks in two wordings is one line with both keys', () => {
+    // W5 asks about debt as a share of pay for the employed, and about expected student loans for a student.
+    const line = b.sectors.W.lines.find((l) => l.id === 'W5');
+    expect(line).toMatchObject({ kind: 'answer', before: { key: 'debt' }, after: { key: 'loans' } });
+  });
+
+  it('the same situation and age band on both sides: both cohorts are equal', () => {
+    const same = breakdown(input(middle), input(withAnswer(middle, 'B1', 4)));
+    expect(same.cohorts).toEqual({ before: { role: 'emp', age: 2 }, after: { role: 'emp', age: 2 } });
+    // An age band alone is carried too.
+    const older = breakdown(input(middle), { bank, background: { ...emp, age: 3 }, steps: middle });
+    expect(older.cohorts).toEqual({ before: { role: 'emp', age: 2 }, after: { role: 'emp', age: 3 } });
+    expectSums(older, input(middle), { bank, background: { ...emp, age: 3 }, steps: middle });
   });
 });
 

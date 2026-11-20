@@ -3,7 +3,7 @@
  * Pure functions: no React, no storage, no clock. Days are YYYY-MM-DD text throughout.
  */
 import { addDays, daysBetween, marketOf, type AreaId, type PayFrequency, type Streak } from '@/engine';
-import type { DayBreakdownResponse, LiveSector, MeLive } from '@/shared/api';
+import type { DayBreakdownResponse, LiveApp, LiveSector, MeLive } from '@/shared/api';
 import type { ChartPoint } from '../charts/PriceChart';
 import { round2 } from '../format';
 import { AREA_CODE, SECTOR_CODES, type SectorCode, type SectorTagKind } from '../sectors';
@@ -212,13 +212,15 @@ export interface CountWindow {
 }
 
 /**
- * The counting window of a micro app. The server does not send it yet (see the report on the
- * field `window` of LiveApp); until it does this is null and the screens state the rule only.
+ * The counting window of a micro app: LiveApp.window as the server sends it. null for Payday
+ * Check, which has none, and for an answer that cannot be drawn (an older server without the
+ * field, or numbers out of shape); the screens then state the rule only.
  */
-export function countWindow(app: MeLive['apps'][keyof MeLive['apps']]): CountWindow | null {
-  const w = (app as { window?: Partial<CountWindow> | null }).window;
+export function countWindow(app: Omit<LiveApp, 'window'> & { window?: LiveApp['window'] }): CountWindow | null {
+  const w = app.window as Partial<Record<keyof CountWindow, unknown>> | null | undefined;
   if (!w || typeof w.have !== 'number' || typeof w.need !== 'number' || typeof w.of !== 'number') return null;
-  if (!(w.need > 0) || !(w.of >= w.need) || w.have < 0) return null;
+  if (!Number.isInteger(w.have) || !Number.isInteger(w.need) || !Number.isInteger(w.of)) return null;
+  if (!(w.need > 0) || !(w.of >= w.need) || w.have < 0 || w.have > w.of) return null;
   return { have: w.have, need: w.need, of: w.of };
 }
 

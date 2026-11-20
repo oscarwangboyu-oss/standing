@@ -27,6 +27,8 @@ export const publicNav = {
     { href: '/privacy', label: 'Privacy' },
     { href: '/terms', label: 'Terms' },
   ],
+  /** In the footer only: connect a new device to an existing record. */
+  restoreLink: { href: '/settings?restore=1', label: 'Recovery code' },
 } as const;
 
 /** The strip above the footer of every public page. */

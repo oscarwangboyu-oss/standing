@@ -54,6 +54,9 @@ export const hero = {
   cta: 'Start the check',
   fact: '31 to 34 questions. No sign-up.',
   overall: 'Overall',
+  /** For a person on a new device. Opens the recovery code sheet in Settings. */
+  restoreText: 'Took the check before?',
+  restoreLink: 'Use your recovery code',
 } as const;
 
 export const result = {
@@ -301,7 +304,7 @@ export const after = {
     {
       id: 'payday',
       title: 'Payday Check',
-      text: 'Three numbers each payday. The amounts stay on your device.',
+      text: 'Four numbers each payday, no bank link. The amounts stay on your device.',
       sectors: ['WLTH'],
       rhythm: 'Each payday',
     },
@@ -390,4 +393,5 @@ export const footerLinks = [
   { href: '/method', label: 'Method' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
+  { href: '/settings?restore=1', label: 'Recovery code' },
 ] as const;

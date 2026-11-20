@@ -2,14 +2,14 @@
 // changed answer added. The lines of every price add up to its change.
 
 import { describe, expect, it } from 'vitest';
-import { AREA_IDS, type Breakdown, type NextQuestion } from '@/engine';
-import { answer, backgroundFor, makeApi, newSession, newUser, type TestApi } from './helpers/api';
+import { AREA_IDS, type Background, type Breakdown, type NextQuestion } from '@/engine';
+import { answer, backgroundFor, makeApi, newSession, newUser, today, type TestApi } from './helpers/api';
 
 const emp = backgroundFor('emp');
 
-async function check(api: TestApi, token: string, choose: (q: NextQuestion, index: number) => number | null): Promise<any> {
-  const session = await newSession(api, token);
-  await answer(api, token, session.id, emp, choose);
+async function check(api: TestApi, token: string, choose: (q: NextQuestion, index: number) => number | null, background: Background = emp): Promise<any> {
+  const session = await newSession(api, token, { body: { background } });
+  await answer(api, token, session.id, background, choose);
   const done = await api.call('POST', `/api/sessions/${session.id}/complete`, { token });
   if (done.status !== 200) throw new Error(done.text);
   api.advance(14 * 86_400_000);
@@ -106,6 +106,38 @@ describe('GET /api/me/breakdown', () => {
     // The first check has nothing before it; a check against itself has nothing to explain.
     expect((await api.call('GET', `/api/me/breakdown?to=${a.id}`, { token })).body.breakdown).toBeNull();
     expect((await api.call('GET', `/api/me/breakdown?from=${b.id}&to=${b.id}`, { token })).body.breakdown).toBeNull();
+  });
+
+  it('a retake in another situation and age band: both cohorts, and the rest listed last', async () => {
+    const api = await makeApi();
+    const user = await newUser(api);
+    const token = user.deviceToken;
+    // Employed full-time aged 25 to 29, then a bachelor's student aged 18 to 20.
+    const ug4 = backgroundFor('ug4', 0);
+    await check(api, token, (q) => q.index % q.version.opts.length);
+    await check(api, token, (q) => (q.index + 1) % q.version.opts.length, ug4);
+
+    const res = await api.call('GET', '/api/me/breakdown', { token });
+    expect(res.status).toBe(200);
+    const b = res.body.breakdown as Breakdown;
+    // The situation and the age band of each check, and nothing else of the background.
+    expect(b.cohorts).toEqual({ before: { role: 'emp', age: 2 }, after: { role: 'ug4', age: 0 } });
+    expect(Object.keys(res.body.from).sort()).toEqual(['at', 'overall', 'sessionId', 'versions']);
+    expect(JSON.stringify(res.body)).not.toContain('"extra"');
+    for (const price of [...AREA_IDS.map((a) => b.sectors[a]), b.overall]) {
+      if (price.delta === null) continue;
+      expect(sum(price.lines)).toBeCloseTo(price.delta, 9);
+      const kinds = price.lines.map((l) => l.kind);
+      if (kinds.includes('other')) expect(kinds[kinds.length - 1]).toBe('other');
+    }
+    expect(b.overall.lines.at(-1)?.kind).toBe('other');
+    // W5 was asked in both checks, in two wordings.
+    expect(b.sectors.W.lines.find((l) => l.id === 'W5')).toMatchObject({ before: { key: 'debt' }, after: { key: 'loans' } });
+
+    // The day of the retake on the live series carries the same two cohorts.
+    const day = await api.call('GET', `/api/me/breakdown/day?today=${today(api)}`, { token });
+    expect(day.status).toBe(200);
+    expect(day.body.breakdown.cohorts).toEqual(b.cohorts);
   });
 
   it('only takes completed checks of the caller', async () => {

@@ -134,7 +134,12 @@
 
 /* The streak right under the mark of the Daily Open. */
 .streakCard { margin-bottom: var(--s-6); }
-.meterGap { margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px solid var(--line); }
+/* The divider takes the sector's line colour, so it shows on a tinted card by day and at night. */
+.meterGap {
+  margin-top: var(--s-1);
+  padding-top: var(--s-4);
+  border-top: 1px solid color-mix(in srgb, var(--sector-line, var(--ink-3)) 38%, transparent);
+}
 
 /* ---------- More: the fine print, closed until asked for ---------- */
 .more { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

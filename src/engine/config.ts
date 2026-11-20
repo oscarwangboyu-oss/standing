@@ -154,8 +154,9 @@ export const ALGO_PARAMS: Record<number, AlgoParamsV1> = deepFreeze({
       // setting. This is not a clinical threshold.
       mindNotice: { windowDays: 7, veryBadDays: 5 },
     },
-    // Payday check. Each payday the person enters three numbers on the device: take-home
-    // income, spending, savings. Only bands leave the device.
+    // Payday check. Each payday the person enters, on the device: take-home pay (filled in
+    // from the last payday), the money available now, debt paid and the amount saved
+    // (PROMPT.md section 10). Only bands leave the device.
     payday: {
       // The saving share is averaged over the last three pay periods. Initial setting.
       averagePeriods: 3,

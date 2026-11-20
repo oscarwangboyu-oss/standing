@@ -290,6 +290,51 @@ function haltsOf(points: readonly TimelinePoint[]): MeLive['halts'] {
 const percentOf = (delta: number | null, base: number | null): number | null =>
   delta !== null && base ? (delta / base) * 100 : null;
 
+type CountWindow = NonNullable<LiveApp['window']>;
+
+/**
+ * Daily Open: the days of the last `windowDays` (today included) with an entry, against the
+ * `minDays` the engine needs before the records replace check answers (dailyAt in
+ * src/engine/live/daily.ts). A day counts once, whichever of the three taps it holds.
+ */
+export function dailyWindowOf(
+  entries: readonly Pick<DailyEntry, 'day'>[],
+  until: string,
+  rule: { windowDays: number; minDays: number },
+): CountWindow {
+  const end = dayNumber(until);
+  const days = new Set<number>();
+  for (const entry of entries) {
+    const at = dayNumber(entry.day);
+    if (at <= end && at > end - rule.windowDays) days.add(at);
+  }
+  return { have: days.size, need: rule.minDays, of: rule.windowDays };
+}
+
+/**
+ * Weekly Win and People Nudge: the calendar weeks of the last `windowWeeks` with an entry,
+ * against `minWeeks`. The weeks are the ones the engine looks back over (windowWeeks in
+ * src/engine/live/weekly.ts): the current week and the ones before it once the current week
+ * has its entry, otherwise the weeks before the current one.
+ */
+export function weekWindowOf(
+  entries: readonly { day: string }[],
+  until: string,
+  rule: { windowWeeks: number; minWeeks: number },
+): CountWindow {
+  const end = dayNumber(until);
+  const weeks = new Set<number>();
+  for (const entry of entries) {
+    const at = dayNumber(entry.day);
+    if (at <= end) weeks.add(weekOf(at));
+  }
+  const current = weekOf(end);
+  const last = weeks.has(current) ? current : current - 1;
+  let have = 0;
+  for (let week = last; week > last - rule.windowWeeks; week -= 1) if (weeks.has(week)) have += 1;
+  return { have, need: rule.minWeeks, of: rule.windowWeeks };
+}
+
 /**
  * The `live` block of GET /api/me: the series and what the home page says about today.
  * null before the first completed check.
@@ -356,7 +401,7 @@ export function liveOf(
   const firstCheckDay = person.checks[0].day;
   const streak = { ...counted, canBackfill: counted.canBackfill.filter((day) => day >= firstCheckDay), firstDay: firstCheckDay };
   const week = weekOf(dayNumber(until));
-  const appOf = (enabled: boolean, available: boolean, days: readonly string[]): LiveApp => {
+  const appOf = (enabled: boolean, available: boolean, days: readonly string[], window: CountWindow | null): LiveApp => {
     let lastDay: string | null = null;
     for (const day of days) if (day <= until && (lastDay === null || day > lastDay)) lastDay = day;
     return {
@@ -365,10 +410,12 @@ export function liveOf(
       recordedToday: days.includes(until),
       recordedThisWeek: days.some((day) => weekOf(dayNumber(day)) === week),
       lastDay,
+      window,
     };
   };
   const eligible = paydayEligible(getBank(latest.session.bank_version), backgroundOf(latest.session), tl.versions.algo);
-  const retestAfter = getAlgo(tl.versions.algo).live.dailyOpen.retestAfterDays;
+  const rules = getAlgo(tl.versions.algo).live;
+  const retestAfter = rules.dailyOpen.retestAfterDays;
 
   return {
     today: until,
@@ -397,14 +444,19 @@ export function liveOf(
     mindNotice: now.mindNotice,
     streak,
     apps: {
-      dailyOpen: appOf(flags.dailyOpen, user.health_consent_version !== null, daily.map((e) => e.day)),
+      dailyOpen: appOf(
+        flags.dailyOpen,
+        user.health_consent_version !== null,
+        daily.map((e) => e.day),
+        dailyWindowOf(daily, until, rules.dailyOpen),
+      ),
       payday: {
-        ...appOf(flags.payday, eligible, paydays.map((e) => e.day)),
+        ...appOf(flags.payday, eligible, paydays.map((e) => e.day), null),
         eligible,
         baseline: eligible ? paydayBaselineOf({ day: latest.day, steps: latest.steps }, tl.versions.algo) : null,
       },
-      weeklyWin: appOf(flags.weeklyWin, true, weeklyWins.map((e) => e.day)),
-      peopleNudge: appOf(flags.peopleNudge, true, peopleNudges.map((e) => e.day)),
+      weeklyWin: appOf(flags.weeklyWin, true, weeklyWins.map((e) => e.day), weekWindowOf(weeklyWins, until, rules.weeklyWin.regularity)),
+      peopleNudge: appOf(flags.peopleNudge, true, peopleNudges.map((e) => e.day), weekWindowOf(peopleNudges, until, rules.peopleNudge.reach)),
     },
     retake: {
       due: tl.retake.due,
@@ -412,6 +464,6 @@ export function liveOf(
       daysUntil: Math.max(0, retestAfter - tl.retake.daysSinceCheck),
       dueDay: tl.retake.dueDay,
     },
-    moveLimit: getAlgo(tl.versions.algo).live.dailyMoveLimitPoints,
+    moveLimit: rules.dailyMoveLimitPoints,
   };
 }

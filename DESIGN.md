@@ -50,7 +50,7 @@ Each sector owns a hue with five steps. Use them through `sectorStyle(code)` fro
 | BODY Body | coral | `#A12F1A` | `#F26B4B` | `#FAC3B4` | `#FEEBE4` | `#DA4F34` |
 | MIND Mind | violet | `#5230A8` | `#8558E3` | `#D0BFF6` | `#F0EAFC` | `#8558E3` |
 
-Night values are in the tokens file: deep becomes the light text step, wash the dark tinted ground.
+Night values are in the tokens file: deep becomes the light text step, wash the dark tinted ground. Each night wash is a visible step lighter than the night surface (about 1.2 to 1.3 to 1), so a chip or a tag on a card never reads as a hole; `tests/unit/ui/theme.test.ts` checks it.
 
 - **deep**: text in the sector colour (tickers, tags). AA on wash, tint, surface and ground.
 - **base**: fills. Position bars, the chosen ring of an option, icon chips. A base fill is never the only carrier of a value: the number is next to it.
@@ -149,7 +149,7 @@ One palette object per time: `day`, `night`, `dusk`. `skylineCss()` turns them i
 - **night**: deep blue, stars, a crescent moon, lit windows, glowing lamps.
 - **dusk**: indigo to violet to rose bands, a large sun going down behind the city. Only the share image.
 
-**Lit windows carry meaning.** `lit={{ BODY: true, MIND: true, SKIL: false, … }}`: a sector updated today has its lights on; one that was not is nearly dark. Leave `lit` out and every tower is lit normally.
+**Lit windows carry meaning.** `lit={{ BODY: true, MIND: true, SKIL: false, … }}`: a sector updated today has its lights on; one that was not is nearly dark. Leave `lit` out and every tower is lit normally. By day unlit glass is each tower's front mixed 60% toward its dark trim and lit glass is a warm `#FFE48A`, so the difference reads in daylight as well as at night.
 
 ### `Skyline` props
 
@@ -207,11 +207,13 @@ Import from `@/ui`. All text comes from `src/copy`.
 
 **Progress**: the `Skyline` in build mode is the progress indicator of the check. `ProgressCount` says it in words next to it: "Question 33 of 42 · 3 of 5 in Body". `ProgressTape` is for short flows of a few steps (the Daily Open), where a skyline would be too much.
 
-**Quote**: `QuoteHead` (ticker chip, group, hero price, change; "First record, no change yet" on the first), `StatStrip` (issue price, high, low, grade), `Tape` and `TapeCode` (the one-line market comment), `SectorRow` in a `SectorBoard` (building chip, code and name, sparkline from 400px, price, change, position bar, one tag; a row without a price says "Not listed" or "Not enough data"; a halted row is dimmed and tagged), `PositionBar` and `PositionScale` (70 to 130, the tick is 100).
+**Quote**: `QuoteHead` (ticker chip, group, hero price, change; "First record, no change yet" on the first), `StatStrip` (issue price, high, low, grade; on a first record, where high and low would repeat the price: issue price, sectors listed, grade, in one row), `Tape` and `TapeCode` (the one-line market comment), `SectorRow` in a `SectorBoard` (building chip, code and name, sparkline from 400px, price, change, position bar, one tag; a row without a price says "Not listed" or "Not enough data"; a halted row is dimmed and tagged), `PositionBar` and `PositionScale` (70 to 130, the tick is 100).
 
-**Onward**: `FeatureEntry` (the one thing to do today, a large tinted card with a spot; one per screen), `Entry` in an `EntryList` (rows with an icon chip, a title, one fact, a status, a chevron), `Streak` (seven windows, filled when the day was recorded, with the count).
+**Onward**: `FeatureEntry` (the one thing to do today, a large tinted card with a spot; one per screen), `Entry` in an `EntryList` (rows with an icon chip, a title, one fact, a status pill with a check when done or an outline when due, a chevron; under 380px the pill moves under the title), `Streak` (seven windows, filled when the day was recorded, with the count; days before the first check have a dashed outline and are never called missed; a run of 0 says "No run yet").
 
-**Frames**: `AppShell` (the top bar with the wordmark; one column capped at 560px; with `aside` the illustration comes first on a phone and becomes a sticky left column from 960px; `width="wide"` allows 960px for side-by-side screens; `nav` adds the navigation), `BottomNav` (a floating dock with icons and labels on a phone, links in the top bar from 960px), `Block` (a titled section of an app screen), `PublicShell` and `Column`, `Footer` (Bayu Technology, Atlanta, Georgia, the address, and the two required statements).
+**Done states of the micro apps**: a header with a 56px tinted circle and a check, the title ("Today's open", "Payday recorded", "Win logged", "Log saved") and one line; for the Daily Open the streak comes right under it; then the price and the board. The rules and what was sent sit in one closed "How this counts" section. A done state opens at the top with its heading focused.
+
+**Frames**: `AppShell` (the top bar with the wordmark; one column capped at 560px; with `aside` the illustration comes first on a phone and becomes a sticky left column from 960px; `width="wide"` allows 960px for side-by-side screens; `nav` adds the navigation), `BottomNav` (a floating dock with icons and labels on a phone, links in the top bar from 960px; Compare marks Market, from where it is reached). From 960px the top bar and the footer span the 1120px grid on every screen, so the wordmark never moves between screens, `Block` (a titled section of an app screen), `PublicShell` and `Column`, `Footer` (Bayu Technology, Atlanta, Georgia, the address, and the two required statements).
 
 **Icons**: `src/ui/icons.tsx`. One family: 24px grid, 1.8 stroke, round caps and joins, the current colour. `Mark` is the five-tower mark. Sector glyphs are the five building silhouettes at 20px. No emoji anywhere.
 
@@ -244,6 +246,9 @@ Motion has a purpose or it is not there.
 | A sheet opens | It slides up 48px and fades in | 320ms |
 | A pill or an option is pressed | It scales to 0.97 | 120ms |
 | A toast appears | It rises 12px | 260ms |
+| A micro app is recorded | The check mark of the done state and today's streak window scale from 0.6 to 1 and fade in | 260ms, a slight spring, once per visit |
+| The beat between two sectors | A 3px bar in the next sector's colour fills (hidden under reduced motion) | over the 1.6s beat |
+| A sheet is dragged down by its top | It follows the finger; past 96px or on a flick it slides out, otherwise it springs back (under reduced motion it does not follow and closes past the threshold) | 200ms out, 220ms back |
 
 Everything else is still. No parallax, no looping animation, no shimmer. Under `prefers-reduced-motion: reduce` nothing animates: the skyline stands, the price is the price.
 

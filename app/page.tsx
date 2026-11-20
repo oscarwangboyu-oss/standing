@@ -150,6 +150,9 @@ export default function Page() {
                 </span>
                 <p className={s.heroFact}>{hero.fact}</p>
               </div>
+              <p className={s.heroRestore}>
+                {hero.restoreText} <Link href="/settings?restore=1">{hero.restoreLink}</Link>
+              </p>
             </div>
             <aside className={s.heroQuote} aria-label={sample.tag}>
               <p className={s.heroQuoteTop}>

@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { api, configResource, meResource, queue, useDevice, useResource } from './api';
 import { device, followOtherTabs } from './device';
 import { guard, type Standing } from './nav';
+import { pendingDaily } from './pendingDaily';
 import { check } from './session';
 import { pingVisit } from './today';
 
@@ -149,8 +150,9 @@ export function Guard() {
 // ---------------------------------------------------------------- page-wide chores
 
 /**
- * Once per page: sends queued events and keeps sending them (online, page hide), follows
- * changes made in another tab, and records today's visit once per local day.
+ * Once per page: sends queued events and keeps sending them (online, page hide), sends a Daily
+ * Open kept on the device while offline, follows changes made in another tab, and records
+ * today's visit once per local day.
  */
 export function useRuntime(): void {
   const token = useDevice().deviceToken;
@@ -159,8 +161,13 @@ export function useRuntime(): void {
     const detach = events.attach(window);
     const unfollow = followOtherTabs(window);
     void events.flush();
+    // A Daily Open made offline goes out on this open, and again when the connection returns.
+    const daily = pendingDaily();
+    const detachDaily = daily.attach(window);
+    void daily.flush();
     return () => {
       detach();
+      detachDaily();
       unfollow();
     };
   }, []);

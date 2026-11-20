@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { moved as copy } from '@/copy/market';
-import { getBank, type AnswerState, type AreaId, type BreakdownLine, type PriceBreakdown } from '@/engine';
+import { moved as copy, roleNames } from '@/copy/market';
+import { getBank, type AnswerState, type AreaId, type Breakdown, type BreakdownLine, type PriceBreakdown } from '@/engine';
 import type { DayBreakdownResponse } from '@/shared/api';
 import { Button } from '../Button';
 import { Change } from '../Change';
@@ -21,7 +21,39 @@ function questionOf(id: string, state: AnswerState | null): { text: string | nul
   };
 }
 
-function Line({ line }: { line: BreakdownLine }) {
+/** Asked on both days, in two wordings. The earlier option belongs to the other wording, so it is not shown. */
+function otherWording(line: BreakdownLine): boolean {
+  return line.before !== null && line.after !== null && line.before.key !== line.after.key;
+}
+
+/** Answer and record lines first, largest first. The line "other" last: it is no single reason. */
+export function orderLines(lines: readonly BreakdownLine[]): BreakdownLine[] {
+  return [...lines].sort((a, b) => Number(a.kind === 'other') - Number(b.kind === 'other') || Math.abs(b.points) - Math.abs(a.points));
+}
+
+interface Situation {
+  title: string;
+  detail: string;
+}
+
+/**
+ * What the line "other" says when the full checks behind the two days were taken in another
+ * situation or age band. null when they share both.
+ */
+export function situationNote(cohorts: Breakdown['cohorts'], lines: readonly BreakdownLine[]): Situation | null {
+  const { before, after } = cohorts;
+  const ages = getBank().ages;
+  const said: string[] = [];
+  if (before.role !== after.role) said.push(copy.situation(roleNames[before.role], roleNames[after.role]));
+  const fromAge = ages[before.age]?.en;
+  const toAge = ages[after.age]?.en;
+  if (before.age !== after.age && fromAge && toAge) said.push(copy.ageBand(fromAge, toAge));
+  if (said.length === 0) return null;
+  const reworded = lines.some((l) => l.kind === 'answer' && (l.before === null || l.after === null || otherWording(l)));
+  return { title: said.join(' '), detail: reworded ? copy.reworded : copy.unassigned };
+}
+
+function Line({ line, situation }: { line: BreakdownLine; situation: Situation | null }) {
   let title: ReactNode;
   let detail: ReactNode = null;
   if (line.kind === 'answer' && line.id) {
@@ -31,7 +63,8 @@ function Line({ line }: { line: BreakdownLine }) {
     detail = (
       <span className={styles.lineSwap}>
         <span>
-          <span className={styles.lineKey}>{copy.before}</span> {line.before ? before.option(line.before.k) : copy.notAsked}
+          <span className={styles.lineKey}>{copy.before}</span>{' '}
+          {line.before === null ? copy.notAsked : otherWording(line) ? copy.askedAnotherWay : before.option(line.before.k)}
         </span>
         <span>
           <span className={styles.lineKey}>{copy.after}</span> {line.after ? after.option(line.after.k) : copy.notAsked}
@@ -42,6 +75,9 @@ function Line({ line }: { line: BreakdownLine }) {
     title = (line.id && copy.extras[line.id]) || copy.extraFallback;
   } else if (line.kind === 'version') {
     title = copy.version;
+  } else if (line.kind === 'other' && situation) {
+    title = situation.title;
+    detail = <span className={styles.lineSwap}>{situation.detail}</span>;
   } else {
     title = copy.other;
   }
@@ -57,8 +93,9 @@ function Line({ line }: { line: BreakdownLine }) {
   );
 }
 
-function PriceLines({ area, part, catchUp }: { area: AreaId | null; part: PriceBreakdown; catchUp: boolean }) {
-  const lines = [...part.lines].sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
+function PriceLines({ area, part, catchUp, cohorts }: { area: AreaId | null; part: PriceBreakdown; catchUp: boolean; cohorts: Breakdown['cohorts'] }) {
+  const lines = orderLines(part.lines);
+  const situation = situationNote(cohorts, lines);
   return (
     <section className={styles.part} style={area ? sectorStyle(codeOf(area)) : undefined}>
       <div className={styles.partHead}>
@@ -68,7 +105,7 @@ function PriceLines({ area, part, catchUp }: { area: AreaId | null; part: PriceB
       {part.before !== null && part.after !== null && round2(part.after - part.before) !== 0 && (
         <p className={styles.partTarget}>{copy.targetMove(formatPrice(part.before), formatPrice(part.after))}</p>
       )}
-      {lines.length > 0 ? <ul className={styles.lines}>{lines.map((line, i) => <Line key={`${line.kind}-${line.id ?? i}`} line={line} />)}</ul> : <p className={styles.partNone}>{catchUp ? copy.noLinesCatchUp : copy.noLines}</p>}
+      {lines.length > 0 ? <ul className={styles.lines}>{lines.map((line, i) => <Line key={`${line.kind}-${line.id ?? i}`} line={line} situation={situation} />)}</ul> : <p className={styles.partNone}>{catchUp ? copy.noLinesCatchUp : copy.noLines}</p>}
     </section>
   );
 }
@@ -116,6 +153,7 @@ export function MoveBreakdown({ data, loading, error, onRetry, areas, limit, cat
     return <p className={cx(styles.partNone, className)}>{copy.noMoveYet}</p>;
   }
   const parts = data.breakdown.sectors;
+  const cohorts = data.breakdown.cohorts;
   const listed = areas.filter((area) => parts[area]);
   // With several sectors on one sheet, those with nothing to explain share one line.
   const quiet = listed.length > 1 ? listed.filter((area) => parts[area].lines.length === 0 && !catchingUp?.has(area)) : [];
@@ -126,7 +164,7 @@ export function MoveBreakdown({ data, loading, error, onRetry, areas, limit, cat
         {data.from === data.to ? copy.afterCheck(formatDay(data.to)) : copy.between(formatDay(data.from), formatDay(data.to))}
       </p>
       {shown.map((area) => (
-        <PriceLines key={area} area={area} part={parts[area]} catchUp={catchingUp?.has(area) ?? false} />
+        <PriceLines key={area} area={area} part={parts[area]} catchUp={catchingUp?.has(area) ?? false} cohorts={cohorts} />
       ))}
       {quiet.length > 0 && <p className={styles.partNone}>{copy.quiet(quiet.map(codeOf))}</p>}
       <p className={styles.howTo}>{copy.howToRead(limit)}</p>

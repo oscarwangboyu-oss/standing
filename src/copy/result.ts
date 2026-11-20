@@ -250,10 +250,21 @@ export const why = {
   skipped: 'Skipped',
   notAsked: 'Not asked',
   sameAnswer: 'Same answer. It counts at another weight because of the answer time.',
+  /** In place of the earlier option when the question was worded another way in the earlier check. */
+  askedAnotherWay: 'Asked another way',
   kinds: {
     version: 'The scoring or the baseline changed version.',
     other: 'The combined effect of these changes.',
   },
+  /**
+   * The line "other" when the two checks were taken in another situation or age band. Role
+   * names come from roleNames, age bands from the bank: "Your age band was 25 to 29 and is now 18 to 20."
+   */
+  situation: (from: string, to: string) => `Your situation changed from ${from} to ${to}.`,
+  ageBand: (from: string, to: string) => `Your age band was ${from} and is now ${to}.`,
+  /** Under the situation, when some questions of this price were worded another way or asked in one check only. */
+  reworded: 'Some questions were asked another way, so part of the move cannot be put on one answer.',
+  unassigned: 'Part of the move cannot be put on one answer.',
   extras: {
     daily_state: 'How you felt, from the Daily Open',
     weekly_win: 'How regularly you logged a Weekly Win',

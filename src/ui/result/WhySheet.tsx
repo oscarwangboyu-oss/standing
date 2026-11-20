@@ -1,8 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { BANKS, getBank, type AnswerState, type AreaId, type Bank, type BreakdownLine, type PriceBreakdown } from '@/engine';
+import { BANKS, getBank, type AnswerState, type AreaId, type Bank, type Breakdown, type BreakdownLine, type PriceBreakdown } from '@/engine';
 import type { BreakdownResponse } from '@/shared/api';
+import { roleNames } from '@/copy/market';
 import { why as copy } from '@/copy/result';
 import { Button } from '../Button';
 import { Change } from '../Change';
@@ -46,12 +47,44 @@ function questionText(bank: Bank, id: string, state: AnswerState | null): string
   return bank.items[id]?.versions.find((v) => v.key === state.key)?.q.en ?? null;
 }
 
-function Line({ line, fromBank, toBank }: { line: BreakdownLine; fromBank: Bank; toBank: Bank }) {
+/** Asked in both checks, in two wordings. The earlier option belongs to the other wording, so it is not shown. */
+function otherWording(line: BreakdownLine): boolean {
+  return line.before !== null && line.after !== null && line.before.key !== line.after.key;
+}
+
+/** Answer lines first, largest first. The line "other" last: it is no single reason. */
+export function orderLines(lines: readonly BreakdownLine[]): BreakdownLine[] {
+  return [...lines].sort((a, b) => Number(a.kind === 'other') - Number(b.kind === 'other') || Math.abs(b.points) - Math.abs(a.points));
+}
+
+/**
+ * What the line "other" says when the two checks were taken in another situation or age band:
+ * the change, then why part of the move has no single answer. null when both checks share the
+ * situation and the age band.
+ */
+export function situationNote(
+  cohorts: Breakdown['cohorts'],
+  lines: readonly BreakdownLine[],
+  fromBank: Bank,
+  toBank: Bank,
+): { title: string; detail: string } | null {
+  const { before, after } = cohorts;
+  const said: string[] = [];
+  if (before.role !== after.role) said.push(copy.situation(roleNames[before.role], roleNames[after.role]));
+  const fromAge = fromBank.ages[before.age]?.en;
+  const toAge = toBank.ages[after.age]?.en;
+  if (before.age !== after.age && fromAge && toAge) said.push(copy.ageBand(fromAge, toAge));
+  if (said.length === 0) return null;
+  const reworded = lines.some((l) => l.kind === 'answer' && (l.before === null || l.after === null || otherWording(l)));
+  return { title: said.join(' '), detail: reworded ? copy.reworded : copy.unassigned };
+}
+
+function Line({ line, fromBank, toBank, situation }: { line: BreakdownLine; fromBank: Bank; toBank: Bank; situation: { title: string; detail: string } | null }) {
   let title: string;
   let detail: ReactNode = null;
   if (line.kind === 'answer' && line.id) {
     title = questionText(toBank, line.id, line.after) ?? questionText(fromBank, line.id, line.before) ?? line.id;
-    const before = answerText(fromBank, line.id, line.before);
+    const before = otherWording(line) ? copy.askedAnotherWay : answerText(fromBank, line.id, line.before);
     const after = answerText(toBank, line.id, line.after);
     const same = line.before !== null && line.after !== null && line.before.key === line.after.key && line.before.k === line.after.k;
     detail = same ? (
@@ -66,6 +99,9 @@ function Line({ line, fromBank, toBank }: { line: BreakdownLine; fromBank: Bank;
     );
   } else if (line.kind === 'extra') {
     title = (line.id && copy.extras[line.id]) || copy.extraFallback;
+  } else if (line.kind === 'other' && situation) {
+    title = situation.title;
+    detail = <span className={styles.whySame}>{situation.detail}</span>;
   } else {
     title = copy.kinds[line.kind === 'version' ? 'version' : 'other'];
   }
@@ -85,7 +121,8 @@ function Line({ line, fromBank, toBank }: { line: BreakdownLine; fromBank: Bank;
 function Body({ target, price, data }: { target: WhyTarget; price: PriceBreakdown; data: BreakdownResponse }) {
   const fromBank = bankOf(data.from?.versions.bank);
   const toBank = bankOf(data.to?.versions.bank);
-  const lines = [...price.lines].sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
+  const lines = orderLines(price.lines);
+  const situation = data.breakdown ? situationNote(data.breakdown.cohorts, lines, fromBank, toBank) : null;
   return (
     <div className={styles.why} style={target === 'overall' ? undefined : sectorStyle(AREA_CODE[target])}>
       <div className={styles.whyHead}>
@@ -113,7 +150,7 @@ function Body({ target, price, data }: { target: WhyTarget; price: PriceBreakdow
         <>
           <ul className={styles.whyLines} aria-label={copy.answersLabel}>
             {lines.map((line, index) => (
-              <Line key={`${line.kind}:${line.id ?? index}`} line={line} fromBank={fromBank} toBank={toBank} />
+              <Line key={`${line.kind}:${line.id ?? index}`} line={line} fromBank={fromBank} toBank={toBank} situation={situation} />
             ))}
           </ul>
           <p className={styles.whySum}>{copy.sum(formatChange(price.delta))}</p>

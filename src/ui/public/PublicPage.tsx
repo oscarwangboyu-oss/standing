@@ -99,7 +99,7 @@ export function PublicPage({ path, title, lead, towers, scale, isDraft = false, 
           </Button>
         </Column>
       </section>
-      <Footer wide links={publicNav.links} className={styles.footer} />
+      <Footer wide links={[...publicNav.links, publicNav.restoreLink]} className={styles.footer} />
     </div>
   );
 }

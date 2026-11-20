@@ -122,6 +122,44 @@ test.describe('Daily Open', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Overall\s*\d+\.\d\d/);
     await expect(page.getByText('since yesterday').first()).toBeVisible();
   });
+
+  test('taps made offline stay on the device and are sent on the next open', async ({ page: first, context, watch }) => {
+    let page = first;
+    test.setTimeout(120_000);
+    // The request that fails while offline.
+    watch.allow(/ERR_INTERNET_DISCONNECTED|Failed to fetch/);
+    await personWithCheck(page, { role: 'emp' });
+    const headers = { authorization: `Bearer ${await deviceToken(page)}` };
+    const recordedToday = async () =>
+      (await (await page.request.get(`/api/me?today=${utcDay()}`, { headers })).json()).live.streak.recordedToday as boolean;
+
+    await page.goto('/open');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Daily Open');
+    await context.setOffline(true);
+    await threeTaps(page, '7 to 9 hours', '20 to 39 minutes', 'Good');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Saved on this device');
+    await expect(page.getByText('It is sent when the connection returns.')).toBeVisible();
+    await expect(page.getByText(/Nothing was lost/)).toHaveCount(0);
+
+    // The taps wait on the device, and nothing reached the server (the test's own API call is
+    // not subject to the page's offline setting). A reload while offline is not driven here:
+    // the browser's offline emulation lets requests made while the page unloads through, which
+    // a phone without a connection never would.
+    const waiting = async () =>
+      ((await page.evaluate(() => JSON.parse(localStorage.getItem('standing.v1.pending-daily') ?? '{}').waiting)) ?? []) as unknown[];
+    expect(await waiting()).toHaveLength(1);
+    expect(await recordedToday()).toBe(false);
+    await page.close();
+    await context.setOffline(false);
+
+    // Back online, the next open sends the kept taps, and the screen shows the day as recorded.
+    page = await context.newPage();
+    await page.goto('/open');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText("Today's open");
+    await expect.poll(recordedToday).toBe(true);
+    await expect(page.getByText('7 to 9 hours')).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('standing.v1.pending-daily') ?? '{}').waiting)).toEqual([]);
+  });
 });
 
 test('Payday Check posts bands and no amount', async ({ page }) => {
@@ -134,40 +172,47 @@ test('Payday Check posts bands and no amount', async ({ page }) => {
   await page.getByLabel('Essential spending in a month').fill('2468');
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await page.getByLabel('Take-home income this pay period').fill('2317');
-  await page.getByLabel('Spending this pay period').fill('1583');
-  await page.getByLabel('Saved or invested this pay period').fill('419');
+  // The four numbers, in the order of the form. Take-home pay is empty on the first payday.
+  const income = page.getByLabel('Take-home pay this pay period');
+  await expect(income).toHaveValue('');
+  await income.fill('4317');
+  await page.getByLabel('Money you can use now').fill('9526');
+  await page.getByLabel('Paid toward debt this pay period').fill('1183');
+  await page.getByLabel('Saved or invested this pay period').fill('1419');
   await page.getByRole('button', { name: 'Save this payday' }).click();
   await expect(page.getByRole('heading', { name: 'Payday recorded' })).toBeVisible();
 
-  // The request: the six allowed fields, small whole numbers, and none of the typed amounts.
+  // The request: exactly the allowed fields, small whole numbers, and none of the typed amounts.
   expect(sent).toHaveLength(1);
   const raw = sent[0].postData() ?? '';
   const body = sent[0].postDataJSON() as Record<string, unknown>;
-  expect(Object.keys(body).sort()).toEqual(['baselineDay', 'id', 'localDate', 'periods', 'runway', 'saveShare']);
-  for (const amount of ['2468', '2317', '1583', '419']) expect(raw).not.toContain(amount);
-  expect(raw).not.toMatch(/income|spending|savings|essential|amount/i);
+  expect(Object.keys(body).sort()).toEqual(['baselineDay', 'debtShare', 'id', 'localDate', 'periods', 'runway', 'saveShare']);
+  // The random id is left out of the search, so its letters and digits cannot look like an amount.
+  const rest = raw.replace(String(body.id), '');
+  for (const amount of ['2468', '4317', '9526', '1183', '1419', '4,317', '9,526', '1,183', '1,419']) expect(rest).not.toContain(amount);
+  expect(rest).not.toMatch(/income|spending|savings|balance|essential|amount/i);
   expect(body.periods).toBe(1);
-  for (const field of ['saveShare', 'runway'] as const) {
+  for (const field of ['saveShare', 'debtShare', 'runway'] as const) {
     const value = body[field];
-    if (value !== null) {
-      expect(Number.isInteger(value)).toBe(true);
-      expect(value as number).toBeGreaterThanOrEqual(0);
-      expect(value as number).toBeLessThanOrEqual(6);
-    }
+    expect(Number.isInteger(value), field).toBe(true);
+    expect(value as number).toBeGreaterThanOrEqual(0);
+    expect(value as number).toBeLessThanOrEqual(4);
   }
-  expect(body.saveShare).not.toBeNull();
+  // The runway comes from the money available now: no baseline day.
+  expect(body.baselineDay).toBeNull();
 
-  // The screen says what was sent, and keeps the amounts on the device.
+  // The screen says what was sent, what the money now would cover, and keeps the amounts on the device.
   await expect(page.getByText('No amount was sent.')).toBeVisible();
-  await expect(page.getByText('In $2,317, out $1,583, saved $419')).toBeVisible();
+  // $9,526 over $2,468 a month is 3.86 months.
+  await expect(page.getByRole('heading', { name: 'About 3.9 months of essential spending' })).toBeVisible();
+  await expect(page.getByText('Take-home $4,317, money now $9,526, to debt $1,183, saved $1,419')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Payday recorded' }).or(page.getByRole('list', { name: 'Wealth now' })).getByRole('listitem')).toHaveCount(1);
 
   // The server refuses a request that carries an amount.
   const token = await deviceToken(page);
   const refused = await page.request.post('/api/payday', {
     headers: { authorization: `Bearer ${token}` },
-    data: { ...body, id: 'e2e-amount-refused-0001', income: 2317 },
+    data: { ...body, id: 'e2e-amount-refused-0001', balance: 9526 },
   });
   expect(refused.status()).toBe(400);
   expect((await refused.json()).error.code).toBe('amounts_not_accepted');
