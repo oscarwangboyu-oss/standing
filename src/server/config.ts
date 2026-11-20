@@ -7,6 +7,13 @@
 /** Largest request body the API reads, in bytes. A full batch of 80 events is about 20 kB. */
 export const MAX_BODY_BYTES = 64 * 1024;
 
+/**
+ * Shortest team passphrase the production dashboard opens with. The passphrase guards totals of
+ * health and money answers and guesses are not rate limited by the app. 20 random characters
+ * are far out of reach of guessing. Not data-based: a security setting.
+ */
+export const MIN_TEAM_PASSPHRASE_LENGTH = 20;
+
 /** Random bytes in a user id, a session id and a device token. */
 export const ID_BYTES = 16;
 export const TOKEN_BYTES = 32;

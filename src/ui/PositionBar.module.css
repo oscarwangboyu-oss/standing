@@ -5,11 +5,11 @@
   border-radius: var(--r-pill);
   background: var(--track);
 }
+/* Square ends, as on the ruler: the median tick and the dot cover them. */
 .fill {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: var(--r-pill);
   background: var(--sector, var(--ink));
   opacity: 0.9;
 }

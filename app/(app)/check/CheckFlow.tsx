@@ -11,11 +11,11 @@
  * it is current, and here the question is not on screen yet during the beat between sectors.
  * The answer time must start when the person can read the question.
  */
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { queue } from '@/client/api';
 import { ROUTES } from '@/client/nav';
-import { check, sectionCounts, type CheckState, type QuestionView, type SectionCount } from '@/client/session';
+import { MIN_ANSWER_SECONDS, check, sectionCounts, type CheckState, type QuestionView, type SectionCount } from '@/client/session';
 import { useShell } from '@/client/shell';
 import { check as copy } from '@/copy/check';
 import { sectorNames } from '@/copy/common';
@@ -31,15 +31,16 @@ import {
   Skeleton,
   SkylineCard,
   VisuallyHidden,
+  cx,
   sectorStyle,
   type SectorCode,
 } from '@/ui';
 import styles from '@/ui/check/check.module.css';
+import { isLongQuestion, splitQuestion } from '@/ui/check/question';
 
 /** The beat between two sectors, and the moment "Pricing your five sectors" stays up. Interface settings, not scoring. */
-const BEAT_MS = 1400;
+const BEAT_MS = 1600;
 const PRICING_MS = 1100;
-
 const TITLE_ID = 'q-text';
 
 type Build = Partial<Record<SectorCode, SectionCount>>;
@@ -88,6 +89,22 @@ function useHeld(): boolean {
   return !online || retrying;
 }
 
+/** The question as the heading of the screen: a long one a size smaller, a closing parenthetical set apart. */
+const QuestionTitle = forwardRef<HTMLHeadingElement, { text: string }>(function QuestionTitle({ text }, ref) {
+  const { main, aside } = splitQuestion(text);
+  return (
+    <h1 id={TITLE_ID} ref={ref} tabIndex={-1} className={styles.title} data-long={isLongQuestion(main) || undefined}>
+      {main}
+      {aside !== null && (
+        <>
+          {' '}
+          <span className={styles.titleAside}>{aside}</span>
+        </>
+      )}
+    </h1>
+  );
+});
+
 export function CheckFlow() {
   const router = useRouter();
   const controller = check();
@@ -107,15 +124,35 @@ export function CheckFlow() {
     if (seen && seen.sector && seen.section !== view.section && view.seq === seen.seq + 1) setBeat({ from: seen.sector, seq: view.seq });
     else setSeen(seenOf(view));
   }
+  const endBeat = useRef<() => void>(() => {});
+  const beatAt = useRef(0);
   useEffect(() => {
     if (!beat) return;
-    const timer = setTimeout(() => {
+    beatAt.current = performance.now();
+    let over = false;
+    const end = () => {
+      if (over) return;
+      over = true;
       const now = controller.get().view;
       setSeen(now ? seenOf(now) : null);
       setBeat(null);
-    }, BEAT_MS);
-    return () => clearTimeout(timer);
+    };
+    endBeat.current = end;
+    const timer = setTimeout(end, BEAT_MS);
+    return () => {
+      over = true;
+      clearTimeout(timer);
+    };
   }, [beat, controller]);
+  /**
+   * "Continue" during the beat. The second half of a double tap on the last answer of a sector
+   * lands here: it is ignored for as long as an answer would be (MIN_ANSWER_SECONDS), so the
+   * beat cannot be skipped by accident. The question after it has the same guard of its own.
+   */
+  const continueNow = () => {
+    if (performance.now() - beatAt.current < MIN_ANSWER_SECONDS * 1000) return;
+    endBeat.current();
+  };
 
   const onScreen = view && !beat && seen?.seq === view.seq ? view : null;
   const onScreenSeq = onScreen?.seq ?? null;
@@ -204,9 +241,7 @@ export function CheckFlow() {
               {copy.count(onScreen.position.current, onScreen.position.total)}
             </p>
           </div>
-          <h1 id={TITLE_ID} ref={title} tabIndex={-1} className={styles.title}>
-            {onScreen.text}
-          </h1>
+          <QuestionTitle ref={title} text={onScreen.text} />
           <OptionList
             key={`${onScreen.seq}:${onScreen.id}`}
             options={onScreen.options.map((option) => ({ value: String(option.index), label: option.label }))}
@@ -236,22 +271,31 @@ export function CheckFlow() {
   // ---------- the beat between two sectors
   if (beat && view) {
     return (
-      <div className={styles.beat} role="status">
-        <div className={styles.meta}>
-          <SectorTag code={beat.from} name />
+      <div className={cx(styles.beat, styles.between)} style={view.sector ? sectorStyle(view.sector) : undefined}>
+        <div className={styles.beatText} role="status">
+          <div className={styles.meta}>
+            <SectorTag code={beat.from} name />
+          </div>
+          <h1 className={styles.title}>{copy.between.built(sectorNames[beat.from])}</h1>
+          <p className={styles.next}>
+            {view.sector ? (
+              <>
+                <span className={styles.nextLabel}>{copy.between.next}</span>
+                <SectorTag code={view.sector} name />
+                <span className={styles.nextCount}>{copy.between.questions(view.inSection.total)}</span>
+              </>
+            ) : (
+              <span className={styles.nextLabel}>{copy.between.last}</span>
+            )}
+          </p>
         </div>
-        <h1 className={styles.title}>{copy.between.built(sectorNames[beat.from])}</h1>
-        <p className={styles.next}>
-          {view.sector ? (
-            <>
-              <span className={styles.nextLabel}>{copy.between.next}</span>
-              <SectorTag code={view.sector} name />
-              <span className={styles.nextCount}>{copy.between.questions(view.inSection.total)}</span>
-            </>
-          ) : (
-            <span className={styles.nextLabel}>{copy.between.last}</span>
-          )}
-        </p>
+        {/* The beat moves on by itself. The bar shows how soon; the button moves on now. */}
+        <span className={styles.beatBar} style={{ '--beat-ms': `${BEAT_MS}ms` } as CSSProperties} aria-hidden="true">
+          <i />
+        </span>
+        <Button variant="quiet" inline onClick={continueNow}>
+          {copy.between.go}
+        </Button>
       </div>
     );
   }

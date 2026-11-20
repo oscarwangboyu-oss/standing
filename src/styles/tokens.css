@@ -115,11 +115,13 @@
     --down: #FFC6CB;
     --down-wash: #651529;
 
-    --skil-deep: #B3C6FF; --skil: #5E88FF; --skil-tint: #263B80; --skil-wash: #16214B; --skil-line: #6E94FF;
-    --wlth-deep: #FFD584; --wlth: #F0B13A; --wlth-tint: #5F4511; --wlth-wash: #2F2510; --wlth-line: #F0B13A;
-    --netw-deep: #86E6DB; --netw: #25B8AC; --netw-tint: #0E504C; --netw-wash: #0C2C31; --netw-line: #25B8AC;
-    --body-deep: #FFB5A2; --body: #FF7D5E; --body-tint: #6D2B1D; --body-wash: #3A1E16; --body-line: #FF7D5E;
-    --mind-deep: #D1BEFF; --mind: #9B72F5; --mind-tint: #442C89; --mind-wash: #231A4C; --mind-line: #A482F7;
+    /* A night wash is a step lighter than the surface (about 1.2 to 1.3 to 1), so chips, tags and
+       tinted cards still read as tinted on a card, not only through a shift of hue. */
+    --skil-deep: #B3C6FF; --skil: #5E88FF; --skil-tint: #263B80; --skil-wash: #22306E; --skil-line: #6E94FF;
+    --wlth-deep: #FFD584; --wlth: #F0B13A; --wlth-tint: #5F4511; --wlth-wash: #3D3014; --wlth-line: #F0B13A;
+    --netw-deep: #86E6DB; --netw: #25B8AC; --netw-tint: #0E504C; --netw-wash: #113A40; --netw-line: #25B8AC;
+    --body-deep: #FFB5A2; --body: #FF7D5E; --body-tint: #6D2B1D; --body-wash: #4E281D; --body-line: #FF7D5E;
+    --mind-deep: #D1BEFF; --mind: #9B72F5; --mind-tint: #442C89; --mind-wash: #33256F; --mind-line: #A482F7;
 
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px rgb(0 0 0 / 0.34), 0 24px 48px rgb(0 0 0 / 0.3);

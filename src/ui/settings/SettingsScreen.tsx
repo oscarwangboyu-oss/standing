@@ -8,7 +8,7 @@
  * open to everyone (no route guard), so it also serves a device without a record: that person
  * can connect to an existing record with a recovery code.
  */
-import { useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { api, errorCodeOf, isRetryable, refreshMe, useConfig, useDevice, useMe } from '@/client/api';
 import { clearAllSlots, device, newClientId } from '@/client/device';
 import { flagsOf } from '@/client/flags';
@@ -25,10 +25,12 @@ import {
   Entry,
   EntryList,
   Field,
+  IconBook,
   IconCalendar,
-  IconDownload,
-  IconInfo,
   IconClose,
+  IconDoc,
+  IconDownload,
+  IconLock,
   Note,
   Rule,
   Sheet,
@@ -114,6 +116,7 @@ function TickerBlock({ ticker }: { ticker: string | null }) {
 function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }) {
   const [shown, setShown] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [signOutOthers, setSignOutOthers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const codeId = useId();
@@ -133,11 +136,12 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
     setBusy(true);
     setProblem(null);
     try {
-      const { recoveryCode } = await api.rotateRecovery();
+      const { recoveryCode, disconnected } = await api.rotateRecovery({ disconnectOthers: signOutOthers });
       device().patch({ recoveryCode });
       setShown(true);
       setAsking(false);
-      notify(copy.recovery.rotated);
+      notify(signOutOthers ? copy.recovery.rotatedAndOut(disconnected) : copy.recovery.rotated);
+      setSignOutOthers(false);
     } catch (error) {
       setProblem(messageOf(error));
     } finally {
@@ -155,7 +159,15 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
               {copy.recovery.codeLabel}
             </span>
             <output className={styles.code} aria-labelledby={`${codeId}-label`} data-hidden={!shown || undefined}>
-              {shown ? code : copy.recovery.hidden}
+              {shown ? (
+                code
+              ) : (
+                <>
+                  {/* The shape of the code with every character masked; read aloud as "Hidden". */}
+                  <span aria-hidden="true">{code.replace(/[A-Za-z0-9]/g, '•')}</span>
+                  <span className="vh">{copy.recovery.hidden}</span>
+                </>
+              )}
             </output>
           </div>
         ) : (
@@ -163,24 +175,46 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
             <p>{copy.recovery.notHere}</p>
           </Note>
         )}
-        <div className={styles.actions}>
-          {code && (
-            <>
+        {code ? (
+          <>
+            <div className={styles.actions}>
               <Button variant="secondary" size="sm" onClick={() => setShown((s) => !s)} aria-pressed={shown}>
                 {shown ? copy.recovery.hide : copy.recovery.show}
               </Button>
               <Button variant="secondary" size="sm" onClick={copyCode}>
                 {copy.recovery.copy}
               </Button>
-            </>
-          )}
-          <Button variant={code ? 'quiet' : 'secondary'} size="sm" onClick={() => setAsking(true)}>
-            {copy.recovery.rotate}
-          </Button>
-        </div>
+            </div>
+            {/* The less common action on a line of its own, its label in line with the text above. */}
+            <div className={styles.quietLine}>
+              <Button variant="quiet" size="sm" inline onClick={() => setAsking(true)}>
+                {copy.recovery.rotate}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className={styles.actions}>
+            <Button variant="secondary" size="sm" onClick={() => setAsking(true)}>
+              {copy.recovery.rotate}
+            </Button>
+          </div>
+        )}
       </Card>
       <Sheet open={asking} onClose={() => !busy && setAsking(false)} title={copy.recovery.rotateTitle}>
         <p className={styles.text}>{copy.recovery.rotateText}</p>
+        <label className={styles.checkLine}>
+          <input
+            type="checkbox"
+            className={styles.checkbox}
+            checked={signOutOthers}
+            onChange={(event) => setSignOutOthers(event.target.checked)}
+            disabled={busy}
+          />
+          <span>
+            {copy.recovery.disconnectOthers}
+            <span className={styles.checkHint}>{copy.recovery.disconnectHint}</span>
+          </span>
+        </label>
         <Problem>{problem}</Problem>
         <div className={styles.sheetActions}>
           <Button full onClick={rotate} disabled={busy}>
@@ -197,8 +231,16 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
 
 // ---------------------------------------------------------------- restore
 
+/** /settings?restore=1 (ROUTES.restore) opens the sheet at once: the link on the start screen goes there. */
+const askedToRestore = (): boolean =>
+  typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('restore') === '1';
+
 function RestoreBlock({ hasRecord }: { hasRecord: boolean }) {
   const [open, setOpen] = useState(false);
+  // After hydration, so the server markup and the first client render agree.
+  useEffect(() => {
+    if (askedToRestore()) setOpen(true);
+  }, []);
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -530,9 +572,9 @@ function AboutBlock({ versions }: { versions: { algo: number; bank: string; norm
     <Block title={copy.about.title} id="settings-about">
       <Card pad="none">
         <EntryList label={copy.about.label}>
-          <Entry href={ROUTES.method} icon={<IconInfo />} title={copy.about.method} detail={copy.about.methodText} />
-          <Entry href={ROUTES.privacy} icon={<IconInfo />} title={copy.about.privacy} detail={copy.about.privacyText} />
-          <Entry href={ROUTES.terms} icon={<IconInfo />} title={copy.about.terms} detail={copy.about.termsText} />
+          <Entry href={ROUTES.method} icon={<IconBook />} title={copy.about.method} detail={copy.about.methodText} />
+          <Entry href={ROUTES.privacy} icon={<IconLock />} title={copy.about.privacy} detail={copy.about.privacyText} />
+          <Entry href={ROUTES.terms} icon={<IconDoc />} title={copy.about.terms} detail={copy.about.termsText} />
         </EntryList>
       </Card>
       <p className={styles.versions}>

@@ -88,7 +88,7 @@ export function TimingFigure() {
         <text x={X_HALF} y={Y_AXIS + 22} textAnchor="middle" className={styles.timingNote}>
           {timing.halfway}
         </text>
-        <text x={X_FULL - 10} y={Y_AXIS + 22} className={styles.timingNote}>
+        <text x={X_FULL} y={Y_AXIS + 22} textAnchor="middle" className={styles.timingNote}>
           {timing.threshold}
         </text>
         <text x={L} y={Y_AXIS + 44} className={styles.timingNote}>

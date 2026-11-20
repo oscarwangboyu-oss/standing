@@ -1,7 +1,7 @@
 import { quote } from '@/copy/common';
 import { cx } from './cx';
 import { direction, formatChange, formatPercent } from './format';
-import { IconDown, IconMinus, IconUp } from './icons';
+import { IconDown, IconFlat, IconUp } from './icons';
 import styles from './Change.module.css';
 
 export interface ChangeProps {
@@ -23,7 +23,7 @@ export function Change({ value, pct, size = 'md', className }: ChangeProps) {
   const iconSize = size === 'sm' ? 10 : size === 'lg' ? 14 : 12;
   return (
     <span className={cx(styles.change, styles[dir], styles[size], className)}>
-      {dir === 'up' ? <IconUp size={iconSize} /> : dir === 'down' ? <IconDown size={iconSize} /> : <IconMinus size={iconSize} />}
+      {dir === 'up' ? <IconUp size={iconSize} /> : dir === 'down' ? <IconDown size={iconSize} /> : <IconFlat size={iconSize} />}
       <span className="vh">{word} </span>
       <span>{formatChange(value)}</span>
       {pct !== undefined && pct !== null && <span className={styles.pct}>({formatPercent(pct)})</span>}

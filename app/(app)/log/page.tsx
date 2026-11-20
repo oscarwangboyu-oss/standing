@@ -11,7 +11,7 @@ import { useFlags } from '@/client/flags';
 import { ROUTES } from '@/client/nav';
 import { entries } from '@/copy/market';
 import { hub as copy, shared } from '@/copy/micro';
-import { addDays, type AreaId, type PayFrequency } from '@/engine';
+import type { AreaId } from '@/engine';
 import type { MeLive } from '@/shared/api';
 import {
   Block,
@@ -30,13 +30,10 @@ import {
   Tag,
   formatDay,
 } from '@/ui';
-import { AREAS, caughtUp, moveDays, nextMonday } from '@/ui/market/live';
+import { AREAS, caughtUp, moveDays, nextMonday, nextPayday } from '@/ui/market/live';
 import { MoveBreakdown } from '@/ui/market/MoveBreakdown';
 import { MicroHead, MicroSkeleton, MicroState } from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
-
-/** Days from one payday to the next, to say when the next one is due. Twice a month and monthly are rounded. */
-const PERIOD_DAYS: Record<PayFrequency, number> = { weekly: 7, biweekly: 14, semimonthly: 15, monthly: 30 };
 
 export default function LogPage() {
   const me = useMe();
@@ -79,7 +76,7 @@ function Hub({ live, flags }: { live: MeLive; flags: { payday: boolean; weeklyWi
     else if (payday.recordedToday) paydayStatus = copy.status.doneToday;
     else if (!setup && !last) paydayStatus = copy.status.setUp;
     if (setup && last) {
-      const next = addDays(last, PERIOD_DAYS[setup.frequency]);
+      const next = nextPayday(last, setup.frequency);
       paydayDetail = next > live.today ? copy.payday.next(formatDay(next)) : copy.payday.dueNow(formatDay(next));
     } else if (last) paydayDetail = copy.payday.last(formatDay(last));
   }

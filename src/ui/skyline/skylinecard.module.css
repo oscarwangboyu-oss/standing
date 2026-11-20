@@ -31,6 +31,19 @@
   line-height: 1.2;
   font-variant-numeric: tabular-nums lining-nums;
 }
+/* "Not listed", "Not enough data": small, quiet, at most two lines in the column of the lot. */
+.none {
+  display: block;
+  padding-top: 2px;
+  font-family: var(--font-text);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-stretch: 100%;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-3);
+}
 .small .legend { padding-block: var(--s-2); }
 .small .code { font-size: 0.6875rem; }
 .small .value { font-size: var(--t-13); }

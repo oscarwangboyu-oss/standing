@@ -15,6 +15,7 @@ import { errorCodeOf } from '@/client/api';
 import { device } from '@/client/device';
 import { ROUTES } from '@/client/nav';
 import { StartError, check, normalizeTicker } from '@/client/session';
+import { clearStartDraft, readStartDraft, writeStartDraft } from '@/client/startDraft';
 import { useShell } from '@/client/shell';
 import { start as copy, stateNames } from '@/copy/check';
 import { ROLE_IDS, getBank, type RoleId } from '@/engine';
@@ -70,6 +71,13 @@ function lotsAt(step: StepId): number {
   return 3;
 }
 
+/** What a step is about, for its eyebrow. */
+function groupOf(step: StepId): string {
+  if (step === 'notice' || step === 'health') return copy.eyebrow.consent;
+  if (step === 'ticker') return copy.eyebrow.ticker;
+  return copy.eyebrow.about;
+}
+
 const STATE_OPTIONS = [{ value: '', label: copy.state.none }, ...US_STATES.map((code) => ({ value: code as string, label: stateNames[code] ?? code }))];
 
 export function StartFlow() {
@@ -102,8 +110,36 @@ export function StartFlow() {
   ];
   const steps = stepsFor(role);
   const last = steps[steps.length - 1];
+  // "Step 3 of 9". Until the situation is chosen its background questions are not known, so the
+  // count assumes the most any situation has: the total can only fall once it is chosen.
+  const mostExtra = Math.max(0, ...Object.values(bank.extra).map((list) => list.length));
+  const numbered: StepId[] = steps.filter((step) => step !== 'intro');
+  const stepTotal = numbered.length + (role ? 0 : mostExtra);
+  const eyebrow = (step: StepId) => copy.eyebrow.step(numbered.indexOf(step) + 1, stepTotal, groupOf(step));
 
-  useShell({ aside: <PlotCard lots={under ? 0 : lotsAt(at)} />, footer: at === 'intro' || under });
+  // A tab the phone reloaded comes back to the step it was on (src/client/startDraft.ts).
+  useEffect(() => {
+    const draft = readStartDraft();
+    if (!draft) return;
+    const valid = stepsFor(draft.role) as string[];
+    if (!valid.includes(draft.at)) return;
+    if (draft.age !== null && draft.age < bank.ages.length) setAge(draft.age);
+    if (draft.role) setRole(draft.role);
+    setExtra(draft.extra);
+    setUsState(draft.usState);
+    if (draft.ticker) setTicker(draft.ticker);
+    setAt(draft.at as StepId);
+    // Once, when the screen opens.
+  }, []);
+  useEffect(() => {
+    if (at === 'intro' || under) clearStartDraft();
+    else writeStartDraft({ at, age, role, extra, usState, ticker });
+  }, [at, under, age, role, extra, usState, ticker]);
+
+  useShell({
+    aside: <PlotCard lots={under ? 0 : lotsAt(at)} ghosts={at === 'intro' && !under} compact={at !== 'intro' || under} />,
+    footer: at === 'intro' || under,
+  });
 
   // A new step starts at the top, and a keyboard continues from its heading.
   const title = useRef<HTMLHeadingElement>(null);
@@ -130,6 +166,7 @@ export function StartFlow() {
     setProblem(null);
     try {
       await check().start({ background: { age, role, extra }, healthConsent, usState: usState || null, ticker: ticker.trim() || null });
+      clearStartDraft();
       // The guard of the layout sends the person on as well; this is the same destination.
       router.replace(ROUTES.check);
     } catch (error) {
@@ -233,12 +270,17 @@ export function StartFlow() {
             {text.action}
           </Button>
         </div>
+        {!plan.again && (
+          <p className={styles.restore}>
+            {copy.intro.restoreText} <Link href={ROUTES.restore}>{copy.intro.restoreLink}</Link>
+          </p>
+        )}
       </>
     );
   } else if (at === 'notice') {
     body = (
       <>
-        {heading(copy.notice.title, copy.eyebrow.consentOne)}
+        {heading(copy.notice.title, eyebrow('notice'))}
         <Card variant="raised" pad="md">
           <dl className={styles.notice}>
             {copy.notice.items.map((item) => (
@@ -266,7 +308,7 @@ export function StartFlow() {
     ];
     body = (
       <>
-        {heading(copy.adult.title, copy.eyebrow.about)}
+        {heading(copy.adult.title, eyebrow('adult'))}
         <p className={styles.lead}>{copy.adult.lead}</p>
         <OptionList key="adult" options={options} onSelect={(value) => (value === 'yes' ? leave('adult') : setUnder(true))} labelledBy={TITLE_ID} />
       </>
@@ -274,7 +316,7 @@ export function StartFlow() {
   } else if (at === 'age') {
     body = (
       <>
-        {heading(bank.baseQ.age.en, copy.eyebrow.about)}
+        {heading(bank.baseQ.age.en, eyebrow('age'))}
         <OptionList
           key="age"
           options={bank.ages.map((band, i) => ({ value: String(i), label: band.en }))}
@@ -290,7 +332,7 @@ export function StartFlow() {
   } else if (at === 'role') {
     body = (
       <>
-        {heading(bank.baseQ.role.en, copy.eyebrow.about)}
+        {heading(bank.baseQ.role.en, eyebrow('role'))}
         <OptionList
           key="role"
           compact
@@ -310,7 +352,7 @@ export function StartFlow() {
   } else if (at === 'state') {
     body = (
       <>
-        {heading(copy.state.title, copy.eyebrow.about)}
+        {heading(copy.state.title, eyebrow('state'))}
         <p className={styles.lead}>{copy.state.lead}</p>
         <SelectField label={copy.state.label} value={usState} onChange={setUsState} options={STATE_OPTIONS} />
         <div className={styles.actions}>
@@ -323,7 +365,7 @@ export function StartFlow() {
   } else if (at === 'ticker') {
     body = (
       <>
-        {heading(copy.ticker.title, copy.eyebrow.ticker)}
+        {heading(copy.ticker.title, eyebrow('ticker'))}
         <p className={styles.lead}>{copy.ticker.lead}</p>
         <form className={styles.step} onSubmit={submitTicker} noValidate>
           <Field
@@ -338,7 +380,7 @@ export function StartFlow() {
             spellCheck={false}
             enterKeyHint="next"
             disabled={busy}
-            hint={suggested ? copy.ticker.hint(suggested) : copy.ticker.hintKept}
+            hint={suggested && ticker === suggested ? copy.ticker.hint(suggested) : copy.ticker.hintKept}
             error={tickerError ? copy.ticker.error : undefined}
           />
           <div className={styles.actions}>
@@ -356,7 +398,7 @@ export function StartFlow() {
     ];
     body = (
       <>
-        {heading(copy.health.title, copy.eyebrow.consentTwo)}
+        {heading(copy.health.title, eyebrow('health'))}
         <div className={styles.lines}>
           {copy.health.lines.map((line) => (
             <p key={line}>{line}</p>
@@ -380,7 +422,7 @@ export function StartFlow() {
     const question = role ? bank.extra[role].find((q) => q.id === id) : undefined;
     body = question && (
       <>
-        {heading(question.q.en, copy.eyebrow.about)}
+        {heading(question.q.en, eyebrow(at))}
         <OptionList
           key={at}
           compact={question.opts.length > 6}

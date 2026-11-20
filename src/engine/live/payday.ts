@@ -1,23 +1,24 @@
-// Payday Check: three numbers each payday (take-home income, spending, savings), no bank link.
+// Payday Check: a few numbers each payday, no bank link (PROMPT.md section 10).
 //
 // Amounts never leave the device. paydayBandsFor runs on the device and turns the amounts
 // into bands: which option of which bank question. The timeline and the server see bands only
 // (PaydayBands has no amount field).
 //
-// Which wealth questions the three numbers can honestly feed, read off bank 2.1:
-// - W5 in its "save" wording (income tier high) asks for the share of after-tax income saved.
-//   Savings divided by take-home income, averaged over the last pay periods, is that share.
-// - W3 asks how many months savings would last. The three numbers are flows, and W3 is a
-//   stock, so it cannot be computed from them. It can be bounded: the answer of the last full
-//   check gives a range of months, and each payday since adds savings, or takes away a
-//   shortfall (spending above income), measured in months of essential spending. The answer
-//   is replaced only when the whole range has moved out of the band that was answered.
-// - W5 in its "debt" wording (every other tier) asks for the share of income that goes to
-//   debt payments. None of the three numbers is a debt payment. It keeps the questionnaire
-//   answer.
+// What each payday holds: take-home pay of the period (filled in from the last payday), the
+// money that can be used now, what went to debt in the period, and what was saved or
+// invested. Which wealth questions they feed, read off bank 2.1:
+// - W3 asks how many months savings would last. The money that can be used now divided by the
+//   essential spending of a month is that number of months; its band replaces the answer.
+// - W5 in its "save" wording (income tier high) asks for the share of take-home pay saved:
+//   savings divided by take-home pay, averaged over the last pay periods.
+// - W5 in its "debt" and "hh" wordings (every other tier) asks for the share of income that
+//   goes to debt payments: debt paid divided by take-home pay, averaged the same way.
 // - W1 (income before taxes over 12 months, and the routing question), W2 (how an emergency
-//   expense would be paid), W4 (net worth) and W6 (a feeling) keep the questionnaire answer:
-//   take-home pay is after taxes, and the other three are not flows.
+//   expense would be paid), W4 (net worth) and W6 (a feeling) keep the questionnaire answer.
+//
+// Paydays recorded before the money-now and debt fields existed carry spending instead. For
+// those, W3 is bounded from the check's answer and the savings since (the rule further down),
+// and the debt share has no value.
 
 import { bandIndexFor, bandOptionAt, bandOptionFor, bandRangeOf } from '../bands';
 import { dayNumber } from '../days';
@@ -44,16 +45,20 @@ export interface PaydaySetup {
   essentialMonthly: number;
 }
 
-/** The three numbers of one payday. Stay on the device. */
+/** The numbers of one payday. Stay on the device. */
 export interface PaydayAmounts {
   /** The payday, YYYY-MM-DD. */
   day: string;
   /** Take-home income of the pay period. */
   income: number;
-  /** Spending in the pay period. */
-  spending: number;
   /** Saved or invested in the pay period. */
   savings: number;
+  /** Money that can be used now: checking, savings and cash, without credit. */
+  balance?: number | null;
+  /** Paid toward debt in the pay period: loans, card balances above the minimum included. */
+  debt?: number | null;
+  /** Spending in the pay period. Only on paydays recorded before balance and debt existed. */
+  spending?: number | null;
 }
 
 /** What the runway estimate starts from: the months-of-savings answer of the last full check. */
@@ -74,14 +79,21 @@ export interface PaydayLocal {
   previousSaveShare: number | null;
   /** Mean share over the averaged periods. */
   averageSaveShare: number | null;
-  /** Spending divided by income for this payday. null when income is 0. */
+  /** Older paydays only: spending divided by income. null when income is 0 or no spending was given. */
   spendShare: number | null;
   previousSpendShare: number | null;
+  /** Debt paid divided by income for this payday. null when income is 0 or no debt was given. */
+  debtShare: number | null;
+  previousDebtShare: number | null;
+  /** Mean debt share over the averaged periods. */
+  averageDebtShare: number | null;
   /** Income of this period scaled to a month. */
   monthlyIncome: number;
+  /** Months the money that can be used now would last at the essential spending. null without both. */
+  runwayMonths: number | null;
   /**
-   * Months of essential spending added to savings since the last full check (negative when
-   * shortfalls outweigh savings). null without a baseline or without essential spending.
+   * Older paydays only: months of essential spending added to savings since the last full
+   * check (negative when shortfalls outweigh savings). null otherwise.
    */
   runwayMonthsSinceCheck: number | null;
 }
@@ -108,6 +120,10 @@ function checkAmount(value: number, what: string, day: string): void {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     throw new EngineError(`payday ${day}: ${what} must be a number of 0 or more`);
   }
+}
+
+function checkOptional(value: number | null | undefined, what: string, day: string): void {
+  if (value !== null && value !== undefined) checkAmount(value, what, day);
 }
 
 /**
@@ -143,8 +159,10 @@ export function paydayBandsFor(args: {
   const entries = args.entries
     .map((e, order) => {
       checkAmount(e.income, 'income', e.day);
-      checkAmount(e.spending, 'spending', e.day);
       checkAmount(e.savings, 'savings', e.day);
+      checkOptional(e.balance, 'money available now', e.day);
+      checkOptional(e.debt, 'debt paid', e.day);
+      checkOptional(e.spending, 'spending', e.day);
       return { ...e, at: dayNumber(e.day), order };
     })
     .sort((x, y) => x.at - y.at || x.order - y.order);
@@ -163,13 +181,31 @@ export function paydayBandsFor(args: {
       ? bandOptionFor(bankVersion, params.saveShare.band, averageSaveShare)
       : null;
 
-  // ---- runway, bounded
+  // ---- debt share, averaged: the periods with a debt figure
+  const debtShares = entries
+    .slice(-params.averagePeriods)
+    .filter((e) => e.debt !== null && e.debt !== undefined)
+    .map((e) => share(e.debt as number, e.income))
+    .filter((s): s is number => s !== null);
+  const averageDebtShare = debtShares.length ? debtShares.reduce((sum, s) => sum + s, 0) / debtShares.length : null;
+  const debtShare =
+    averageDebtShare !== null && debtShares.length >= params.minPeriods
+      ? bandOptionFor(bankVersion, params.debtShare.band, averageDebtShare)
+      : null;
+
+  // ---- runway: from the money that can be used now, or, on older paydays, bounded
   let runway: number | null = null;
   let months: number | null = null;
-  if (baseline && setup.essentialMonthly > 0) {
+  let runwayMonths: number | null = null;
+  let fromBalance = false;
+  if (latest.balance !== null && latest.balance !== undefined && setup.essentialMonthly > 0) {
+    runwayMonths = latest.balance / setup.essentialMonthly;
+    runway = bandOptionFor(bankVersion, params.runway.band, runwayMonths);
+    fromBalance = true;
+  } else if (baseline && setup.essentialMonthly > 0) {
     const since = dayNumber(baseline.day);
     let net = 0;
-    for (const e of entries) if (e.at > since) net += e.savings - Math.max(0, e.spending - e.income);
+    for (const e of entries) if (e.at > since) net += e.savings - Math.max(0, (e.spending ?? 0) - e.income);
     months = net / setup.essentialMonthly;
     if (baseline.runwayOption !== null && baseline.runwayKey !== null && params.runway.versionKeys.includes(baseline.runwayKey)) {
       const band = params.runway.band;
@@ -183,21 +219,31 @@ export function paydayBandsFor(args: {
     }
   }
 
+  const debtOf = (e: { debt?: number | null; income: number } | null) =>
+    e && e.debt !== null && e.debt !== undefined ? share(e.debt, e.income) : null;
+  const spendOf = (e: { spending?: number | null; income: number } | null) =>
+    e && e.spending !== null && e.spending !== undefined ? share(e.spending, e.income) : null;
   return {
     bands: {
       day: latest.day,
-      periods: saveShare === null ? 0 : shares.length,
+      periods: Math.max(saveShare === null ? 0 : shares.length, debtShare === null ? 0 : debtShares.length),
       saveShare,
+      debtShare,
       runway,
-      baselineDay: baseline ? baseline.day : null,
+      // A runway from the money now stands on its own; an estimate belongs to the check it started from.
+      baselineDay: fromBalance || !baseline ? null : baseline.day,
     },
     local: {
       saveShare: share(latest.savings, latest.income),
       previousSaveShare: previous ? share(previous.savings, previous.income) : null,
       averageSaveShare,
-      spendShare: share(latest.spending, latest.income),
-      previousSpendShare: previous ? share(previous.spending, previous.income) : null,
+      spendShare: spendOf(latest),
+      previousSpendShare: spendOf(previous),
+      debtShare: debtOf(latest),
+      previousDebtShare: debtOf(previous),
+      averageDebtShare,
       monthlyIncome: (latest.income * PAY_PERIODS_PER_YEAR[setup.frequency]) / 12,
+      runwayMonths,
       runwayMonthsSinceCheck: months,
     },
   };
@@ -218,7 +264,7 @@ export interface PaydayIndex {
 
 export function indexPaydays(entries: readonly PaydayBands[]): PaydayIndex {
   const sorted = entries.map((bands) => {
-    for (const k of [bands.saveShare, bands.runway]) {
+    for (const k of [bands.saveShare, bands.debtShare ?? null, bands.runway]) {
       if (k !== null && !(Number.isInteger(k) && k >= 0)) throw new EngineError(`payday ${bands.day} has an invalid band`);
     }
     return { bands, at: dayNumber(bands.day), baselineAt: bands.baselineDay === null ? null : dayNumber(bands.baselineDay) };
@@ -245,8 +291,10 @@ export function lastPaydayDay(index: PaydayIndex, t: number): number | null {
 /**
  * The payday contribution on day number `t`: the bands of the latest payday, as overrides.
  * - Nothing for a person the payday check is not offered to.
- * - The saving share replaces the share question only in the wording that asks for it.
- * - The runway band applies only while the check it started from is still the one in force.
+ * - The saving share replaces the share question in the wording that asks for savings, the
+ *   debt share in the wordings that ask for debt payments.
+ * - A runway from the money now applies to whichever check is in force. An estimate from an
+ *   older payday applies only while the check it started from is still the one in force.
  */
 export function paydayAt(index: PaydayIndex, t: number, check: CheckView, params: PaydayParams): LiveContribution {
   const overrides: Override[] = [];
@@ -256,10 +304,14 @@ export function paydayAt(index: PaydayIndex, t: number, check: CheckView, params
     if (latest.bands.saveShare !== null && share?.key === params.saveShare.versionKey) {
       overrides.push({ itemId: params.shareItemId, k: latest.bands.saveShare, source: 'payday' });
     }
+    const debtShare = latest.bands.debtShare ?? null;
+    if (debtShare !== null && share !== undefined && params.debtShare.versionKeys.includes(share.key)) {
+      overrides.push({ itemId: params.shareItemId, k: debtShare, source: 'payday' });
+    }
     const runway = check.stepOf(params.runwayItemId);
     if (
       latest.bands.runway !== null &&
-      latest.baselineAt === check.dayNumber &&
+      (latest.baselineAt === null || latest.baselineAt === check.dayNumber) &&
       runway !== undefined &&
       params.runway.versionKeys.includes(runway.key)
     ) {

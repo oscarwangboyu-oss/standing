@@ -28,7 +28,8 @@ function checkConsentVersion(kind: 'general' | 'health', version: unknown): stri
   return version;
 }
 
-async function hashRecoveryCode(code: string): Promise<string> {
+/** The hash stored for a recovery code. Exported for the demo script, which gives one simulated person a real code. */
+export async function hashRecoveryCode(code: string): Promise<string> {
   const normalized = normalizeRecoveryCode(code);
   if (!normalized) throw new ApiError(400, 'recovery_code_invalid', 'this is not a recovery code');
   return sha256Hex(normalized);
@@ -107,13 +108,27 @@ export async function restore(request: Request, deps: Deps): Promise<Response> {
 /** POST /api/recovery/rotate */
 export async function rotateRecovery(request: Request, deps: Deps): Promise<Response> {
   const user = await requireUser(request, deps);
+  const body = await readBody(request);
+  if (body.disconnectOthers !== undefined && typeof body.disconnectOthers !== 'boolean') {
+    throw invalid('disconnectOthers must be true or false');
+  }
   const recoveryCode = newRecoveryCode();
-  await deps.db.query('update users set recovery_hash = $1, recovery_rotated_at = $2 where id = $3', [
-    await hashRecoveryCode(recoveryCode),
-    deps.now().toISOString(),
-    user.id,
-  ]);
-  const response: RotateRecoveryResponse = { recoveryCode };
+  const thisDevice = await sha256Hex(bearer(request) ?? '');
+  const disconnected = await deps.db.transaction(async (tx) => {
+    await tx.query('update users set recovery_hash = $1, recovery_rotated_at = $2 where id = $3', [
+      await hashRecoveryCode(recoveryCode),
+      deps.now().toISOString(),
+      user.id,
+    ]);
+    // A code that leaked may already have connected another device: this cuts every other one off.
+    if (body.disconnectOthers !== true) return 0;
+    const gone = await tx.query('delete from device_tokens where user_id = $1 and token_hash <> $2 returning token_hash', [
+      user.id,
+      thisDevice,
+    ]);
+    return gone.length;
+  });
+  const response: RotateRecoveryResponse = { recoveryCode, disconnected };
   return json(response);
 }
 
@@ -138,10 +153,11 @@ export async function setConsent(request: Request, deps: Deps): Promise<Response
     throw invalid('the general consent cannot be withdrawn here: delete the data with POST /api/me/delete');
   }
   // A withdrawal names the version it withdraws when the client knows it; otherwise the stored one.
+  // Only a known text version is stored: the consent log is append-only and takes no free text.
   const version = body.granted
     ? checkConsentVersion(kind, body.version)
-    : typeof body.version === 'string' && body.version !== ''
-      ? body.version.slice(0, 64)
+    : typeof body.version === 'string' && ACCEPTED_CONSENT_VERSIONS[kind].includes(body.version)
+      ? body.version
       : (user.health_consent_version ?? 'none');
 
   await deps.db.transaction(async (tx) => {

@@ -14,10 +14,17 @@
   color: var(--ink-2);
 }
 .catchUp { margin-top: var(--s-4); font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.rulerNote { margin-top: var(--s-1); font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
 .streak { margin-top: var(--s-3); }
+.streakAside { margin-top: var(--s-5); }
+/* The streak is drawn once per layout: in the Today block on a phone, in the sticky column from 960px. */
+.wideOnly { display: none; }
+@media (min-width: 960px) {
+  .wideOnly { display: block; }
+  .narrowOnly { display: none; }
+}
 .retake { display: grid; gap: var(--s-3); justify-items: start; }
 .retake + * { margin-top: var(--s-3); }
-.chartNote { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
 .baseline { margin-top: var(--s-10); }
 .skyNote { margin-top: var(--s-2); padding-inline: var(--s-1); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
 .state { display: grid; justify-items: start; gap: var(--s-4); padding-block: var(--s-6); }

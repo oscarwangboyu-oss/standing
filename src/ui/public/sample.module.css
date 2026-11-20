@@ -189,4 +189,3 @@
   gap: var(--s-1) var(--s-3);
   min-height: var(--tap);
 }
-.note { font-size: var(--t-13); color: var(--ink-3); }

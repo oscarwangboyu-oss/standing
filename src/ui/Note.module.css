@@ -20,6 +20,7 @@
 .title { font-weight: 700; line-height: 1.35; }
 .body { font-size: var(--t-15); line-height: 1.5; color: var(--ink-2); }
 .title + .body { margin-top: 2px; }
+.body p + p { margin-top: var(--s-2); }
 .care { background: var(--mind-wash); }
 .care .icon { color: var(--mind-deep); }
 .care .body { color: var(--ink); }

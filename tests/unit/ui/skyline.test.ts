@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { TYPES, typeForPair, typeForPrices } from '@/copy/types';
 import { FLOOR, GROUND_Y, HORIZON_Y, LOT_W, PODIUM, SCENE_W, builtHeight, hash, lotX, priceAtHeight, towerHeight, viewTop, windowPaths } from '@/ui/skyline/geometry';
 import { SKY_PALETTES, SKY_VARS, skylineCss } from '@/ui/skyline/palette';
-import { SHARE_ART_H, SHARE_HEIGHT, SHARE_WIDTH, shareCardLayout, shareColumnX, sharePrices, type ShareCardData } from '@/ui/share/layout';
 
 describe('tower height', () => {
   it('is linear in the price above a fixed podium', () => {
@@ -103,50 +102,5 @@ describe('types', () => {
       expect(t.line).not.toMatch(/[—!]/);
       expect(t.name).not.toMatch(/[—!]/);
     }
-  });
-});
-
-describe('share card', () => {
-  const data: ShareCardData = {
-    ticker: 'rivr',
-    price: 104.37,
-    sectors: [
-      { code: 'SKIL', price: 111.2 },
-      { code: 'WLTH', price: 96.85 },
-      { code: 'NETW', price: 103.4 },
-      { code: 'BODY', price: 108.1 },
-      { code: 'MIND', price: null },
-    ],
-    type: 'The Engine',
-  };
-  const ops = shareCardLayout(data);
-  const texts = ops.filter((o) => o.kind === 'text').map((o) => (o.kind === 'text' ? o.text : ''));
-  it('prints the ticker, the overall price, the type and the listed sector prices', () => {
-    expect(texts).toContain('RIVR');
-    expect(texts).toContain('104.37');
-    expect(texts).toContain('The Engine');
-    expect(texts).toContain('111.20');
-    expect(texts).toContain('MIND');
-    expect(texts.filter((t) => /^\d+\.\d\d$/.test(t))).toHaveLength(5);
-  });
-  it('says the baseline is provisional and that it is not a security', () => {
-    expect(texts.some((t) => /provisional/.test(t))).toBe(true);
-    expect(texts.some((t) => /Not a security/.test(t))).toBe(true);
-  });
-  it('keeps everything inside 1080 by 1350', () => {
-    for (const op of ops) {
-      expect(op.x).toBeGreaterThanOrEqual(0);
-      expect(op.x).toBeLessThanOrEqual(SHARE_WIDTH);
-      expect(op.y).toBeLessThanOrEqual(SHARE_HEIGHT);
-    }
-    expect(SHARE_ART_H).toBeLessThan(SHARE_HEIGHT);
-  });
-  it('sets each sector price under its tower', () => {
-    expect(shareColumnX(2)).toBeCloseTo(SHARE_WIDTH / 2);
-    expect(shareColumnX(1) - shareColumnX(0)).toBeCloseTo(shareColumnX(4) - shareColumnX(3));
-  });
-  it('passes a missing price to the skyline as null', () => {
-    expect(sharePrices(data).MIND).toBeNull();
-    expect(sharePrices(data).SKIL).toBe(111.2);
   });
 });

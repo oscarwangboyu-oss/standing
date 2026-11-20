@@ -67,7 +67,8 @@ function CompareList() {
   };
 
   const comparisons = list.data?.comparisons ?? [];
-  const waiting = list.data?.openInvites ?? [];
+  // The invite just made is already shown in full above, with its link and buttons, so the list leaves it out.
+  const waiting = (list.data?.openInvites ?? []).filter((invite) => fresh === null || invite.expiresAt !== fresh.expiresAt);
 
   return (
     <>

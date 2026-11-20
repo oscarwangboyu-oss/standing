@@ -198,9 +198,12 @@ export function SkylineScene(props: SkylineSceneProps) {
             {t.status === 'insufficient' && <Scaffold p={p} detail={r.detail} />}
             {tower}
             {t.status === 'halted' && r.detail > 0 && <Barrier p={p} />}
+            {/* The pin marks the lot being answered. On an empty lot it stands in the ground on a
+                stem, between the sign and the tree; once floors rise it rides above the roof. */}
             {build && active === t.code && !t.done && (
-              <g className={styles.pin} style={{ transform: `translateY(${n1(-Math.max(t.shown, 10))}px)` }}>
-                <path d="M40 -38l-7 -10h14z" fill={p.ink} />
+              <g className={styles.pin} style={{ transform: `translateY(${n1(t.shown > 0 ? -(t.shown + 8) : 0)}px)` }}>
+                {t.shown <= 0 && <path d="M40 -30V-9" stroke={p.ink} strokeWidth={2} strokeLinecap="round" />}
+                <path d="M40 -30l-7 -10h14z" fill={p.ink} />
               </g>
             )}
           </g>

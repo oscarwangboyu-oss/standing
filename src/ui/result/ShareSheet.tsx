@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ROUTES } from '@/client/nav';
 import { share as copy } from '@/copy/result';
 import { Button } from '../Button';
 import { copyText } from '../compare/pending';
 import { IconDownload, IconLink, IconShare } from '../icons';
 import { ShareCard } from '../share/ShareCard';
-import type { ShareCardData } from '../share/layout';
+import { DEFAULT_SHARE_FORMAT, SHARE_FORMATS, shareSize, type ShareCardData, type ShareFormat } from '../share/layout';
 import { renderShareCard } from '../share/render';
+import shareStyles from '../share/share.module.css';
 import { Sheet } from '../Sheet';
 import { Toast, useToast } from '../Toast';
 import styles from './result.module.css';
@@ -43,9 +44,55 @@ function download(blob: Blob, name: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+/** The outline of a shape, drawn to its proportions. */
+function Frame({ format }: { format: ShareFormat }) {
+  const { width, height } = shareSize(format);
+  const h = 15;
+  const w = Math.round((h * width) / height * 10) / 10;
+  return (
+    <svg className={shareStyles.frame} width={w + 2} height={h + 2} viewBox={`0 0 ${w + 2} ${h + 2}`} aria-hidden="true" focusable="false">
+      <rect x={1} y={1} width={w} height={h} rx={2.4} />
+    </svg>
+  );
+}
+
+/** Story or post, as a radio group: one tab stop, the arrow keys move and choose. */
+function FormatPicker({ value, onChange }: { value: ShareFormat; onChange: (format: ShareFormat) => void }) {
+  const root = useRef<HTMLDivElement>(null);
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const next = SHARE_FORMATS[(SHARE_FORMATS.indexOf(value) + step + SHARE_FORMATS.length) % SHARE_FORMATS.length] as ShareFormat;
+    onChange(next);
+    root.current?.querySelector<HTMLButtonElement>(`[data-format="${next}"]`)?.focus();
+  };
+  return (
+    <div ref={root} role="radiogroup" aria-label={copy.format} className={shareStyles.formats} onKeyDown={onKeyDown}>
+      {SHARE_FORMATS.map((format) => (
+        <button
+          key={format}
+          type="button"
+          role="radio"
+          aria-checked={format === value}
+          tabIndex={format === value ? 0 : -1}
+          className={shareStyles.format}
+          data-format={format}
+          onClick={() => onChange(format)}
+        >
+          <Frame format={format} />
+          {copy.formats[format].name}
+          <span className={shareStyles.ratio}>{copy.formats[format].ratio}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
- * The share sheet: the image as it will be saved, then share it (where the browser can share a
- * file), save it, or copy a link to the front page. The image is drawn on this device.
+ * The share sheet: the shape, the image as it will be saved, then share it (where the browser
+ * can share a file), save it, or copy a link to the front page, and what the image holds. The
+ * image is drawn on this device.
  */
 export function ShareSheet({ open, onClose, data, onShared }: ShareSheetProps) {
   // The sheet is a modal dialog on the top layer, so its messages are shown inside it.
@@ -53,15 +100,17 @@ export function ShareSheet({ open, onClose, data, onShared }: ShareSheetProps) {
   const onMessage = toast.show;
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState(false);
+  const [format, setFormat] = useState<ShareFormat>(DEFAULT_SHARE_FORMAT);
   useEffect(() => {
     setFiles(canShareFiles());
   }, []);
+  const size = shareSize(format);
 
   const make = async (): Promise<{ blob: Blob; name: string } | null> => {
     if (!data) return null;
     setBusy(true);
     try {
-      return { blob: await renderShareCard(data), name: copy.fileName(data.ticker) };
+      return { blob: await renderShareCard(data, format), name: copy.fileName(data.ticker) };
     } catch {
       onMessage(copy.failed);
       return null;
@@ -104,13 +153,15 @@ export function ShareSheet({ open, onClose, data, onShared }: ShareSheetProps) {
     <Sheet open={open} onClose={onClose} title={copy.title}>
       <div className={styles.share}>
         {data ? (
-          <div className={styles.shareCard}>
-            <ShareCard data={data} />
-          </div>
+          <>
+            <FormatPicker value={format} onChange={setFormat} />
+            <div className={shareStyles.preview}>
+              <ShareCard key={format} data={data} format={format} />
+            </div>
+          </>
         ) : (
           <p className={styles.shareLead}>{copy.noOverall}</p>
         )}
-        <p className={styles.shareLead}>{copy.lead}</p>
         <div className={styles.shareActions}>
           {files && (
             <Button size="lg" full icon={<IconShare size={20} />} onClick={shareImage} disabled={busy || !data} data-action="share-image">
@@ -124,8 +175,10 @@ export function ShareSheet({ open, onClose, data, onShared }: ShareSheetProps) {
             {copy.copyLink}
           </Button>
         </div>
+        <p className={styles.shareLead}>{copy.lead}</p>
         <p className={styles.shareNote}>
-          {copy.size} {copy.linkNote}
+          {data ? `${copy.size(size.width, size.height)} ` : ''}
+          {copy.linkNote}
         </p>
       </div>
       <Toast>{toast.message}</Toast>

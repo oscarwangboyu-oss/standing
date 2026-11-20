@@ -16,12 +16,13 @@ export const pages = {
 /* ------------------------------------------------------------------ /start */
 
 export const start = {
-  /** Small labels above the heading of a step. */
+  /** Small labels above the heading of a step: where it is in the steps, and what it is about. */
   eyebrow: {
-    consentOne: 'Consent, 1 of 2',
-    consentTwo: 'Consent, 2 of 2',
+    consent: 'Consent',
     about: 'About you',
     ticker: 'Your ticker',
+    /** "Step 3 of 8 · About you" */
+    step: (n: number, total: number, group: string) => `Step ${n} of ${total} · ${group}`,
   },
   back: 'Back',
 
@@ -33,6 +34,9 @@ export const start = {
     ],
     fact: '31 to 34 questions, one tap each. Every question can be skipped.',
     action: 'Begin',
+    /** For a person who took the check on another device. Opens the recovery code sheet in Settings. */
+    restoreText: 'Took the check on another device?',
+    restoreLink: 'Use your recovery code',
   },
   /** The same screen for a person who already has a check. */
   again: {
@@ -128,6 +132,7 @@ export const start = {
   reload: 'Reload',
 
   /** The picture next to the steps, read aloud. */
+  plotGhosts: 'An empty street by the bay. Five outlines, one for each sector, reach the horizon at 100.',
   plot: (lots: number) =>
     lots === 0
       ? 'An empty street by the bay. The horizon is 100.'
@@ -214,6 +219,8 @@ export const check = {
     questions: (n: number) => `${n} ${n === 1 ? 'question' : 'questions'}`,
     /** The closing question belongs to no sector. */
     last: 'One last question',
+    /** Moves on before the beat ends by itself. */
+    go: 'Continue',
   },
 
   /** "Pricing your five sectors" */

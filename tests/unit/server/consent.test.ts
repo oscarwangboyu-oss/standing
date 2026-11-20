@@ -192,3 +192,68 @@ describe('with the health consent', () => {
     expect(done.body.stored.result.sectors.W.status).toBe('listed');
   });
 });
+
+describe('withdrawing the Body and Mind consent', () => {
+  it('takes effect at once: the live price, Why it moved and a friend leave Body and Mind out', async () => {
+    const api = await makeApi({ now: '2026-03-01T12:00:00.000Z' });
+    const me = await newUser(api, { health: true });
+    const friend = await newUser(api, { health: true });
+    const { completedCheck, today } = await import('./helpers/api');
+    await completedCheck(api, me.deviceToken, { healthConsent: true, choose: () => 2 });
+    await completedCheck(api, friend.deviceToken, { healthConsent: true });
+    const daily = await api.call('POST', '/api/daily', {
+      token: me.deviceToken,
+      body: { localDate: today(api), day: today(api), sleep: 3, exercise: 3, state: 3 },
+    });
+    expect(daily.status).toBe(201);
+
+    // Before: five sectors everywhere.
+    const before = await api.call('GET', `/api/me?today=${today(api)}`, { token: me.deviceToken });
+    for (const area of HEALTH) expect(before.body.live.sectors[area].status, area).toBe('listed');
+    const made = await api.call('POST', '/api/compare/invites', { token: me.deviceToken });
+    const accepted = await api.call('POST', '/api/compare/accept', { token: friend.deviceToken, body: { code: made.body.code } });
+    expect(accepted.status).toBe(201);
+    const id = accepted.body.comparison.id as string;
+    const seenBefore = await api.call('GET', `/api/compare/${id}`, { token: friend.deviceToken });
+    const mine = (body: any) => body.comparison.other;
+    expect(seenBefore.status).toBe(200);
+    expect(mine(seenBefore.body).sectors.B).not.toBeNull();
+
+    const withdrawn = await api.call('POST', '/api/consent', {
+      token: me.deviceToken,
+      body: { kind: 'health', granted: false, version: CONSENT_VERSIONS.health },
+    });
+    expect(withdrawn.status).toBe(200);
+
+    // After: Body and Mind are not listed in the live price, and the overall is the mean of three.
+    const after = await api.call('GET', `/api/me?today=${today(api)}`, { token: me.deviceToken });
+    expect(after.status).toBe(200);
+    for (const area of HEALTH) {
+      expect(after.body.live.sectors[area].status, area).toBe('unlisted');
+      expect(after.body.live.sectors[area].price, area).toBeNull();
+    }
+    const three = (['C', 'W', 'N'] as const).map((a) => after.body.live.sectors[a].price as number);
+    expect(after.body.live.overall.covers).toEqual(['C', 'W', 'N']);
+    expect(after.body.live.overall.price).toBeCloseTo(three.reduce((x, y) => x + y, 0) / 3, 1);
+    // The Daily Open is closed to them and their records no longer count.
+    expect(after.body.live.apps.dailyOpen.available).toBe(false);
+    const day = await api.call('GET', `/api/me/breakdown/day?today=${today(api)}&day=${today(api)}`, { token: me.deviceToken });
+    expect(day.status).toBe(200);
+    // The friend sees three sectors, and an overall price made from those three.
+    const seenAfter = await api.call('GET', `/api/compare/${id}`, { token: friend.deviceToken });
+    const them = mine(seenAfter.body);
+    expect(them.sectors.B).toBeNull();
+    expect(them.sectors.M).toBeNull();
+    const theirs = (['C', 'W', 'N'] as const).map((a) => them.sectors[a] as number);
+    expect(them.overall).toBeCloseTo(theirs.reduce((x, y) => x + y, 0) / 3, 6);
+    if (them.type) for (const area of them.type) expect(HEALTH).not.toContain(area);
+    // Nothing was deleted: the raw records stay until the person deletes their data.
+    expect((await api.db.query("select 1 from daily_entries")).length).toBe(1);
+    // The team's norm table counts their Body and Mind no more: only the friend's are left.
+    const { TEAM_PASSPHRASE } = await import('./helpers/api');
+    const norms = await api.call('GET', '/api/team/norms', { token: TEAM_PASSPHRASE });
+    const everyone = (area: string) => norms.body.rows.find((r: any) => r.role === null && r.age === null && r.area === area);
+    expect(everyone('B')?.n).toBe(1);
+    expect(everyone('C')?.n).toBe(2);
+  });
+});

@@ -21,7 +21,9 @@
   padding: var(--s-2) var(--gutter);
 }
 .topWide { max-width: calc(var(--wide) + 2 * var(--gutter)); }
+.topNav { margin-left: auto; }
 .topRight { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
+.topNav + .topRight { margin-left: var(--s-2); }
 .wordmark {
   display: inline-flex;
   align-items: center;
@@ -74,9 +76,13 @@
     padding-top: var(--s-6);
   }
   .split .aside { position: sticky; top: var(--s-8); margin-bottom: 0; }
-  .wide .frame, .topMid { max-width: calc(960px + 2 * var(--gutter)); }
+  .wide .frame { max-width: calc(960px + 2 * var(--gutter)); }
   .split .fill { justify-content: flex-start; gap: var(--s-10); }
-  .top { min-height: 72px; }
+  /* The top bar spans the 1120 grid on every screen: the wordmark always at its left edge, the
+     navigation and the control on the right. Only the content column changes width. */
+  .top, .topMid { max-width: calc(var(--wide) + 2 * var(--gutter)); min-height: 72px; }
+  /* The app footer follows the top bar onto the 1120 grid, whatever the content column. */
+  .appFoot .footInner { max-width: calc(var(--wide) + 2 * var(--gutter)); }
 }
 
 /* ---------- Public pages ---------- */

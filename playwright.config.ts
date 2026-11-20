@@ -53,6 +53,8 @@ export default defineConfig({
     stdout: 'pipe',
     stderr: 'pipe',
     env: {
+      // Its own build folder, so a running preview keeps its build (next.config.ts).
+      STANDING_DIST_DIR: '.next-e2e',
       STANDING_ENV: 'local',
       STANDING_DB_DIR: '.data/e2e',
       DATABASE_URL: '',

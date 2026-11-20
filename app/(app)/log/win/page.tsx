@@ -15,8 +15,22 @@ import { shared, win as copy } from '@/copy/micro';
 import { CERTIFICATE_LEVELS, WEEKLY_WIN_KINDS, dayNumber, getAlgo, weekOf, type CertificateLevel, type WeeklyWinKind } from '@/engine';
 import type { MeLive, WeeklyWinRequest } from '@/shared/api';
 import { Button, Card, Field, Note, OptionList, formatDay, sectorStyle } from '@/ui';
-import { daysWithoutRecord, nextMonday } from '@/ui/market/live';
-import { Facts, Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, Pills, errorMessage } from '@/ui/micro/parts';
+import { countWindow, daysWithoutRecord, nextMonday } from '@/ui/market/live';
+import {
+  Facts,
+  Meter,
+  More,
+  Moved,
+  MicroClosed,
+  MicroError,
+  MicroHead,
+  MicroSkeleton,
+  MicroState,
+  Pills,
+  Recorded,
+  errorMessage,
+  useTopOnChange,
+} from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
 
 const BACK = { href: ROUTES.log, label: shared.backLabel, name: shared.back };
@@ -53,19 +67,21 @@ export default function WinPage() {
     );
   }
   if (!me.data.live) return <MicroSkeleton />;
-  return (
-    <>
-      {head}
-      <WeeklyWin live={me.data.live} />
-    </>
-  );
+  return <WeeklyWin live={me.data.live} />;
 }
 
 function WeeklyWin({ live }: { live: MeLive }) {
   const device = useDevice();
   const params = getAlgo().live.weeklyWin;
   const [mode, setMode] = useState<'auto' | 'form'>('auto');
+  // A win logged in this visit: the mark of the done state fills in once.
+  const [justSaved, setJustSaved] = useState(false);
   const done = live.apps.weeklyWin.recordedThisWeek;
+  const showForm = !done || mode === 'form';
+  const top = useTopOnChange(showForm ? 'form' : 'done');
+  // Once a win is logged, the line that says so is the heading of the screen.
+  const head = showForm ? <MicroHead title={copy.title} lead={copy.lead} sectors={['SKIL']} back={BACK} /> : <MicroHead sectors={['SKIL']} back={BACK} />;
+  const counted = countWindow(live.apps.weeklyWin);
   const breakdown = useAsync(() => api.dayBreakdown({ day: live.today, today: live.today }), [live.today, live.sectors.C.target], {
     enabled: live.apps.weeklyWin.recordedToday,
   });
@@ -87,9 +103,10 @@ function WeeklyWin({ live }: { live: MeLive }) {
     />
   );
 
-  if (!done || mode === 'form') {
+  if (showForm) {
     return (
       <>
+        {head}
         {live.sectors.C.status === 'halted' && live.sectors.C.haltedSince && (
           <Note title={shared.haltedTitle('Capability')} className={styles.noteTop}>
             <p>{copy.halted(formatDay(live.sectors.C.haltedSince), daysWithoutRecord(live, 'C') ?? params.haltAfterDays)}</p>
@@ -104,6 +121,7 @@ function WeeklyWin({ live }: { live: MeLive }) {
           rules={rules}
           onSaved={(next) => {
             applyLive(next);
+            setJustSaved(true);
             setMode('auto');
           }}
         />
@@ -111,36 +129,47 @@ function WeeklyWin({ live }: { live: MeLive }) {
     );
   }
 
+  const loggedOn = thisWeek?.day ?? live.apps.weeklyWin.lastDay ?? live.today;
   return (
     <>
-      <Moved
-        live={live}
-        areas={['C']}
-        label={copy.doneTitle}
-        breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
+      {head}
+      <Recorded
+        level={1}
+        headingRef={top}
+        sector="SKIL"
+        fresh={justSaved}
+        title={copy.recordedTitle}
+        detail={copy.recordedDetail(formatDay(loggedOn), !!thisWeek?.title)}
       />
 
-      <Card className={styles.note} sector="SKIL">
+      <Card sector="SKIL">
         <div className={styles.facts}>
           <p className={styles.resultLabel}>{copy.doneTitle}</p>
           {thisWeek ? (
             <>
               <h2 className="t-h3">{thisWeek.title || copy.untitled[thisWeek.kind]}</h2>
-              <p className={styles.resultLine}>{formatDay(thisWeek.day)}</p>
+              <p className={styles.resultLine}>{sentLine(thisWeek)}</p>
             </>
           ) : (
             <p className={styles.resultLine}>{copy.doneNoLocal}</p>
           )}
           <p className={styles.resultLine}>{copy.nextDue(formatDay(nextMonday(live.today)))}</p>
+          {counted && (
+            <div className={styles.meterGap}>
+              <Meter window={counted} text={copy.meter(counted.have, counted.need, counted.of)} sector="SKIL" />
+            </div>
+          )}
         </div>
       </Card>
 
-      {thisWeek && (
-        <div className={styles.note}>
-          <Facts sector="SKIL" title={copy.sentTitle} items={[sentLine(thisWeek), copy.sent.noTitle]} />
-        </div>
-      )}
-      <div className={styles.note}>{rules(thisWeek?.kind ?? null, thisWeek?.exam ?? null)}</div>
+      <div className={styles.note}>
+        <Moved
+          live={live}
+          areas={['C']}
+          label={copy.doneTitle}
+          breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
+        />
+      </div>
 
       {wins.length > 1 && (
         <Card variant="flat" className={styles.note}>
@@ -166,6 +195,10 @@ function WeeklyWin({ live }: { live: MeLive }) {
           {copy.replace}
         </Button>
       </div>
+
+      <More className={styles.note}>
+        {rules(thisWeek?.kind ?? null, thisWeek?.exam ?? null)}
+      </More>
     </>
   );
 }
@@ -282,7 +315,7 @@ function WinForm({ rules, onSaved }: { rules: (kind: WeeklyWinKind | null, exam:
           {saving ? shared.saving : copy.save}
         </Button>
       </div>
-      {rules(kind, exam)}
+      <More>{rules(kind, exam)}</More>
     </form>
   );
 }

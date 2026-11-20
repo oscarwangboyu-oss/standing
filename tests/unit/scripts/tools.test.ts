@@ -94,6 +94,8 @@ describe('applying migrations', () => {
       '0004_version_log.sql',
       '0005_micro_apps.sql',
       '0006_row_level_security.sql',
+      '0007_completed_local_day.sql',
+      '0008_payday_debt_share.sql',
     ]);
     const now = () => '2026-03-01T00:00:00.000Z';
     expect(await migrate(db, files, now)).toEqual(files.map((f) => f.name));

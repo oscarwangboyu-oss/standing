@@ -12,6 +12,7 @@ import {
   AREA_IDS,
   addDays,
   createTestVariantAlgo,
+  getAlgo,
   registerAlgo,
   timeline,
   type Breakdown,
@@ -21,7 +22,8 @@ import {
   type Step,
   type WeeklyWinEntry,
 } from '@/engine';
-import { backgroundFor, completedCheck, makeApi, newUser, today, type TestApi } from './helpers/api';
+import { dailyWindowOf, weekWindowOf } from '@/server/live';
+import { answer, backgroundFor, completedCheck, makeApi, newSession, newUser, today, type TestApi } from './helpers/api';
 
 const DAY0 = '2026-03-02';
 const DAY_MS = 86_400_000;
@@ -92,7 +94,10 @@ describe('the live series', () => {
     expect(res.status).toBe(200);
     expect(res.body.live).toBeNull();
     expect((await api.call('GET', '/api/me?today=2026-13-01', { token })).status).toBe(400);
-    expect((await api.call('GET', '/api/me?today=2026-03-09', { token })).status).toBe(400);
+    // A device clock days off still reads its prices, on the server's day.
+    const skewed = await api.call('GET', '/api/me?today=2026-03-09', { token });
+    expect(skewed.status).toBe(200);
+    expect(skewed.body.live.today).toBe(api.now().toISOString().slice(0, 10));
   });
 
   it('day 0: one point at the price of the check, no change yet', async () => {
@@ -131,13 +136,15 @@ describe('the live series', () => {
     expect(live.allTime).toEqual({ high: first.overall, highDay: DAY0, low: first.overall, lowDay: DAY0 });
     expect(live.lastCheckDay).toBe(DAY0);
     expect(live.mindNotice).toBe(false);
-    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: ['2026-03-01'], lastDay: null });
+    // Yesterday is before the first check: it is not offered for filling in.
+    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: [], lastDay: null, firstDay: DAY0 });
     const unused = { enabled: true, available: true, recordedToday: false, recordedThisWeek: false, lastDay: null };
+    // The counting windows come from the algorithm in force: 4 of 7 days, 4 of 8 weeks.
     expect(live.apps).toEqual({
-      dailyOpen: unused,
-      payday: { ...unused, eligible: true, baseline: { day: DAY0, runwayKey: 'base', runwayOption: 1 } },
-      weeklyWin: unused,
-      peopleNudge: unused,
+      dailyOpen: { ...unused, window: { have: 0, need: 4, of: 7 } },
+      payday: { ...unused, window: null, eligible: true, baseline: { day: DAY0, runwayKey: 'base', runwayOption: 1 } },
+      weeklyWin: { ...unused, window: { have: 0, need: 4, of: 8 } },
+      peopleNudge: { ...unused, window: { have: 0, need: 4, of: 8 } },
     });
     expect(live.retake).toEqual({ due: false, daysSinceCheck: 0, daysUntil: 90, dueDay: '2026-05-31' });
     expect(live.moveLimit).toBe(2);
@@ -161,14 +168,16 @@ describe('the live series', () => {
     expect(live.sectors.B.change).toBe(0);
     expect(live.overall.change).toBe(0);
     expect(live.streak).toMatchObject({ current: 3, recordedToday: true });
+    expect(live.apps.dailyOpen.window).toEqual({ have: 3, need: 4, of: 7 });
     sameAsEngine(live);
 
     nextDay(); // 2026-03-05: the fourth day
     const before = await me();
     expect(before.apps.dailyOpen.recordedToday).toBe(false);
+    expect(before.apps.dailyOpen.window).toEqual({ have: 3, need: 4, of: 7 });
     expect(before.sectors.B.change).toBe(0);
     live = await postDaily(good);
-    expect(live.apps.dailyOpen).toMatchObject({ recordedToday: true, recordedThisWeek: true, lastDay: '2026-03-05' });
+    expect(live.apps.dailyOpen).toMatchObject({ recordedToday: true, recordedThisWeek: true, lastDay: '2026-03-05', window: { have: 4, need: 4, of: 7 } });
     // The data now gives a much higher body price. The shown price goes up by the daily limit.
     const b = live.sectors.B;
     expect(b.target as number).toBeGreaterThan(first.sectors.B.price + 10);
@@ -266,14 +275,17 @@ describe('the live series', () => {
     nudges.push({ day: today(api), planned: 3, reached: ['friend', 'mentor'] });
     expect([won.status, reached.status]).toEqual([201, 201]);
     live = reached.body.live;
-    expect(live.apps.weeklyWin).toMatchObject({ recordedToday: true, recordedThisWeek: true });
-    expect(live.apps.peopleNudge).toMatchObject({ recordedToday: true, recordedThisWeek: true });
+    expect(live.apps.weeklyWin).toMatchObject({ recordedToday: true, recordedThisWeek: true, window: { have: 1, need: 4, of: 8 } });
+    expect(live.apps.peopleNudge).toMatchObject({ recordedToday: true, recordedThisWeek: true, window: { have: 1, need: 4, of: 8 } });
+    expect(live.apps.payday.window).toBeNull();
     sameAsEngine(live);
 
-    // Monday of the next week: recorded this week is false again, the last day stays.
+    // Monday of the next week: recorded this week is false again, the last day stays. The new
+    // week does not count against the person yet: the window is the eight weeks before it.
     api.setNow('2026-03-09T12:00:00.000Z');
     live = await me();
-    expect(live.apps.weeklyWin).toMatchObject({ recordedToday: false, recordedThisWeek: false, lastDay: '2026-03-06' });
+    expect(live.apps.weeklyWin).toMatchObject({ recordedToday: false, recordedThisWeek: false, lastDay: '2026-03-06', window: { have: 1, need: 4, of: 8 } });
+    expect(live.apps.peopleNudge.window).toEqual({ have: 1, need: 4, of: 8 });
     expect(live.apps.payday).toMatchObject({ recordedToday: false, recordedThisWeek: false, lastDay: '2026-03-06' });
     expect(live.sectors.W.price as number).toBeCloseTo(Math.min(live.sectors.W.target as number, first.sectors.W.price + 8), 9);
     sameAsEngine(live);
@@ -298,7 +310,7 @@ describe('the live series', () => {
     // Wealth is not halted: its limit is 45 days after the last payday check.
     expect(live.sectors.W.status).toBe('listed');
     // The streak is gone and yesterday can be filled in.
-    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: ['2026-03-21'], lastDay: '2026-03-05' });
+    expect(live.streak).toMatchObject({ current: 0, recordedToday: false, canBackfill: ['2026-03-21'], lastDay: '2026-03-05' });
     sameAsEngine(live);
 
     live = await postDaily({ sleep: 3, exercise: 3, state: 3 });
@@ -419,5 +431,177 @@ describe('the day of a check', () => {
     live = (await api.call('GET', '/api/me', { token: user.deviceToken })).body.live;
     expect([live.series.start, live.lastCheckDay]).toEqual(['2026-03-02', '2026-03-02']);
     expect(addDays(live.series.start, live.series.length - 1)).toBe(live.today);
+  });
+
+  it('is the local date the device sent at completion: a check resumed and finished in a US evening', async () => {
+    const api = await makeApi({ now: '2026-11-17T15:00:00.000Z' });
+    const user = await newUser(api);
+    const session = await newSession(api, user.deviceToken, { role: 'emp', healthConsent: true, body: { localDate: '2026-11-17' } });
+    await answer(api, user.deviceToken, session.id, backgroundFor('emp'), () => 1, { excludedAreas: [] });
+    // Finished at 20:00 in Atlanta on November 19, which is 01:00 UTC on November 20.
+    api.setNow('2026-11-20T01:00:00.000Z');
+    const done = await api.call('POST', `/api/sessions/${session.id}/complete`, { token: user.deviceToken, body: { localDate: '2026-11-19' } });
+    expect(done.status).toBe(200);
+    const live = (await api.call('GET', '/api/me?today=2026-11-19', { token: user.deviceToken })).body.live as MeLive;
+    expect([live.lastCheckDay, live.today]).toEqual(['2026-11-19', '2026-11-19']);
+    // A Daily Open that evening counts for today.
+    const daily = await api.call('POST', '/api/daily', {
+      token: user.deviceToken,
+      body: { localDate: '2026-11-19', day: '2026-11-19', sleep: 3, exercise: 2, state: 3 },
+    });
+    expect(daily.status).toBe(201);
+    expect(daily.body.live.streak.recordedToday).toBe(true);
+  });
+});
+
+describe('records made on the day of a full check', () => {
+  it('count as a move since the check, under the daily limit, and Why it moved explains them', async () => {
+    const api = await makeApi({ now: '2026-03-10T15:00:00.000Z' });
+    const user = await newUser(api);
+    await completedCheck(api, user.deviceToken, { localDate: '2026-03-10', choose: () => 1 });
+    // Three earlier days and today: four of the last seven, so sleep and activity are replaced today.
+    for (const d of ['2026-03-07', '2026-03-08', '2026-03-09']) {
+      await api.db.query(
+        `insert into daily_entries (user_id, day, logged_on, sleep, exercise, state, at) values ($1, $2, $2, 3, 4, null, $3)`,
+        [user.userId, d, `${d}T20:00:00.000Z`],
+      );
+    }
+    const posted = await api.call('POST', '/api/daily', {
+      token: user.deviceToken,
+      body: { localDate: '2026-03-10', day: '2026-03-10', sleep: 3, exercise: 4, state: null },
+    });
+    expect(posted.status).toBe(201);
+    const live = posted.body.live as MeLive;
+    const body = live.sectors.B;
+    expect(body.sinceCheck).not.toBe(0);
+    expect(Math.abs(body.sinceCheck as number)).toBeLessThanOrEqual(live.moveLimit + 1e-9);
+    expect(live.overall.sinceCheck).not.toBe(0);
+
+    const why = await api.call('GET', '/api/me/breakdown/day?today=2026-03-10', { token: user.deviceToken });
+    expect(why.status).toBe(200);
+    expect([why.body.from, why.body.to]).toEqual(['2026-03-10', '2026-03-10']);
+    const lines = why.body.breakdown.sectors.B.lines as Array<{ source?: string; kind: string }>;
+    expect(lines.length).toBeGreaterThan(0);
+    expect(why.body.prices.from.sectors.B.price).not.toBe(why.body.prices.to.sectors.B.target);
+  });
+});
+
+describe('the counting window of each micro app', () => {
+  // The rules of the algorithm in force, read the way the server reads them.
+  const rules = getAlgo().live;
+  const MONDAY = '2026-03-02';
+  const noon = (day: string) => `${day}T12:00:00.000Z`;
+
+  const personWithCheck = async (api: TestApi) => {
+    const user = await newUser(api);
+    await completedCheck(api, user.deviceToken, { localDate: MONDAY });
+    return user.deviceToken;
+  };
+  const liveOn = async (api: TestApi, token: string, day: string): Promise<MeLive> => {
+    api.setNow(noon(day));
+    const res = await api.call('GET', `/api/me?today=${day}`, { token });
+    expect(res.status).toBe(200);
+    return res.body.live;
+  };
+
+  it('Daily Open: days with an entry in the last 7, today included; the records count from the 4th', async () => {
+    const { windowDays, minDays } = rules.dailyOpen;
+    const api = await makeApi({ now: noon(MONDAY) });
+    const token = await personWithCheck(api);
+    const atCheck = (await liveOn(api, token, MONDAY)).sectors.B.price;
+    for (let i = 0; i < minDays; i += 1) {
+      const day = addDays(MONDAY, i);
+      api.setNow(noon(day));
+      const res = await api.call('POST', '/api/daily', { token, body: { localDate: day, sleep: 3, exercise: 4, state: 4 } });
+      expect(res.status).toBe(201);
+      const live = res.body.live as MeLive;
+      expect(live.apps.dailyOpen.window).toEqual({ have: i + 1, need: minDays, of: windowDays });
+      // The engine replaces the check answers on the day the window is full, not before.
+      if (i + 1 < minDays) expect(live.sectors.B.target).toBe(atCheck);
+      else expect(live.sectors.B.target).not.toBe(atCheck);
+    }
+    // Today without an entry yet still counts the six days before it.
+    expect((await liveOn(api, token, addDays(MONDAY, minDays))).apps.dailyOpen.window).toEqual({ have: minDays, need: minDays, of: windowDays });
+    // Later, with no entry since: the oldest days leave the window.
+    const later = await liveOn(api, token, addDays(MONDAY, windowDays + 1));
+    expect(later.apps.dailyOpen.window).toEqual({ have: minDays - 2, need: minDays, of: windowDays });
+  });
+
+  it('Daily Open: no entries counted without the Body and Mind consent', async () => {
+    const api = await makeApi({ now: noon(MONDAY) });
+    const user = await newUser(api, { health: false });
+    await completedCheck(api, user.deviceToken, { localDate: MONDAY, healthConsent: false });
+    const live = await liveOn(api, user.deviceToken, MONDAY);
+    expect(live.apps.dailyOpen).toMatchObject({ available: false, window: { have: 0, need: rules.dailyOpen.minDays, of: rules.dailyOpen.windowDays } });
+  });
+
+  /**
+   * Weekly Win and People Nudge share one rule: calendar weeks with an entry among the last 8,
+   * 4 needed. The current week is one of them once it has its entry; until then the window is
+   * the 8 weeks before it.
+   */
+  const weekly = [
+    {
+      app: 'weeklyWin' as const,
+      path: '/api/weekly-wins',
+      area: 'C' as const,
+      rule: rules.weeklyWin.regularity,
+      body: (i: number, day: string) => ({ id: `weekly-win-window-${i}`, localDate: day, kind: 'skill' }),
+    },
+    {
+      app: 'peopleNudge' as const,
+      path: '/api/people-nudges',
+      area: 'N' as const,
+      rule: rules.peopleNudge.reach,
+      body: (i: number, day: string) => ({ id: `people-nudge-window-${i}`, localDate: day, planned: 3, reached: ['friend'] }),
+    },
+  ];
+
+  for (const { app, path, area, rule, body } of weekly) {
+    it(`${app}: weeks with an entry in the last ${rule.windowWeeks}; the records count from the ${rule.minWeeks}th`, async () => {
+      const { windowWeeks, minWeeks } = rule;
+      const api = await makeApi({ now: noon(MONDAY) });
+      const token = await personWithCheck(api);
+      const atCheck = (await liveOn(api, token, MONDAY)).sectors[area].price;
+      const post = async (i: number, day: string) => {
+        api.setNow(noon(day));
+        const res = await api.call('POST', path, { token, body: body(i, day) });
+        expect(res.status).toBe(201);
+        return res.body.live as MeLive;
+      };
+      // One entry on the Wednesday of each week.
+      for (let i = 0; i < minWeeks; i += 1) {
+        const live = await post(i, addDays(MONDAY, 7 * i + 2));
+        expect(live.apps[app].window).toEqual({ have: i + 1, need: minWeeks, of: windowWeeks });
+        // The engine takes the extra item in on the week the window is full, not before.
+        if (i + 1 < minWeeks) expect(live.sectors[area].target).toBe(atCheck);
+        else expect(live.sectors[area].target).not.toBe(atCheck);
+      }
+      // The Monday after: the new week has no entry yet and does not count against the person.
+      expect((await liveOn(api, token, addDays(MONDAY, 7 * minWeeks))).apps[app].window).toEqual({ have: minWeeks, need: minWeeks, of: windowWeeks });
+      // Week `windowWeeks` without an entry: the window is weeks 0 to windowWeeks - 1, all four still in.
+      expect((await liveOn(api, token, addDays(MONDAY, 7 * windowWeeks))).apps[app].window).toEqual({ have: minWeeks, need: minWeeks, of: windowWeeks });
+      // One week on, week 0 has left the window.
+      const late = addDays(MONDAY, 7 * (windowWeeks + 1));
+      expect((await liveOn(api, token, late)).apps[app].window).toEqual({ have: minWeeks - 1, need: minWeeks, of: windowWeeks });
+      // An entry this week puts the current week in and moves week 1 out.
+      const live = await post(99, addDays(late, 1));
+      expect(live.apps[app].window).toEqual({ have: minWeeks - 1, need: minWeeks, of: windowWeeks });
+    });
+  }
+
+  it('the window functions read the rule they are given', () => {
+    const until = '2026-03-11'; // a Wednesday
+    const days = ['2026-03-01', '2026-03-09', '2026-03-10', '2026-03-10', '2026-03-11', '2026-03-12'].map((day) => ({ day }));
+    // The last 3 days are 03-09 to 03-11. A day counts once; a day after `until` not at all.
+    expect(dailyWindowOf(days, until, { windowDays: 3, minDays: 2 })).toEqual({ have: 3, need: 2, of: 3 });
+    expect(dailyWindowOf(days, until, { windowDays: 11, minDays: 4 })).toEqual({ have: 4, need: 4, of: 11 });
+    expect(dailyWindowOf([], until, rules.dailyOpen)).toEqual({ have: 0, need: rules.dailyOpen.minDays, of: rules.dailyOpen.windowDays });
+    // Weeks start on Monday. 03-09 opens the current week, 03-01 is the Sunday of two weeks back.
+    expect(weekWindowOf(days, until, { windowWeeks: 2, minWeeks: 1 })).toEqual({ have: 1, need: 1, of: 2 });
+    expect(weekWindowOf(days, until, { windowWeeks: 3, minWeeks: 2 })).toEqual({ have: 2, need: 2, of: 3 });
+    // Without an entry in the current week the window starts at the week before.
+    expect(weekWindowOf([{ day: '2026-03-01' }], until, { windowWeeks: 2, minWeeks: 1 })).toEqual({ have: 1, need: 1, of: 2 });
+    expect(weekWindowOf([{ day: '2026-03-01' }], until, { windowWeeks: 1, minWeeks: 1 })).toEqual({ have: 0, need: 1, of: 1 });
   });
 });

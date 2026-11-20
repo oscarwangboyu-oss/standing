@@ -26,7 +26,9 @@ export const test = base.extend<{ watch: Watch }>({
       const origin = new URL(baseURL ?? 'http://127.0.0.1').origin;
       const errors: string[] = [];
       const foreign: string[] = [];
-      const allowed: RegExp[] = [];
+      // Chrome logs ERR_NETWORK_IO_SUSPENDED when the operating system suspends network I/O
+      // (a busy or sleeping machine). It never comes from the app, so it does not fail a test.
+      const allowed: RegExp[] = [/net::ERR_NETWORK_IO_SUSPENDED/];
       const watchPage = (page: Page) => {
         page.on('console', (message) => {
           if (message.type() === 'error') errors.push(`${page.url()} console: ${message.text()}`);
@@ -189,13 +191,13 @@ export type Answer = 'skip' | 'na' | number;
 
 /**
  * Answers one question the way a person does and waits until it has left the screen. A tap in
- * the first 150 ms after a question appears is ignored by the app (it guards against a double
+ * the first 400 ms after a question appears is ignored by the app (it guards against a double
  * tap), so the tap waits a moment, and is repeated if the question is still there.
  */
 export async function answer(page: Page, how: Answer): Promise<QuestionOnScreen> {
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const question = await questionOnScreen(page);
-    await page.waitForTimeout(220);
+    await page.waitForTimeout(450);
     if (how === 'skip') await page.getByRole('button', { name: 'Skip', exact: true }).click();
     else if (how === 'na') await page.getByRole('button', { name: 'Not applicable', exact: true }).click();
     else await page.locator('#q-text ~ [role="radiogroup"] [role="radio"]').nth(how % question.options.length).click();

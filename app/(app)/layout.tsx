@@ -9,13 +9,16 @@
  *   while they are being sent on, a still placeholder stands in for the screen.
  * - The event queue, other tabs and the daily visit (useRuntime).
  * - The developer panel, in development or with ?debug=1.
+ * - A "Simulated data" notice while the device holds a record made by the demo script.
  */
 import { Suspense, lazy, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { ROUTES, routeKind, shellDefaultsFor } from '@/client/nav';
+import { useDevice } from '@/client/api';
 import { RouteWatcher, useDebug, useGuard, useRuntime } from '@/client/runtime';
 import { NO_SHELL_OPTIONS, ShellContext, createShellStore } from '@/client/shell';
-import { AppShell } from '@/ui';
+import { simulated } from '@/copy/core';
+import { AppShell, Note } from '@/ui';
 import { Holding } from './_core/Holding';
 
 const DevPanel = lazy(() => import('./_core/DevPanel'));
@@ -33,7 +36,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const hold = routeKind(pathname) !== 'free' && !gate.ready;
   const options = hold ? NO_SHELL_OPTIONS : asked;
   const nav = options.nav === undefined ? defaults.nav : options.nav === 'none' ? undefined : options.nav;
-  const body = hold ? <Holding /> : children;
+  const demo = useDevice().profile?.simulated === true;
+  const body = hold ? (
+    <Holding />
+  ) : (
+    <>
+      {demo && (
+        <Note tone="info" title={simulated.title} className="simulated-note">
+          <p>{simulated.text}</p>
+        </Note>
+      )}
+      {children}
+    </>
+  );
 
   return (
     <ShellContext value={shell}>

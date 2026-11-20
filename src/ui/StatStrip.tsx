@@ -13,10 +13,10 @@ export interface StatStripProps {
   className?: string;
 }
 
-/** A row of labelled figures under the quote. Two by two on a narrow phone, one row from 440px. */
+/** A row of labelled figures under the quote. Four: two by two on a narrow phone, one row from 440px. Three or fewer: one row. */
 export function StatStrip({ stats, className }: StatStripProps) {
   return (
-    <dl className={cx(styles.strip, className)}>
+    <dl className={cx(styles.strip, className)} data-count={stats.length}>
       {stats.map((s, i) => (
         <div key={i} className={styles.stat}>
           <dt className={styles.label}>{s.label}</dt>

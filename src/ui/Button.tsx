@@ -16,13 +16,18 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   iconEnd?: ReactNode;
   /** Fill the width of the parent. */
   full?: boolean;
+  /**
+   * For a quiet button that starts a line under text: its label lines up with the text above
+   * instead of with its own padding. The tap area keeps its full size.
+   */
+  inline?: boolean;
   children: ReactNode;
   className?: string;
 }
 
 /** A pill. One primary per screen. Every size is at least 44px tall. */
-export function Button({ variant = 'primary', size = 'md', href, icon, iconEnd, full = false, children, className, type, ...rest }: ButtonProps) {
-  const cls = cx(styles.button, styles[variant], styles[size], full && styles.full, className);
+export function Button({ variant = 'primary', size = 'md', href, icon, iconEnd, full = false, inline = false, children, className, type, ...rest }: ButtonProps) {
+  const cls = cx(styles.button, styles[variant], styles[size], full && styles.full, inline && styles.inline, className);
   const inner = (
     <>
       {icon}

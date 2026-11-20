@@ -63,6 +63,14 @@ describe.each([
   });
 });
 
+describe('sector washes show on a card at night', () => {
+  // A wash at night must not melt into the surface: tags, icon chips and tinted cards would read as missing.
+  it.each(SECTORS)('%s wash is a visible step from the surface', (s) => {
+    expect(contrast(dark[`--${s}-wash`] as string, dark['--surface'] as string)).toBeGreaterThanOrEqual(1.18);
+    expect(luminance(dark[`--${s}-wash`] as string)).toBeGreaterThan(luminance(dark['--surface'] as string));
+  });
+});
+
 describe('gain and loss stay apart from the sector colours', () => {
   it.each([
     ['light', light],

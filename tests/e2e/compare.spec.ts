@@ -12,7 +12,13 @@ test('an invite is created, accepted on a second device, and both see the compar
   await page.getByRole('button', { name: 'Create an invite link' }).click();
   await expect(page.getByRole('heading', { name: 'Your invite link' })).toBeVisible();
   const link = await page.getByRole('main').getByText(/\/i\/[A-Za-z0-9_-]{16,}/).first().innerText();
-  await expect(page.getByRole('list', { name: 'Invites that were not accepted yet' }).getByRole('listitem')).toHaveCount(1);
+  // The new invite is shown once, in its own card, and not repeated in the waiting list.
+  const waiting = page.getByRole('list', { name: 'Invites that were not accepted yet' });
+  await expect(waiting).toHaveCount(0);
+  // Back on the page later, it is listed as waiting, with a button to copy it again.
+  await page.reload();
+  await expect(waiting.getByRole('listitem')).toHaveCount(1);
+  await expect(waiting.getByRole('button', { name: 'Copy link' })).toBeVisible();
 
   // The friend: another browser with nothing on it.
   const friend = await secondDevice(browser, testInfo, watch);
@@ -40,7 +46,7 @@ test('an invite is created, accepted on a second device, and both see the compar
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Side by side');
   await expect(page.getByRole('region', { name: /^ALFA, overall \d+\.\d\d/ })).toBeVisible();
   await expect(page.getByRole('region', { name: /^BRVO, overall \d+\.\d\d/ })).toBeVisible();
-  await expect(page.getByText('Solid: ALFA. Dashed: BRVO. The dashed ring is 100.')).toBeVisible();
+  await expect(page.getByText('Solid line: ALFA. Dotted line: BRVO. The dashed ring is 100.')).toBeVisible();
 
   // The link works once.
   const third = await secondDevice(browser, testInfo, watch);

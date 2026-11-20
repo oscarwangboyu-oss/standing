@@ -88,7 +88,7 @@ async function open(request: Request, deps: Deps, app: MicroApp): Promise<Opened
 async function start(deps: Deps, opened: Opened): Promise<Started> {
   if (opened.body.localDate === undefined || opened.body.localDate === null) throw invalid('localDate is required');
   const today = checkedLocalDay(opened.body.localDate, opened.now);
-  const person = await loadPerson(deps.db, opened.user.id, today);
+  const person = await loadPerson(deps.db, opened.user.id, today, opened.user.health_consent_version !== null);
   if (person.checks.length === 0) {
     throw new ApiError(409, 'check_required', 'complete a check first: the price starts from it');
   }
@@ -123,7 +123,7 @@ async function alreadyStored(deps: Deps, table: string, userId: string, id: stri
 async function finish(deps: Deps, started: Started, app: MicroApp, stored: boolean, day: string): Promise<Response> {
   const { user, today } = started;
   if (stored) deps.track?.({ name: 'micro_app_completed', userId: user.id, at: started.now.toISOString(), app });
-  const person = stored ? await loadPerson(deps.db, user.id, today) : started.person;
+  const person = stored ? await loadPerson(deps.db, user.id, today, user.health_consent_version !== null) : started.person;
   const response: MicroEntryResponse = { stored, day, live: liveOf(person, user, deps.env.flags, today) };
   return json(response, stored ? 201 : 200);
 }
@@ -216,8 +216,12 @@ export async function postPayday(request: Request, deps: Deps): Promise<Response
     throw new ApiError(403, 'payday_not_eligible', 'the payday check is offered to people who live on their own earnings');
   }
   const saveShare = band(body.saveShare, bankVersion, params.saveShare.band, 'saveShare');
+  const debtShare = band(body.debtShare === undefined ? null : body.debtShare, bankVersion, params.debtShare.band, 'debtShare');
   const runway = band(body.runway, bankVersion, params.runway.band, 'runway');
-  if ((periods === 0) !== (saveShare === null)) throw invalid('periods is 0 exactly when saveShare is null');
+  if ((periods === 0) !== (saveShare === null && debtShare === null)) {
+    throw invalid('periods is 0 exactly when there is neither a saveShare nor a debtShare');
+  }
+  // A runway from the money available now has no baseline; an estimate (older clients) has one.
   let baselineDay: string | null = null;
   if (body.baselineDay !== null) {
     if (!isDay(body.baselineDay) || !started.person.checks.some((c) => c.day === body.baselineDay)) {
@@ -225,17 +229,16 @@ export async function postPayday(request: Request, deps: Deps): Promise<Response
     }
     baselineDay = body.baselineDay;
   }
-  if (runway !== null && baselineDay === null) throw invalid('runway needs the baselineDay it was estimated from');
 
   const day = started.today;
   let stored = false;
   if (!(await alreadyStored(deps, 'payday_entries', user.id, id, day))) {
     const inserted = await deps.db.query(
-      `insert into payday_entries (user_id, id, day, periods, save_share, runway, baseline_day, at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+      `insert into payday_entries (user_id, id, day, periods, save_share, burden_share, runway, baseline_day, at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        on conflict do nothing
        returning id`,
-      [user.id, id, day, periods, saveShare, runway, baselineDay, started.now.toISOString()],
+      [user.id, id, day, periods, saveShare, debtShare, runway, baselineDay, started.now.toISOString()],
     );
     stored = inserted.length > 0;
   }

@@ -35,8 +35,15 @@ test('/team rejects a wrong passphrase and shows the gates with the right one', 
   // At least one real person has finished a check by now.
   await expect(gates.getByRole('listitem').filter({ hasText: 'Finish rate' }).getByText(/\d+ of \d+/)).toBeVisible();
 
+  // What needs a look comes first, in its own section with three parts.
+  const attention = page.getByRole('region', { name: 'Needs attention' });
+  await expect(attention).toBeVisible();
+  for (const part of ['Gates not met', 'Scoring tests that warn', 'Question versions with the most breaches']) {
+    await expect(attention.getByRole('heading', { name: part })).toBeVisible();
+  }
+
   // The other sections are there, and no data is marked as simulated in this database.
-  for (const section of ['Overview', 'Questions', 'Prices', 'Norms', 'Returns', 'Micro apps', 'Scoring tests', 'Result page']) {
+  for (const section of ['Attention', 'Overview', 'Questions', 'Prices', 'Norms', 'Returns', 'Micro apps', 'Scoring tests', 'Result page']) {
     await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: section, exact: true })).toBeVisible();
   }
   await expect(page.getByText('Simulated data')).toHaveCount(0);

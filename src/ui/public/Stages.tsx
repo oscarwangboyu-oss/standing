@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { about as copy } from '@/copy/public';
 import { sample } from '@/copy/landing';
 import { cx } from '../cx';
@@ -11,11 +12,31 @@ const P = SKY_VARS;
 const W = LOT_W * 5;
 const H = 184;
 const G = H;
+/** Sky kept above the tallest thing on a lot when a card is cropped. */
+const SKY = 40;
+/** Top of the stakes that mark out a plot, above the street, before the lot is scaled by 1.25. */
+const STAKE = 22;
+/**
+ * Height of the scene each stage needs on a card. Under 1000px each stage is a card of its own,
+ * and the fenced lots and the marked plots are low: their cards show only the lower part of the
+ * scene, so they do not read as an empty sky. The two crops are equal, so cards side by side
+ * line up. The built and the scaffolded street need all of it. 26.4 is the top of the lot's sign.
+ */
+const LOTS = 1.25 * Math.max(26.4, STAKE) + SKY;
+const CROP = [H, H, LOTS, LOTS] as const;
 
 /** The five lots of one stage: built, under scaffolding, fenced, or only marked out. */
 function StageScene({ stage, label }: { stage: number; label: string }) {
   return (
-    <svg className={styles.stageScene} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} focusable="false">
+    <svg
+      className={styles.stageScene}
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMax slice"
+      style={{ '--card-ratio': `${W} / ${CROP[stage] ?? H}` } as CSSProperties}
+      role="img"
+      aria-label={label}
+      focusable="false"
+    >
       {SECTOR_CODES.map((code, i) => {
         const Tower = TOWERS[code];
         return (
@@ -34,6 +55,9 @@ function StageScene({ stage, label }: { stage: number; label: string }) {
             {stage === 3 && (
               <g transform="translate(-10 0) scale(1.25)">
                 <EmptyLot p={P} detail={0} />
+                {/* Two survey stakes with a ribbon mark out each plot. */}
+                <path d={`M14 -8V-${STAKE}M66 -8V-${STAKE}`} stroke={P.trunk} strokeWidth={1.2} strokeLinecap="round" />
+                <path d={`M14 -${STAKE}l7 2.6l-7 2.6zM66 -${STAKE}l7 2.6l-7 2.6z`} fill={P.crane} />
               </g>
             )}
           </g>

@@ -4,6 +4,7 @@
  */
 import type { ConsentState, UserProfile, UsState } from '../shared/api';
 import type { Lang, RoleId } from '../engine';
+import { MIN_TEAM_PASSPHRASE_LENGTH } from './config';
 import { constantTimeEqual, sha256Hex } from './crypto';
 import { first } from './db';
 import { ApiError, bearer, type Deps } from './http';
@@ -21,10 +22,11 @@ export interface UserRow {
   role: RoleId | null;
   us_state: UsState | null;
   ticker: string | null;
+  is_demo: boolean;
 }
 
 const USER_COLUMNS = `u.id, u.created_at, u.general_consent_version, u.general_consent_at,
-  u.health_consent_version, u.health_consent_at, u.lang, u.age, u.role, u.us_state, u.ticker`;
+  u.health_consent_version, u.health_consent_at, u.lang, u.age, u.role, u.us_state, u.ticker, u.is_demo`;
 
 /** The user the device token belongs to. One read. Throws 401 without a valid token. */
 export async function requireUser(request: Request, deps: Deps): Promise<UserRow> {
@@ -64,6 +66,7 @@ export function profileOf(user: UserRow): UserProfile {
     usState: user.us_state,
     age: user.age,
     role: user.role,
+    simulated: user.is_demo === true,
   };
 }
 
@@ -74,6 +77,16 @@ export function profileOf(user: UserRow): UserProfile {
 export async function requireTeam(request: Request, deps: Deps): Promise<void> {
   const expected = deps.env.adminPassphrase;
   if (!expected) throw new ApiError(403, 'team_closed', 'the team dashboard is closed: no passphrase is configured');
+  // Guesses are not rate limited here (serverless instances share no memory), so every hosted
+  // deployment (production and previews) needs a passphrase too long to guess. A short one
+  // keeps the dashboard closed. Local development may use a short one.
+  if (deps.env.environment !== 'local' && expected.length < MIN_TEAM_PASSPHRASE_LENGTH) {
+    throw new ApiError(
+      403,
+      'team_closed',
+      `the team dashboard is closed: ADMIN_PASSPHRASE needs ${MIN_TEAM_PASSPHRASE_LENGTH} characters or more outside local development`,
+    );
+  }
   const given = bearer(request);
   // Compare even when nothing was sent, so both failures take the same time.
   const ok = await constantTimeEqual(given ?? '', expected);

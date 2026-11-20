@@ -25,6 +25,9 @@ export const head = {
   noOverall: (min: number) => `An overall price needs ${min} priced sectors.`,
   why: 'Why it moved',
   none: 'None yet',
+  /** In the key figures of a first record, in place of the high and the low, which equal the price. */
+  listed: 'Sectors listed',
+  listedOf: (priced: number, total: number) => `${priced} of ${total}`,
 } as const;
 
 /** While the result of a check that was just finished is on its way to the server. */
@@ -116,7 +119,10 @@ export const sectors = {
 
 export const shape = {
   title: 'Your shape',
-  caption: 'The dashed ring is 100, the issue price. The rim is 130 and the centre is 70.',
+  caption: 'The dashed ring is 100, the issue price. The rim is 130 and the center is 70.',
+  /** Under the pentagon when some sectors have no price. Their spokes are dashed. */
+  partial: (codes: readonly string[]) =>
+    `${listOf(codes)} ${plural(codes.length, 'has', 'have')} no price, so ${plural(codes.length, 'its spoke is', 'their spokes are')} dashed. The shape joins the sectors that do.`,
   noTypeFlat: (band: number) =>
     `Your priced sectors are within ${band} points of each other. No two lead, so there is no type this time.`,
   noTypeFew: 'A type is the pair of your two highest sectors. It needs two priced sectors.',
@@ -195,6 +201,11 @@ export const actions = {
     ticker ? `Your comparison with ${ticker} is ready.` : 'Your comparison is ready.',
   compareOpen: 'Open the comparison',
   inviteGone: 'The invite you opened is no longer valid. Ask for a new link.',
+  /** The row under the actions that leads to the market home. */
+  onwardLabel: 'Next',
+  market: 'Your market',
+  marketDaily: 'Your prices move day by day. A Daily Open takes about 15 seconds.',
+  marketPlain: 'Your prices day by day, sector by sector.',
 } as const;
 
 export const share = {
@@ -204,7 +215,14 @@ export const share = {
   saveImage: 'Save image',
   copyLink: 'Copy link',
   linkNote: 'The link opens the Standing front page.',
-  size: '1080 by 1350 pixels, PNG.',
+  /** "1080 by 1920 pixels, PNG." */
+  size: (width: number, height: number) => `${width} by ${height} pixels, PNG.`,
+  /** The two shapes of the image. */
+  format: 'Image shape',
+  formats: {
+    story: { name: 'Story', ratio: '9:16' },
+    post: { name: 'Post', ratio: '4:5' },
+  },
   saved: 'Image saved',
   copied: 'Link copied',
   failed: 'The image could not be made. Try again.',
@@ -216,6 +234,11 @@ export const share = {
 
 export const why = {
   title: 'Why it moved',
+  /** For one sector, as on the market: "Why SKIL moved". */
+  titleFor: (code: string) => `Why ${code} moved`,
+  /** On a first record nothing has moved yet: "SKIL on your first check". */
+  firstTitle: 'Your first check',
+  firstTitleFor: (code: string) => `${code} on your first check`,
   overall: 'Overall price',
   between: (from: string, to: string) => `From your check of ${from} to your check of ${to}.`,
   before: 'Before',
@@ -230,10 +253,21 @@ export const why = {
   skipped: 'Skipped',
   notAsked: 'Not asked',
   sameAnswer: 'Same answer. It counts at another weight because of the answer time.',
+  /** In place of the earlier option when the question was worded another way in the earlier check. */
+  askedAnotherWay: 'Asked another way',
   kinds: {
     version: 'The scoring or the baseline changed version.',
     other: 'The combined effect of these changes.',
   },
+  /**
+   * The line "other" when the two checks were taken in another situation or age band. Role
+   * names come from roleNames, age bands from the bank: "Your age band was 25 to 29 and is now 18 to 20."
+   */
+  situation: (from: string, to: string) => `Your situation changed from ${from} to ${to}.`,
+  ageBand: (from: string, to: string) => `Your age band was ${from} and is now ${to}.`,
+  /** Under the situation, when some questions of this price were worded another way or asked in one check only. */
+  reworded: 'Some questions were asked another way, so part of the move cannot be put on one answer.',
+  unassigned: 'Part of the move cannot be put on one answer.',
   extras: {
     daily_state: 'How you felt, from the Daily Open',
     weekly_win: 'How regularly you logged a Weekly Win',

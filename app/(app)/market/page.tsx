@@ -11,7 +11,7 @@ import { api, useAsync, useDevice, useMe } from '@/client/api';
 import { ROUTES, resultRoute } from '@/client/nav';
 import { useShell } from '@/client/shell';
 import { today } from '@/client/today';
-import { entries, market as copy, mindNotice, moved, openFeature, retake, roleNames, sectorLines } from '@/copy/market';
+import { checkInProgress, entries, market as copy, mindNotice, moved, openFeature, retake, roleNames, sectorLines } from '@/copy/market';
 import { getAlgo, getBank, type AreaId } from '@/engine';
 import type { MeLive, MeResponse } from '@/shared/api';
 import {
@@ -44,9 +44,11 @@ import {
   Spot,
   Streak,
   Ticker,
+  cx,
   formatDay,
   formatPrice,
   sharedDomain,
+  type StreakDay,
 } from '@/ui';
 import {
   areaOf,
@@ -80,19 +82,39 @@ function cohortOf(me: MeResponse): string | undefined {
   return ages ? copy.cohort(ages, roleNames[role]) : undefined;
 }
 
+/** "Why SKIL moved" once the sector has moved, "SKIL today" while it has not. */
+function sheetTitle(live: MeLive, area: AreaId): string {
+  const code = SECTOR_CODES.find((c) => areaOf(c) === area) ?? '';
+  const sector = live.sectors[area];
+  return (sector.change ?? 0) !== 0 || (sector.sinceCheck ?? 0) !== 0 ? moved.title(code) : moved.stillTitle(code);
+}
+
 export default function MarketPage() {
   const me = useMe();
+  const device = useDevice();
+  const log = useDailyLog(device.userId);
   const live = me.data?.live ?? null;
+  const week = live && live.apps.dailyOpen.enabled && live.apps.dailyOpen.available ? streakWeek(live.streak, live.today, copy.weekdays, log.known) : null;
+  const weekKey = JSON.stringify(week);
 
+  // From 960px the streak sits in the sticky column under the skyline, so the reward of the
+  // Daily Open stays in view next to the board. On a phone it stays in the Today block.
   const aside = useMemo(
     () =>
       live ? (
         <>
           <SkylineCard prices={livePrices(live)} status={liveStatus(live)} lit={litToday(live)} size="small" />
           <p className={styles.skyNote}>{copy.skylineLit}</p>
+          {week && (
+            <Card className={cx(styles.streakAside, styles.wideOnly)} variant="flat">
+              <Streak days={week} count={live.streak.current} />
+            </Card>
+          )}
         </>
       ) : undefined,
-    [live],
+    // weekKey stands for week: the log hands out a new object on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [live, weekKey],
   );
   useShell({ aside });
 
@@ -116,12 +138,10 @@ export default function MarketPage() {
       </div>
     );
   }
-  return <Market me={me.data} live={live} />;
+  return <Market me={me.data} live={live} week={week} />;
 }
 
-function Market({ me, live }: { me: MeResponse; live: MeLive }) {
-  const device = useDevice();
-  const log = useDailyLog(device.userId);
+function Market({ me, live, week }: { me: MeResponse; live: MeLive; week: StreakDay[] | null }) {
   const [selected, setSelected] = useState<AreaId | null>(null);
   const [asked, setAsked] = useState(false);
   const breakdown = useAsync(() => api.dayBreakdown({ today: today() }), [live.today, live.overall.target], { enabled: asked });
@@ -176,6 +196,22 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
     setSelected(area);
   };
 
+  // A check that was started and left: it goes on at the question where it stopped.
+  const inProgress = me.openSession;
+
+  // The change shown first: against yesterday. On the first day of the series there is no
+  // yesterday: then against the check before (a retake the same day), or against what today's
+  // check gave on its own (records made after it today). "First record" only when neither moved.
+  const sinceToday = live.overall.sinceCheck !== null && Math.abs(live.overall.sinceCheck) >= 0.005 ? live.overall.sinceCheck : null;
+  const headline =
+    live.overall.change !== null
+      ? { change: { value: live.overall.change, pct: live.overall.changePercent }, since: copy.sinceYesterday }
+      : me.change && me.change.delta !== null
+        ? { change: { value: me.change.delta, pct: me.change.percent }, since: copy.sinceLastCheck }
+        : sinceToday !== null
+          ? { change: { value: sinceToday, pct: live.overall.sinceCheckPercent }, since: copy.sinceTodaysCheck }
+          : { change: null, since: copy.sinceYesterday };
+
   return (
     <>
       {live.mindNotice && (
@@ -194,8 +230,8 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
             ticker={ticker}
             cohort={cohortOf(me)}
             price={overall}
-            change={live.overall.change !== null ? { value: live.overall.change, pct: live.overall.changePercent } : null}
-            since={copy.sinceYesterday}
+            change={headline.change}
+            since={headline.since}
           />
           <div className={styles.against}>
             <p className={styles.againstLine}>
@@ -203,6 +239,8 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
               <Change value={overall - 100} size="sm" />
             </p>
             <Ruler value={overall} />
+            {/* The price history needs two days. Until then the ruler is the picture, and this line says when the chart starts. */}
+            {points.length < 2 && <p className={styles.rulerNote}>{copy.historyOneDay}</p>}
           </div>
           {isCatchingUp(live.overall) && (
             <p className={styles.catchUp}>{copy.catchingUp(formatPrice(live.overall.target as number), live.moveLimit)}</p>
@@ -216,9 +254,19 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
         </div>
       )}
 
-      {(feature || live.retake.due) && (
+      {(feature || live.retake.due || inProgress) && (
         <Block label={copy.today}>
-          {live.retake.due && (
+          {inProgress && (
+            <Note title={checkInProgress.title}>
+              <div className={styles.retake}>
+                <p>{checkInProgress.body(inProgress.answered)}</p>
+                <Button variant="secondary" size="sm" href={ROUTES.check} icon={<IconRetake size={18} />}>
+                  {checkInProgress.action}
+                </Button>
+              </div>
+            </Note>
+          )}
+          {live.retake.due && !inProgress && (
             <Note title={retake.title}>
               <div className={styles.retake}>
                 <p>{retake.body(live.retake.daysSinceCheck)}</p>
@@ -229,9 +277,9 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
             </Note>
           )}
           {feature}
-          {dailyShown && (
-            <Card className={styles.streak} variant="flat">
-              <Streak days={streakWeek(live.streak, live.today, copy.weekdays, log.known)} count={live.streak.current} />
+          {dailyShown && week && (
+            <Card className={cx(styles.streak, styles.narrowOnly)} variant="flat">
+              <Streak days={week} count={live.streak.current} />
             </Card>
           )}
         </Block>
@@ -273,19 +321,17 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
         </Card>
       </Block>
 
-      <Block title={copy.history} id="m-history">
-        <Card>
-          {points.length > 1 ? (
+      {points.length > 1 && (
+        <Block title={copy.history} id="m-history">
+          <Card>
             <PriceChart
               points={points}
               spacing="day"
               caption={hasVersionMark ? `${copy.historyCaption} ${copy.historyCaptionVersion}` : copy.historyCaption}
             />
-          ) : (
-            <p className={styles.chartNote}>{copy.historyOneDay}</p>
-          )}
-        </Card>
-      </Block>
+          </Card>
+        </Block>
+      )}
 
       <Block title={copy.more} id="m-more">
         <Card pad="none">
@@ -304,6 +350,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                       ? entries.payday.last(formatDay(live.apps.payday.lastDay))
                       : entries.payday.setUp
                 }
+                statusTone={live.apps.payday.recordedToday ? 'done' : undefined}
               />
             )}
             {live.apps.weeklyWin.enabled && live.apps.weeklyWin.available && (
@@ -314,6 +361,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                 title={entries.win.title}
                 detail={entries.win.detail}
                 status={live.apps.weeklyWin.recordedThisWeek ? entries.doneThisWeek : entries.dueThisWeek}
+                statusTone={live.apps.weeklyWin.recordedThisWeek ? 'done' : 'due'}
               />
             )}
             {live.apps.peopleNudge.enabled && live.apps.peopleNudge.available && (
@@ -324,14 +372,22 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
                 title={entries.people.title}
                 detail={entries.people.detail}
                 status={live.apps.peopleNudge.recordedThisWeek ? entries.doneThisWeek : entries.dueThisWeek}
+                statusTone={live.apps.peopleNudge.recordedThisWeek ? 'done' : 'due'}
               />
             )}
             <Entry
-              href={ROUTES.retake}
+              href={inProgress ? ROUTES.check : ROUTES.retake}
               icon={<IconRetake />}
               title={entries.retake.title}
-              detail={live.retake.due ? entries.retake.dueDetail(live.retake.daysSinceCheck) : entries.retake.detail(dailyParams.retestAfterDays)}
-              status={live.retake.due ? entries.retake.due : formatDay(live.retake.dueDay)}
+              detail={
+                inProgress
+                  ? checkInProgress.body(inProgress.answered)
+                  : live.retake.due
+                    ? entries.retake.dueDetail(live.retake.daysSinceCheck)
+                    : entries.retake.detail(dailyParams.retestAfterDays)
+              }
+              status={inProgress ? entries.retake.inProgress : live.retake.due ? entries.retake.due : formatDay(live.retake.dueDay)}
+              statusTone={!inProgress && live.retake.due ? 'due' : undefined}
             />
             <Entry href={resultRoute()} icon={<IconMarket />} title={entries.result.title} detail={entries.result.detail} />
             <Entry href={ROUTES.compare} icon={<IconCompare />} title={entries.compare.title} detail={entries.compare.detail} />
@@ -342,7 +398,7 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
 
       {me.latest?.result.normProvisional && <BaselineNote className={styles.baseline} />}
 
-      <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected ? moved.title(SECTOR_CODES.find((c) => areaOf(c) === selected) ?? '') : ''}>
+      <Sheet open={selected !== null} onClose={() => setSelected(null)} title={selected ? sheetTitle(live, selected) : ''}>
         {selected && (
           <SectorSheet
             live={live}

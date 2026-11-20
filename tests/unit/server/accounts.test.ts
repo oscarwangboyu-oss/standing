@@ -30,6 +30,7 @@ describe('first save', () => {
       usState: null,
       age: null,
       role: null,
+      simulated: false,
     });
     expect(me.body.latest).toBeNull();
     expect(me.body.history).toEqual([]);
@@ -150,6 +151,24 @@ describe('restore with the recovery code', () => {
     expect(again.body.userId).toBe(created.userId);
     // Rotation needs a signed-in device.
     expect((await api.call('POST', '/api/recovery/rotate')).status).toBe(401);
+    expect(rotated.body.disconnected).toBe(0);
+  });
+
+  it('can sign out every other device when a code may have leaked', async () => {
+    const api = await makeApi();
+    const created = await newUser(api);
+    // Someone else connected with the code.
+    const stranger = await api.call('POST', '/api/restore', { body: { recoveryCode: created.recoveryCode } });
+    expect(stranger.status).toBe(200);
+    expect((await api.call('GET', '/api/me', { token: stranger.body.deviceToken })).status).toBe(200);
+
+    const rotated = await api.call('POST', '/api/recovery/rotate', { token: created.deviceToken, body: { disconnectOthers: true } });
+    expect(rotated.status).toBe(200);
+    expect(rotated.body.disconnected).toBe(1);
+    // The other device is out; this one is still in, and the record is untouched.
+    expect((await api.call('GET', '/api/me', { token: stranger.body.deviceToken })).status).toBe(401);
+    expect((await api.call('GET', '/api/me', { token: created.deviceToken })).status).toBe(200);
+    expect((await api.call('POST', '/api/recovery/rotate', { token: created.deviceToken, body: { disconnectOthers: 'yes' } })).status).toBe(400);
   });
 });
 

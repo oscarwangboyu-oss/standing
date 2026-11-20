@@ -5,13 +5,13 @@
  * question events, daily entries, payday bands, weekly wins, people nudges), and the engine
  * computes the day-by-day series from them. A year of full history costs a few milliseconds.
  *
- * Days. A micro-app entry carries the device's local date. A check has two dates: the local
- * date on which it was started (sessions.local_day) and the UTC time at which it was completed.
- * checkDayOf picks the local date when the two are within a day of each other, which is every
- * check finished in one sitting, and the UTC date of completion otherwise (a check resumed
- * days later counts from the day it was finished).
+ * Days. A micro-app entry carries the device's local date. A check counts from the device's
+ * local date on which it was completed (sessions.completed_local_day). For checks completed
+ * before that column existed: the local date on which it was started (sessions.local_day) when
+ * that is within a day of the UTC completion date, which is every check finished in one
+ * sitting, and the UTC date of completion otherwise.
  */
-import type { DayPrices, FeatureFlags, LiveApp, LiveSector, MeLive } from '../shared/api';
+import { HEALTH_AREAS, type DayPrices, type FeatureFlags, type LiveApp, type LiveSector, type MeLive } from '../shared/api';
 import {
   ALGOS,
   AREA_IDS,
@@ -48,9 +48,13 @@ import { daysBetween } from './http';
 import { backgroundOf, excludedAreasOf, stepOf, type EventRow, type SessionRow } from './sessions';
 import { versionMarkers } from './versions';
 
-/** The day a completed check counts from. See the top of this file. */
-export function checkDayOf(session: { local_day: string; completed_at: string | null }): string {
+/**
+ * The day a completed check counts from. The device's local date at completion when the client
+ * sent it; otherwise the rule at the top of this file.
+ */
+export function checkDayOf(session: { local_day: string; completed_at: string | null; completed_local_day?: string | null }): string {
   if (session.completed_at === null) return session.local_day;
+  if (session.completed_local_day) return session.completed_local_day;
   const done = session.completed_at.slice(0, 10);
   return Math.abs(daysBetween(session.local_day, done)) <= 1 ? session.local_day : done;
 }
@@ -84,6 +88,7 @@ interface PaydayRow {
   day: string;
   periods: number;
   save_share: number | null;
+  burden_share: number | null;
   runway: number | null;
   baseline_day: string | null;
 }
@@ -98,8 +103,8 @@ interface WinRow {
 
 type NudgeRow = { day: string; planned: number } & Record<`reached_${NudgeCategory}`, number>;
 
-const SESSION_COLUMNS = `id, user_id, created_at, completed_at, local_day, age, role, extra, us_state, ticker,
-  lang, bank_version, health_consent`;
+const SESSION_COLUMNS = `id, user_id, created_at, completed_at, completed_local_day, local_day, age, role, extra,
+  us_state, ticker, lang, bank_version, health_consent`;
 
 /**
  * The versions the series starts with and the days they changed, from the version log. Without
@@ -126,7 +131,13 @@ async function versionOptions(db: Db, firstSessionId: string, today: string): Pr
 }
 
 /** Reads everything the timeline needs about one person. Five reads, plus two when a version changed. */
-export async function loadPerson(db: Db, userId: string, today: string): Promise<LoadedPerson> {
+/**
+ * `health` is whether the person holds the Body and Mind consent now. Without it every check is
+ * read without Body and Mind and the Daily Open records are left out, from the moment the
+ * consent is withdrawn: the live price shows those two sectors as not listed. The stored
+ * records themselves are untouched until the person deletes their data.
+ */
+export async function loadPerson(db: Db, userId: string, today: string, health: boolean): Promise<LoadedPerson> {
   const sessions = (
     await db.query<SessionRow>(
       `select ${SESSION_COLUMNS} from sessions where user_id = $1 and completed_at is not null
@@ -157,32 +168,29 @@ export async function loadPerson(db: Db, userId: string, today: string): Promise
     steps: stepsBySession.get(session.id) ?? [],
   }));
 
-  const dailyRows = await db.query<DailyRow>(
-    'select day, logged_on, sleep, exercise, state from daily_entries where user_id = $1 order by day',
-    [userId],
-  );
-  const paydayRows = await db.query<PaydayRow>(
-    'select day, periods, save_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
-    [userId],
-  );
-  const winRows = await db.query<WinRow>(
-    'select day, kind, hours, exam, level from weekly_wins where user_id = $1 order by at, id',
-    [userId],
-  );
-  const nudgeRows = await db.query<NudgeRow>(
-    `select day, planned, reached_family, reached_friend, reached_mentor, reached_work, reached_other
-     from people_nudges where user_id = $1 order by at, id`,
-    [userId],
-  );
+  // The four micro-app tables at once: on a hosted database each read is a round trip.
+  const [dailyRows, paydayRows, winRows, nudgeRows] = await Promise.all([
+    db.query<DailyRow>('select day, logged_on, sleep, exercise, state from daily_entries where user_id = $1 order by day', [userId]),
+    db.query<PaydayRow>(
+      'select day, periods, save_share, burden_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
+      [userId],
+    ),
+    db.query<WinRow>('select day, kind, hours, exam, level from weekly_wins where user_id = $1 order by at, id', [userId]),
+    db.query<NudgeRow>(
+      `select day, planned, reached_family, reached_friend, reached_mentor, reached_work, reached_other
+       from people_nudges where user_id = $1 order by at, id`,
+      [userId],
+    ),
+  ]);
 
   const timelineChecks: TimelineCheck[] = checks.map((c) => ({
     day: c.day,
     background: backgroundOf(c.session),
     steps: c.steps,
     bankVersion: c.session.bank_version,
-    excludedAreas: excludedAreasOf(c.session),
+    excludedAreas: health ? excludedAreasOf(c.session) : [...HEALTH_AREAS],
   }));
-  const daily: DailyEntry[] = dailyRows.map((r) => ({
+  const daily: DailyEntry[] = (health ? dailyRows : []).map((r) => ({
     day: r.day,
     loggedOn: r.logged_on,
     sleep: r.sleep,
@@ -193,6 +201,7 @@ export async function loadPerson(db: Db, userId: string, today: string): Promise
     day: r.day,
     periods: r.periods,
     saveShare: r.save_share,
+    debtShare: r.burden_share,
     runway: r.runway,
     baselineDay: r.baseline_day,
   }));
@@ -281,6 +290,51 @@ function haltsOf(points: readonly TimelinePoint[]): MeLive['halts'] {
 const percentOf = (delta: number | null, base: number | null): number | null =>
   delta !== null && base ? (delta / base) * 100 : null;
 
+type CountWindow = NonNullable<LiveApp['window']>;
+
+/**
+ * Daily Open: the days of the last `windowDays` (today included) with an entry, against the
+ * `minDays` the engine needs before the records replace check answers (dailyAt in
+ * src/engine/live/daily.ts). A day counts once, whichever of the three taps it holds.
+ */
+export function dailyWindowOf(
+  entries: readonly Pick<DailyEntry, 'day'>[],
+  until: string,
+  rule: { windowDays: number; minDays: number },
+): CountWindow {
+  const end = dayNumber(until);
+  const days = new Set<number>();
+  for (const entry of entries) {
+    const at = dayNumber(entry.day);
+    if (at <= end && at > end - rule.windowDays) days.add(at);
+  }
+  return { have: days.size, need: rule.minDays, of: rule.windowDays };
+}
+
+/**
+ * Weekly Win and People Nudge: the calendar weeks of the last `windowWeeks` with an entry,
+ * against `minWeeks`. The weeks are the ones the engine looks back over (windowWeeks in
+ * src/engine/live/weekly.ts): the current week and the ones before it once the current week
+ * has its entry, otherwise the weeks before the current one.
+ */
+export function weekWindowOf(
+  entries: readonly { day: string }[],
+  until: string,
+  rule: { windowWeeks: number; minWeeks: number },
+): CountWindow {
+  const end = dayNumber(until);
+  const weeks = new Set<number>();
+  for (const entry of entries) {
+    const at = dayNumber(entry.day);
+    if (at <= end) weeks.add(weekOf(at));
+  }
+  const current = weekOf(end);
+  const last = weeks.has(current) ? current : current - 1;
+  let have = 0;
+  for (let week = last; week > last - rule.windowWeeks; week -= 1) if (weeks.has(week)) have += 1;
+  return { have, need: rule.minWeeks, of: rule.windowWeeks };
+}
+
 /**
  * The `live` block of GET /api/me: the series and what the home page says about today.
  * null before the first completed check.
@@ -307,7 +361,8 @@ export function liveOf(
   for (const area of AREA_IDS) {
     const s = now.sectors[area];
     const prev = before?.sectors[area] ?? null;
-    const base = atCheck?.sectors[area].price ?? null;
+    // From the price the last check gave on its own, so that day's micro-app records count as a move.
+    const base = atCheck ? (atCheck.check ? atCheck.check.prices[area] : atCheck.sectors[area].price) : null;
     const open = halts.find((h) => h.area === area && h.to === null);
     sectors[area] = {
       status: s.status,
@@ -327,7 +382,8 @@ export function liveOf(
   }
 
   const change = now.overall !== null && before !== null && before.overall !== null ? now.overall - before.overall : null;
-  const sinceCheck = now.overall !== null && atCheck !== null && atCheck.overall !== null ? now.overall - atCheck.overall : null;
+  const checkOverall = atCheck ? (atCheck.check ? atCheck.check.overall : atCheck.overall) : null;
+  const sinceCheck = now.overall !== null && checkOverall !== null ? now.overall - checkOverall : null;
 
   let high: number | null = null;
   let low: number | null = null;
@@ -340,9 +396,12 @@ export function liveOf(
   }
 
   const { daily = [], paydays = [], weeklyWins = [], peopleNudges = [] } = person.history;
-  const streak = dailyStreak(daily, until, tl.versions.algo);
+  const counted = dailyStreak(daily, until, tl.versions.algo);
+  // A day before the first full check is not offered for filling in: there was no price yet.
+  const firstCheckDay = person.checks[0].day;
+  const streak = { ...counted, canBackfill: counted.canBackfill.filter((day) => day >= firstCheckDay), firstDay: firstCheckDay };
   const week = weekOf(dayNumber(until));
-  const appOf = (enabled: boolean, available: boolean, days: readonly string[]): LiveApp => {
+  const appOf = (enabled: boolean, available: boolean, days: readonly string[], window: CountWindow | null): LiveApp => {
     let lastDay: string | null = null;
     for (const day of days) if (day <= until && (lastDay === null || day > lastDay)) lastDay = day;
     return {
@@ -351,10 +410,12 @@ export function liveOf(
       recordedToday: days.includes(until),
       recordedThisWeek: days.some((day) => weekOf(dayNumber(day)) === week),
       lastDay,
+      window,
     };
   };
   const eligible = paydayEligible(getBank(latest.session.bank_version), backgroundOf(latest.session), tl.versions.algo);
-  const retestAfter = getAlgo(tl.versions.algo).live.dailyOpen.retestAfterDays;
+  const rules = getAlgo(tl.versions.algo).live;
+  const retestAfter = rules.dailyOpen.retestAfterDays;
 
   return {
     today: until,
@@ -374,7 +435,7 @@ export function liveOf(
       change,
       changePercent: percentOf(change, before?.overall ?? null),
       sinceCheck,
-      sinceCheckPercent: percentOf(sinceCheck, atCheck?.overall ?? null),
+      sinceCheckPercent: percentOf(sinceCheck, checkOverall),
       covers: now.overallCovers,
     },
     sectors,
@@ -383,14 +444,19 @@ export function liveOf(
     mindNotice: now.mindNotice,
     streak,
     apps: {
-      dailyOpen: appOf(flags.dailyOpen, user.health_consent_version !== null, daily.map((e) => e.day)),
+      dailyOpen: appOf(
+        flags.dailyOpen,
+        user.health_consent_version !== null,
+        daily.map((e) => e.day),
+        dailyWindowOf(daily, until, rules.dailyOpen),
+      ),
       payday: {
-        ...appOf(flags.payday, eligible, paydays.map((e) => e.day)),
+        ...appOf(flags.payday, eligible, paydays.map((e) => e.day), null),
         eligible,
         baseline: eligible ? paydayBaselineOf({ day: latest.day, steps: latest.steps }, tl.versions.algo) : null,
       },
-      weeklyWin: appOf(flags.weeklyWin, true, weeklyWins.map((e) => e.day)),
-      peopleNudge: appOf(flags.peopleNudge, true, peopleNudges.map((e) => e.day)),
+      weeklyWin: appOf(flags.weeklyWin, true, weeklyWins.map((e) => e.day), weekWindowOf(weeklyWins, until, rules.weeklyWin.regularity)),
+      peopleNudge: appOf(flags.peopleNudge, true, peopleNudges.map((e) => e.day), weekWindowOf(peopleNudges, until, rules.peopleNudge.reach)),
     },
     retake: {
       due: tl.retake.due,
@@ -398,6 +464,6 @@ export function liveOf(
       daysUntil: Math.max(0, retestAfter - tl.retake.daysSinceCheck),
       dueDay: tl.retake.dueDay,
     },
-    moveLimit: getAlgo(tl.versions.algo).live.dailyMoveLimitPoints,
+    moveLimit: rules.dailyMoveLimitPoints,
   };
 }

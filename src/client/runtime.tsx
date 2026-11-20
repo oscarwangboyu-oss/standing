@@ -9,9 +9,10 @@
  */
 import { Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { api, meResource, queue, useDevice, useResource } from './api';
+import { api, configResource, meResource, queue, useDevice, useResource } from './api';
 import { device, followOtherTabs } from './device';
 import { guard, type Standing } from './nav';
+import { pendingDaily } from './pendingDaily';
 import { check } from './session';
 import { pingVisit } from './today';
 
@@ -101,11 +102,14 @@ export function useLocation(): RouteLocation | null {
 
 /**
  * True in development, and once the address has carried ?debug=1 on this page load. It stays
- * true while the person moves between screens.
+ * true while the person moves between screens. Never in the production environment: the panel
+ * answers checks at random, and those would count as real people on the team dashboard.
  */
 export function useDebug(): boolean {
   useLocation();
-  return process.env.NODE_ENV === 'development' || debugSeen;
+  const config = useResource(configResource);
+  if (process.env.NODE_ENV === 'development') return true;
+  return debugSeen && config.data !== null && config.data.environment !== 'production';
 }
 
 // ---------------------------------------------------------------- the guard
@@ -146,8 +150,9 @@ export function Guard() {
 // ---------------------------------------------------------------- page-wide chores
 
 /**
- * Once per page: sends queued events and keeps sending them (online, page hide), follows
- * changes made in another tab, and records today's visit once per local day.
+ * Once per page: sends queued events and keeps sending them (online, page hide), sends a Daily
+ * Open kept on the device while offline, follows changes made in another tab, and records
+ * today's visit once per local day.
  */
 export function useRuntime(): void {
   const token = useDevice().deviceToken;
@@ -156,8 +161,13 @@ export function useRuntime(): void {
     const detach = events.attach(window);
     const unfollow = followOtherTabs(window);
     void events.flush();
+    // A Daily Open made offline goes out on this open, and again when the connection returns.
+    const daily = pendingDaily();
+    const detachDaily = daily.attach(window);
+    void daily.flush();
     return () => {
       detach();
+      detachDaily();
       unfollow();
     };
   }, []);

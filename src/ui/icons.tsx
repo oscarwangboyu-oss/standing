@@ -60,6 +60,14 @@ export const IconCare = make('M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10
 export const IconCompare = make('M2.5 20h19M4.5 20v-8h5.5v8M14 20V6h5.5v14');
 export const IconCalendar = make('M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 3v4M16 3v4M4 10.5h16');
 export const IconMinus = make('M6 12h12');
+/** An equals sign: a price that did not move. A minus would read as a small loss. */
+export const IconFlat = make('M6 9.5h12M6 14.5h12');
+/** An open book: how scoring works. */
+export const IconBook = make('M12 6.5C10.2 5.2 7.6 4.6 4 4.8v13.4c3.6-.2 6.2.4 8 1.7M12 6.5c1.8-1.3 4.4-1.9 8-1.7v13.4c-3.6-.2-6.2.4-8 1.7M12 6.5v13.4');
+/** A padlock: the privacy notice. */
+export const IconLock = make('M6.5 11h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-6A1.5 1.5 0 0 1 6.5 11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3M12 14.6v2');
+/** A page with a folded corner and lines: the terms. */
+export const IconDoc = make('M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5zM14 3.5v4h4M9 12h6M9 15.5h6');
 /** Filled triangles for gains and losses: heavier than a line arrow, readable at 10px. */
 export const IconUp = make('M12 5.5l7.5 12.5h-15z', true);
 export const IconDown = make('M12 18.5L4.5 6h15z', true);

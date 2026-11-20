@@ -24,6 +24,10 @@ export const market = {
   noTicker: 'YOU',
   cohort: (ages: string, role: string) => `Ages ${ages}, ${role}`,
   sinceYesterday: 'since yesterday',
+  /** The first day of the series, after a second check that day. */
+  sinceLastCheck: 'since your last check',
+  /** The first day of the series, after records made since the check that day. */
+  sinceTodaysCheck: "since today's check",
   againstIssue: 'Against the issue price',
   sinceCheck: (day: string) => `Since the full check on ${day}`,
   /** The shown price trails what today's data gives. */
@@ -38,7 +42,8 @@ export const market = {
   history: 'Price history',
   historyCaption: 'One point a day since your first full check. A ring marks a full check. The dashed line is 100, the issue price.',
   historyCaptionVersion: 'A vertical line marks a change of scoring version.',
-  historyOneDay: 'The chart starts tomorrow. It needs two days of prices.',
+  /** Under the ruler while there is only one day of prices. The price history block appears from the second day. */
+  historyOneDay: 'The price history starts tomorrow. It needs two days of prices.',
   versionLabel: (algo: number) => `Scoring v${algo}`,
   versionLabelOther: 'New version',
   more: 'Keep it current',
@@ -56,7 +61,7 @@ export const market = {
 /** The Daily Open as the feature of the day. */
 export const openFeature = {
   eyebrow: 'Daily Open',
-  title: 'Open today',
+  title: 'Not opened yet',
   detail: 'Three taps about sleep, exercise and how you feel. About 15 seconds.',
   action: 'Open today',
   doneTitle: 'Opened today',
@@ -85,7 +90,7 @@ export const sectorLines = {
 export const entries = {
   payday: {
     title: 'Payday Check',
-    detail: 'Three numbers each payday. Amounts stay on this device.',
+    detail: 'Four numbers each payday. Amounts stay on this device.',
     doneToday: 'Done today',
     last: (day: string) => `Last: ${day}`,
     setUp: 'Set up',
@@ -99,7 +104,7 @@ export const entries = {
     detail: 'Three people to reconnect with, and who you reached.',
   },
   doneThisWeek: 'Done this week',
-  dueThisWeek: 'This week',
+  dueThisWeek: 'Due this week',
   log: { title: 'Log', detail: 'Recent moves and what caused them.' },
   result: { title: 'Latest result', detail: 'Your last full check, with your type and your shape.' },
   compare: { title: 'Compare', detail: 'Two skylines side by side, by invite link.' },
@@ -108,8 +113,19 @@ export const entries = {
     detail: (days: number) => `A full retake is due ${days} days after the last one.`,
     dueDetail: (days: number) => `Your last full check was ${days} days ago.`,
     due: 'Due',
+    inProgress: 'In progress',
   },
   settings: { title: 'Settings', detail: 'Recovery code, export and delete.' },
+} as const;
+
+/** A check that was started and left. It goes on at the question where it stopped. */
+export const checkInProgress = {
+  title: 'A check in progress',
+  body: (answered: number) =>
+    answered === 0
+      ? 'You started a check. It goes on at the first question.'
+      : `You answered ${answered} ${answered === 1 ? 'question' : 'questions'}. The check goes on at the next one.`,
+  action: 'Continue the check',
 } as const;
 
 /** The quarterly retake prompt. */
@@ -132,12 +148,16 @@ export const mindNotice = {
 /** "Why it moved": the breakdown of one day's move, in a sheet. */
 export const moved = {
   title: (code: string) => `Why ${code} moved`,
+  /** A sector that has not moved since yesterday or since the last full check: "SKIL today". */
+  stillTitle: (code: string) => `${code} today`,
   dayTitle: (day: string) => `Moves on ${day}`,
   price: 'Price today',
   target: "Today's data gives",
   sinceYesterday: 'since yesterday',
   sinceCheck: 'Since the last full check',
   between: (from: string, to: string) => `From ${from} to ${to}`,
+  /** The records of the day of a full check, against what the check gave on its own. */
+  afterCheck: (day: string) => `On ${day}, after the full check`,
   targetMove: (from: string, to: string) => `The data moved the target from ${from} to ${to}.`,
   /** What a breakdown explains, and why the shown price can differ. */
   howToRead: (limit: number) =>
@@ -165,6 +185,13 @@ export const moved = {
   extraFallback: 'A record from a micro app',
   version: 'A change of scoring version',
   other: 'The combined effect of several changes',
+  /** In place of the earlier option when the question was worded another way before. */
+  askedAnotherWay: 'Asked another way',
+  /** The line "other" after a full check in another situation or age band. */
+  situation: (from: string, to: string) => `Your situation changed from ${from} to ${to}.`,
+  ageBand: (from: string, to: string) => `Your age band was ${from} and is now ${to}.`,
+  reworded: 'Some questions were asked another way, so part of the move cannot be put on one answer.',
+  unassigned: 'Part of the move cannot be put on one answer.',
   sources: {
     questionnaire: 'Check',
     daily_open: 'Daily Open',

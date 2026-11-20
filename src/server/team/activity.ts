@@ -7,12 +7,13 @@ import {
   type TeamReportResponse,
   type TeamReportRow,
   type TeamReturnRow,
+  type TeamReturnWeekRow,
   type TeamReturnsResponse,
 } from '../../shared/api';
 import { RETURN_RATE_DAYS } from '../../engine';
 import type { Db } from '../db';
 import { csv, utcDay, type CsvCell } from '../http';
-import { ACTIVITY, demoCounts, rate } from './shared';
+import { ACTIVITY, demoCounts, mondayOf, rate } from './shared';
 
 type ReturnSqlRow = { first_day: string; people: number } & Record<string, number | string>;
 
@@ -23,6 +24,9 @@ type ReturnSqlRow = { first_day: string; people: number } & Record<string, numbe
  * "returned on day N" when they used Standing on day 0 plus N: the visits table has a row for
  * that day, or they recorded an entry in a micro app that day. A person enters the denominator
  * of day N once that day is over everywhere in the US: two UTC dates later.
+ *
+ * `weeks` adds up the day rows by the calendar week (Monday to Sunday) of the first check. Every
+ * count is per person, so the sums are exact.
  */
 export async function teamReturns(db: Db, now: Date): Promise<TeamReturnsResponse> {
   const days = [...RETURN_RATE_DAYS];
@@ -65,11 +69,21 @@ export async function teamReturns(db: Db, now: Date): Promise<TeamReturnsRespons
       ),
     })),
   };
+  const byWeek = new Map<string, TeamReturnWeekRow>();
+  for (const row of rows) {
+    const weekStart = mondayOf(row.firstDay);
+    const week = byWeek.get(weekStart) ?? { weekStart, people: 0, returns: days.map((day) => ({ day, ...rate(0, 0) })) };
+    week.people += row.people;
+    week.returns = week.returns.map((r, i) => ({ day: r.day, ...rate(r.count + row.returns[i].count, r.of + row.returns[i].of) }));
+    byWeek.set(weekStart, week);
+  }
+  const weeks: TeamReturnWeekRow[] = [{ weekStart: 'all', people: total.people, returns: total.returns }, ...byWeek.values()];
   return {
     generatedAt: now.toISOString(),
     demoPeople: (await demoCounts(db)).people,
     returnDays: days,
     rows: [total, ...rows],
+    weeks,
   };
 }
 

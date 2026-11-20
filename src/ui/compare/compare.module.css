@@ -55,7 +55,7 @@
 .noTypeName { font-family: var(--font-display); font-size: var(--t-20); font-weight: 700; letter-spacing: -0.02em; }
 .noTypeLine { font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
 @media (min-width: 700px) {
-  .pair { grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+  .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-6); }
 }
 
 .lower { margin-top: var(--s-10); }
@@ -66,13 +66,25 @@
 .table tbody tr { border-top: 1px solid var(--line); }
 .table tbody th { width: 1%; padding-inline: var(--s-3); text-align: center; font-weight: 400; white-space: nowrap; }
 .gap { display: block; margin-top: 4px; font-size: var(--t-12); font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.bar { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar { position: relative; display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: var(--track); }
 .bar i { display: block; height: 100%; border-radius: 3px; background: var(--sector); }
 .table td:last-child .bar i { margin-left: auto; }
+/* 100 is the middle of 70 to 130 on both mirrored sides: the same tick as the position bars. */
+.bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+}
 .shape { display: grid; gap: var(--s-4); }
 @media (min-width: 960px) {
   .lower > section { margin-top: 0; }
-  .lower { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+  .lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
 }
 .remove { display: flex; justify-content: center; margin-top: var(--s-6); }
 .confirm { display: grid; gap: var(--s-4); }

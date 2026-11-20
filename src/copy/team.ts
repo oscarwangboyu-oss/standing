@@ -58,7 +58,11 @@ export const team = {
     noRows: 'No rows yet.',
     /** "276 of 330" */
     of: (count: number, of: number) => `${count} of ${of}`,
-    smallN: 'Small n',
+    /** Under a table with figures drawn lighter. */
+    smallNote: (n: number) => `Lighter figures rest on fewer than ${n} records. They are printed count first and never marked red.`,
+    /** "+25", "−3", "+2.1". A plain sign: these are counts and shares, not prices. */
+    signed: (delta: number, digits = 0) =>
+      delta > 0 ? `+${delta.toFixed(digits)}` : delta < 0 ? `\u2212${Math.abs(delta).toFixed(digits)}` : (0).toFixed(digits),
     /** In place of the figures of a cohort that is too small to show. */
     heldBack: (n: number) => `Fewer than ${n} people. The figures are held back, so that no one person can be read from them.`,
     heldBackShort: 'Held back',
@@ -91,6 +95,7 @@ export const team = {
   } satisfies Record<RoleId, string>,
 
   nav: {
+    attention: 'Attention',
     gates: 'Gates',
     overview: 'Overview',
     items: 'Questions',
@@ -100,6 +105,34 @@ export const team = {
     apps: 'Micro apps',
     tests: 'Scoring tests',
     report: 'Result page',
+  },
+
+  attention: {
+    title: 'Needs attention',
+    /** "1 gate not met. 46 question versions over a red line. No scoring test warns." */
+    summary: (gates: number, versions: number, tests: number) =>
+      [
+        gates === 0 ? 'Every gate with data is met.' : `${plural(gates, 'gate', 'gates')} not met.`,
+        versions === 0
+          ? 'No question version is over a red line.'
+          : `${plural(versions, 'question version', 'question versions')} over a red line.`,
+        tests === 0 ? 'No scoring test warns.' : `${plural(tests, 'scoring test warns', 'scoring tests warn')}.`,
+      ].join(' '),
+    gates: 'Gates not met',
+    gatesNone: 'Every gate with data is met.',
+    /** "12.7% against 10% or less" */
+    against: (actual: string, line: string) => `${actual} against ${line}`,
+    questions: 'Question versions with the most breaches',
+    /** "Top 5 of 46 over a red line. All roles." */
+    questionsLead: (shown: number, red: number) => `${shown} of the ${plural(red, 'version', 'versions')} over a red line, all roles.`,
+    questionsNone: 'No question version is over a red line.',
+    /** Link to the question table. */
+    questionsAll: (n: number) => `All ${n} in the question table`,
+    tests: 'Scoring tests that warn',
+    testsNone: 'No scoring test warns.',
+    /** "4 of 7 tests have too little data for a verdict." */
+    testsShort: (n: number, of: number) => `${n} of ${of} tests ${n === 1 ? 'has' : 'have'} too little data for a verdict.`,
+    failed: 'This part could not be loaded.',
   },
 
   gates: {
@@ -112,6 +145,11 @@ export const team = {
     met: 'Met',
     notMet: 'Not met',
     noData: 'No data yet',
+    /** Next to "2 of 3 met" in a stage header. */
+    notMetCount: (n: number) => `${n} not met`,
+    /** Under the skip-rate gate. */
+    skipRule: (n: number) => `Only versions shown to ${n} or more checks count.`,
+    skipNone: (n: number) => `No version has been shown to ${n} checks yet.`,
     actual: 'Actual',
     gate: 'Gate',
     /** "70% or more", "10% or less" */
@@ -120,6 +158,8 @@ export const team = {
     fromBrief: 'From the brief, not the roadmap deck.',
     /** "Most skipped: C_lic/oth" */
     mostSkipped: (id: string) => `Most skipped: ${id}`,
+    /** "C_lic/oth, skipped in 2 of 7 checks". A small second number makes the share noisy. */
+    skippedIn: (id: string, count: number, of: number) => `${id}, skipped in ${count} of ${of} ${of === 1 ? 'check' : 'checks'}`,
     pairs: (n: number) => plural(n, 'pair', 'pairs'),
     names: {
       completion_rate: 'Finish rate',
@@ -152,6 +192,19 @@ export const team = {
     retest: 'Retest correlation',
     /** "One pair per person, 10 to 21 days apart." */
     retestWindow: (min: number, max: number) => `One pair per person, ${min} to ${max} days apart.`,
+    recentTitle: (days: number) => `Last ${days} days`,
+    recentLead: (days: number) =>
+      `Checks started in the last ${days} days, against the ${days} days before. Completed counts those finished by now.`,
+    finishRate: 'Finish rate',
+    /** "30 of 31 people" */
+    ofPeople: (count: number, of: number) => `${count} of ${of} ${of === 1 ? 'person' : 'people'}`,
+    /** "+25 from 6" */
+    from: (delta: string, before: string) => `${delta} from ${before}`,
+    /** "+13.5 points from 83.3%" */
+    pointsFrom: (delta: string, before: string) => `${delta} points from ${before}`,
+    sameAs: (before: string) => `Same as before, ${before}`,
+    noneBefore: (days: number) => `None in the ${days} days before`,
+    allTime: 'All time',
     byRole: 'By role',
     caption: 'Checks and people, started and completed, by role',
     started: 'Started',
@@ -168,6 +221,13 @@ export const team = {
     lead: (bank: string) => `Question bank ${bank}. One row per question version that was shown at least once.`,
     filter: 'Role',
     onlyRed: 'Only rows over a red line',
+    order: 'Most breaches first.',
+    /** Under the first rows of a long table. */
+    showAll: (n: number) => `Show all ${n} rows`,
+    showFirst: (n: number) => `Show the first ${n} rows`,
+    showing: (shown: number, of: number) => `Showing ${shown} of ${of}.`,
+    /** On a phone card of a row under every line. */
+    clear: 'Under every red line.',
     /** "55 question versions. 12 are over a red line." */
     summary: (rows: number, red: number) =>
       `${plural(rows, 'question version', 'question versions')}. ${red === 1 ? '1 is' : `${red} are`} over a red line.`,
@@ -209,6 +269,18 @@ export const team = {
     ],
     definitions: (d: { idle: number; band: number; minSimilar: number; min: number; max: number }) =>
       `A check counts as dropped after ${d.idle} idle minutes. Stems within ${d.band} times each other in reading time count as similar, and at least ${d.minSimilar} are needed. Retests are ${d.min} to ${d.max} days apart.`,
+    minRecords: (n: number) =>
+      `A value is marked red only with ${n} or more records behind it: checks shown the question, answers, or retest pairs. Below that it is printed count first and lighter.`,
+    /** What a breach says in the attention list. */
+    breach: {
+      /** The words of the option-spread tag in the attention list. */
+      options: 'Uneven option spread',
+      /** "One option at 95.0% of 296 answered": the share past its line, the largest or the smallest. */
+      option: (share: string, answered: number) => `One option at ${share} of ${answered} answered`,
+      pairs: (count: number, of: number) => `${count} of ${of} pairs`,
+      /** "Similar stems 5.1 s" */
+      similar: (s: string) => `Similar stems ${s} s`,
+    },
   },
 
   prices: {
@@ -251,12 +323,13 @@ export const team = {
   returns: {
     title: 'Return rates',
     table: 'the return rates',
-    lead: 'By the day of the first completed check. A day counts once it has fully passed.',
-    caption: 'People who came back on day N after their first check',
-    firstDay: 'First check',
+    lead: 'By the calendar week of the first completed check, Monday to Sunday. A day counts once it has fully passed.',
+    caption: 'People who came back on day N after their first check, by the week of that check',
+    firstDay: 'First check, week of',
     people: 'People',
     day: (n: number) => `Day ${n}`,
-    all: 'All days',
+    all: 'All weeks',
+    csvNote: 'The CSV has one row per day of the first check.',
   },
 
   apps: {
@@ -282,12 +355,16 @@ export const team = {
     weeks: 'Weekly apps, week by week',
     weeksCaption: 'Weekly Win and People Nudge per calendar week',
     week: 'Week of',
-    daily: 'Daily Open, day by day',
-    /** "Share of active people with the Body and Mind consent who recorded the Daily Open. Last 60 days." */
-    dailyLead: (days: number) => `Active people with the Body and Mind consent who recorded the Daily Open. Last ${days} days.`,
-    dailyCaption: 'Daily Open participation per day',
-    dayCol: 'Day',
-    allDays: 'All person-days',
+    daily: 'Daily Open, week by week',
+    /** "... Weeks from Oct 5. ..." The first week listed, not the first week of the window. */
+    dailyLead: (from: string) =>
+      `Active people with the Body and Mind consent who recorded the Daily Open, in person-days: one active person on one day. Weeks from ${from}. A week with no active person is left out.`,
+    dailyCaption: 'Daily Open participation per calendar week, in person-days',
+    weekCol: 'Week of',
+    people: 'People',
+    personDays: 'Person-days',
+    allWeeks: 'All weeks',
+    dailyCsvNote: 'The CSV has one row per day.',
   },
 
   tests: {

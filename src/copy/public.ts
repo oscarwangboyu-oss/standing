@@ -27,6 +27,8 @@ export const publicNav = {
     { href: '/privacy', label: 'Privacy' },
     { href: '/terms', label: 'Terms' },
   ],
+  /** In the footer only: connect a new device to an existing record. */
+  restoreLink: { href: '/settings?restore=1', label: 'Recovery code' },
 } as const;
 
 /** The strip above the footer of every public page. */
@@ -117,10 +119,10 @@ export const about = {
     ] as ReadonlyArray<{ name: string; when: string; text: string; gate: string; gateKind: 'gate' | 'start' }>,
   },
   principles: {
-    title: 'Two rules we keep',
+    title: 'How we work',
     list: [
-      'Privacy comes first. We collect the least we can, and we do not sell data.',
-      'Nothing is invented. No made-up user counts, no testimonials, no press logos. Where the baseline is provisional, the page says so.',
+      'We do not collect your name, email or phone number, and we do not sell data.',
+      'The numbers about the check come from the question bank and the scoring rules. The baseline is marked provisional until real medians replace it.',
     ],
   },
   contact: {
@@ -221,7 +223,7 @@ export const method = {
       id: 'baseline',
       title: 'The provisional baseline',
       text: [
-        'A price compares you with the median of your group. Until enough people have taken the check, every group uses the same stand-in baseline. It is a design setting, not the measured median of any group.',
+        'A price compares you with the median of your group. Until enough people have taken the check, every group uses the same stand-in baseline. It is a design setting. No group’s median has been measured yet.',
         'The team replaces it group by group once real medians and head counts are known. Prices are re-based then, and the baseline version goes up. Until then every result says that the baseline is provisional.',
       ],
     },
@@ -237,9 +239,10 @@ export const method = {
     {
       id: 'limits',
       title: 'What a price is not',
+      // The footer of every page carries the formal statements. This section says what they mean in use.
       text: [
-        'Standing is not a medical diagnosis, not financial advice and not a credit score.',
-        'The price is a way of showing a personal index. It is not a security and it cannot be traded.',
+        'A price places your answers next to the median of your group. It describes those answers on the day you gave them. It says nothing about what a person is worth.',
+        'No one else sees your prices unless you share an image or compare with a friend. There is no public ranking.',
       ],
     },
   ] as readonly PageSection[],

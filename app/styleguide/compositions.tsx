@@ -238,7 +238,7 @@ export function MarketScreen() {
       <Block title="Keep it current" id="m-more">
         <Card pad="none">
           <EntryList label="More ways to update your price">
-            <Entry href="/payday" sector="WLTH" icon={<IconPayday />} title="Payday Check" detail="Three numbers each payday. Amounts stay on this device." status="Nov 28" />
+            <Entry href="/payday" sector="WLTH" icon={<IconPayday />} title="Payday Check" detail="Four numbers each payday. Amounts stay on this device." status="Nov 28" />
             <Entry href="/win" sector="SKIL" icon={<IconWin />} title="Weekly Win" detail="One thing you got better at this week." status="Friday" />
             <Entry href="/people" sector="NETW" icon={<IconPeople />} title="People Nudge" detail="Who you were in touch with this week." />
             <Entry href="/check" icon={<IconRetake />} title="Retake the check" detail="A full retake is due 90 days after the last one." status="Jan 29" />
@@ -336,7 +336,7 @@ export function CompareScreen() {
         <Card className={styles.shape}>
           <Pentagon prices={prices} other={other.prices} values={false} />
           <p className={styles.caption}>
-            Solid: {sample.ticker}. Dashed: {other.ticker}. The dashed ring is 100.
+            Solid line: {sample.ticker}. Dotted line: {other.ticker}. The dashed ring is 100.
           </p>
         </Card>
       </Block>

@@ -30,15 +30,15 @@
 }
 
 /* ---------- Shared pieces ---------- */
-.section { padding: clamp(64px, 9vw, 112px) 0; }
-.sectionIntro { padding: clamp(64px, 9vw, 112px) 0 var(--s-6); }
-.head { display: grid; gap: var(--s-4); max-width: 46rem; margin-bottom: var(--s-8); }
+.section { padding: clamp(56px, 9vw, 112px) 0; }
+.sectionIntro { padding: clamp(56px, 9vw, 112px) 0 var(--s-6); }
+.head { display: grid; gap: var(--s-4); max-width: 46rem; margin-bottom: var(--s-6); }
 .h2 {
   font-family: var(--font-display);
   font-size: clamp(2.125rem, 1.35rem + 3.6vw, 3.75rem);
   font-weight: 750;
   font-stretch: 86%;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   word-spacing: 0.06em;
   line-height: 0.98;
   text-wrap: balance;
@@ -56,7 +56,11 @@
   letter-spacing: -0.03em;
   line-height: 1.05;
 }
-.lead { max-width: 38rem; font-size: var(--t-20); line-height: 1.45; color: var(--ink-2); }
+.lead { max-width: 38rem; font-size: var(--t-17); line-height: 1.5; color: var(--ink-2); }
+.inline { font-weight: 650; color: var(--ink); text-decoration-thickness: 2px; text-underline-offset: 0.25em; text-decoration-color: var(--line-2); white-space: nowrap; }
+@media (hover: hover) {
+  .inline:hover { text-decoration-color: var(--ink); }
+}
 .caption { font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
 .more {
   display: inline-flex;
@@ -73,6 +77,10 @@
 @media (hover: hover) {
   .more:hover { text-decoration-color: var(--ink); }
 }
+@media (min-width: 700px) {
+  .lead { font-size: var(--t-20); line-height: 1.45; }
+  .head { margin-bottom: var(--s-8); }
+}
 @media (min-width: 900px) {
   .head { margin-bottom: var(--s-12); }
 }
@@ -83,28 +91,40 @@
 .heroTitle {
   max-width: 11em;
   font-family: var(--font-display);
-  font-size: clamp(3rem, 1.5rem + 7vw, 6.25rem);
-  font-weight: 780;
-  font-stretch: 82%;
-  letter-spacing: -0.045em;
-  word-spacing: 0.08em;
-  line-height: 0.92;
+  font-size: clamp(3.5rem, 1.75rem + 8vw, 7.5rem);
+  font-weight: 760;
+  font-stretch: 86%;
+  letter-spacing: -0.028em;
+  word-spacing: 0.04em;
+  line-height: 0.94;
 }
 .heroTitle > span { display: block; }
 .heroTitleB {
   max-width: 16em;
-  margin-top: 0.42em;
-  font-size: 0.44em;
+  margin-top: 0.4em;
+  font-size: 0.4em;
   font-weight: 650;
   font-stretch: 90%;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   word-spacing: 0;
   line-height: 1.1;
   color: var(--ink-2);
 }
-.heroLead { max-width: 34rem; margin-top: var(--s-5); font-size: var(--t-17); line-height: 1.5; color: var(--ink-2); }
-.heroAction { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-6); }
+.heroLead { max-width: 34rem; margin-top: var(--s-4); font-size: var(--t-17); line-height: 1.5; color: var(--ink-2); }
+.heroAction { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-5); }
 .heroFact { font-size: var(--t-15); font-weight: 650; line-height: 1.3; color: var(--ink); }
+/* "Took the check before? Use your recovery code": quiet, for a person on a new device. */
+.heroRestore { margin-top: var(--s-2); font-size: var(--t-13); line-height: 1.4; color: var(--ink-2); }
+.heroRestore a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
 .heroQuote { display: none; }
 .heroSky { position: relative; }
 /* The street continues under the scene and carries the five prices, each under its tower. */
@@ -138,7 +158,8 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums lining-nums;
 }
-.pavementNote {
+/* The quote of the sample on the street, under 900px where the quote card is not shown. */
+.pavementQuote {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -146,10 +167,23 @@
   gap: var(--s-2) var(--s-3);
   margin-top: var(--s-4);
   padding-inline: var(--gutter);
-  font-size: var(--t-13);
-  line-height: 1.4;
-  color: var(--ink-2);
-  text-align: center;
+}
+.pavementQuoteLine { display: inline-flex; align-items: center; gap: var(--s-2); }
+.pavementType {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: var(--t-15);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.pavementType::before { content: ""; width: 4px; height: 4px; margin-right: 2px; border-radius: 50%; background: var(--ink-3); }
+/* At 360 the quote keeps one line: the emblem is left out (the type name stays). */
+@media (max-width: 379px) {
+  .pavementQuote { gap: var(--s-2); }
+  .pavementType svg { display: none; }
 }
 @media (min-width: 420px) {
   .heroLegend dt svg { display: block; }
@@ -157,19 +191,32 @@
 @media (min-width: 700px) {
   .heroInner { padding-top: var(--s-10); }
   .heroLead { font-size: var(--t-20); line-height: 1.45; }
-  /* The wide scene: five lots of 80 in 800 units. */
-  .heroLegend { width: 50%; }
+  /* The wide scene: the five lots take the middle --lots of its width (set by the page). */
+  .heroLegend { width: var(--lots, 50%); }
   .heroLegend dt { font-size: var(--t-13); }
   .pavement { padding: var(--s-3) 0 var(--s-6); }
 }
 @media (min-width: 900px) {
-  .heroInner { grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-10); padding-top: var(--s-12); padding-bottom: var(--s-2); }
+  /*
+   * The heading runs on one line, the quote card floats at the right, and the scene starts just
+   * under the action, in the same sky. The five prices on the street stay inside a 900px first
+   * screen, and the card and its shadow sit above the scene.
+   */
+  .heroInner { position: relative; z-index: 1; display: block; padding-top: var(--s-8); padding-bottom: var(--s-2); }
+  .heroTitle { max-width: none; }
+  .heroTitleB { max-width: none; margin-top: 0.3em; font-size: 0.36em; }
+  .heroSky { margin-top: -32px; }
+  .pavementQuote { display: none; }
+  /* The 100 tag sits on the horizon, just left of the first lot. */
+  .heroScene > span { left: calc((100% - var(--lots, 50%)) / 2); transform: translate(calc(-100% - 12px), -50%); padding: 3px 10px 4px; border-radius: var(--r-pill); font-size: 0.875rem; }
   .heroQuote {
+    position: absolute;
+    right: var(--gutter);
+    bottom: var(--s-2);
     display: grid;
     justify-items: start;
     gap: var(--s-2);
     width: 248px;
-    margin-bottom: var(--s-6);
     padding: var(--s-5);
     border-radius: var(--r-xl);
     background: var(--surface);
@@ -190,53 +237,130 @@
   }
 }
 
-/* ---------- How to read a price ---------- */
+/* Where the heading reaches the card's column, the card drops into the sky of the scene. */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .heroQuote { bottom: -28px; }
+}
+
+/* ---------- How to read a price: one statement on ink ---------- */
+.readingBand { padding-bottom: var(--s-12); }
 .reading { display: grid; gap: var(--s-10); }
-.reading .head { margin-bottom: var(--s-6); }
-.facts { display: grid; }
-.facts > div { display: grid; gap: var(--s-1); padding: var(--s-4) 0; border-top: 1px solid var(--line-2); }
+.readingText { display: grid; gap: var(--s-6); min-width: 0; }
+.kicker { font-size: var(--t-15); font-weight: 700; line-height: 1.3; color: var(--on-ink); opacity: 0.78; }
+.statement {
+  max-width: 15em;
+  font-family: var(--font-display);
+  font-size: clamp(2.375rem, 1.2rem + 4.4vw, 4.75rem);
+  font-weight: 750;
+  font-stretch: 86%;
+  letter-spacing: -0.03em;
+  word-spacing: 0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-4); }
+.facts > div { display: grid; align-content: start; gap: var(--s-2); padding-top: var(--s-3); border-top: 1px solid color-mix(in srgb, var(--on-ink) 28%, transparent); }
 .facts dt {
   font-family: var(--font-display);
-  font-size: clamp(2.25rem, 1.8rem + 2vw, 3.25rem);
+  font-size: 2rem;
   font-weight: 750;
-  font-stretch: 80%;
-  letter-spacing: -0.04em;
+  font-stretch: 82%;
+  letter-spacing: -0.025em;
   line-height: 1;
   font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
 }
-.facts dd { max-width: 30rem; color: var(--ink-2); }
-.readingFigure { display: grid; gap: var(--s-4); align-content: start; }
+.facts dd { font-size: var(--t-15); line-height: 1.4; color: color-mix(in srgb, var(--on-ink) 80%, var(--ink)); }
+.baseline { display: grid; gap: var(--s-1); justify-items: start; max-width: 38rem; font-size: var(--t-15); line-height: 1.45; color: color-mix(in srgb, var(--on-ink) 80%, var(--ink)); }
+.baseline strong { font-weight: 700; color: var(--on-ink); }
+.moreOnInk { color: var(--on-ink); text-decoration-color: color-mix(in srgb, var(--on-ink) 45%, transparent); }
+.readingBand :focus-visible { outline-color: var(--on-ink); }
+.readingFigure { display: none; }
 .figureCard {
   padding: var(--s-5) 0 0;
   border-radius: var(--r-xl);
   background: var(--surface);
-  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--edge);
+  color: var(--ink);
+  box-shadow: var(--shadow-3), inset 0 0 0 1px var(--edge);
   overflow: hidden;
 }
-.rulerCard {
-  display: grid;
-  gap: var(--s-2);
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--edge);
+@media (hover: hover) {
+  .moreOnInk:hover { text-decoration-color: var(--on-ink); }
 }
-.rulerLabel { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-13); font-weight: 600; color: var(--ink-2); }
-.reading .onSunk { background: var(--ground); }
-@media (min-width: 600px) {
-  .facts > div { grid-template-columns: 12.5rem minmax(0, 1fr); align-items: baseline; gap: var(--s-4); }
+@media (min-width: 700px) {
+  .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .facts dt { font-size: clamp(2.25rem, 1.6rem + 1.4vw, 3rem); }
 }
 @media (min-width: 900px) {
-  .reading { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-16); align-items: start; }
-  .facts > div { grid-template-columns: 11rem minmax(0, 1fr); }
+  .readingBand { padding-bottom: var(--s-20); }
+  .reading { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: var(--s-16); align-items: center; }
+  .readingText { gap: var(--s-8); }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6) var(--s-8); }
+  .readingFigure { display: block; }
 }
 
 /* ---------- The five sectors ---------- */
-.sectorIndex { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-2); }
+.sectorIndex { display: none; flex-wrap: wrap; gap: var(--s-1) var(--s-2); }
 .sectorIndex a { display: inline-flex; align-items: center; min-height: var(--tap); border-radius: var(--r-pill); text-decoration: none; }
-.sectorBand { overflow-x: clip; }
-.sector { position: relative; display: grid; gap: var(--s-6); }
+/*
+ * Phone: one row of five cards that scrolls sideways and snaps, each with its building, what the
+ * sector covers and one real question. From 700px each sector has a band of its own.
+ */
+.rail {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail:focus-visible { outline-offset: -3px; }
+.railList { display: flex; gap: var(--s-3); width: max-content; padding: var(--s-1) var(--gutter) var(--s-3); }
+.railCard {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
+  width: min(84vw, 340px);
+  padding: var(--s-5);
+  border-radius: var(--r-xl);
+  background: var(--sector-wash);
+  scroll-snap-align: start;
+}
+.railHead { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: end; gap: var(--s-4); }
+.railArt { width: 84px; height: auto; }
+.railTitle { display: grid; justify-items: start; gap: var(--s-2); padding-bottom: var(--s-1); }
+.railTitle > span { background: var(--surface); }
+.railName {
+  font-family: var(--font-display);
+  font-size: 2.125rem;
+  font-weight: 760;
+  font-stretch: 84%;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--sector-deep);
+}
+.railAbout { font-size: var(--t-15); line-height: 1.45; color: var(--ink); }
+.railCard .ask { padding: var(--s-4); }
+.railCard .askText { font-size: var(--t-17); }
+.sectorBand { display: none; overflow-x: clip; }
+@media (min-width: 700px) {
+  .sectorIndex { display: flex; }
+  .rail { display: none; }
+  .sectorBand { display: block; }
+}
+/*
+ * Phone: the building sits beside the kicker and the name, and the list of topics is left out
+ * (the sample question shows what the sector asks). From 700px the list comes back; from 900px
+ * the building is a column of its own, on alternating sides.
+ */
+.sector {
+  position: relative;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-areas: "art head" "text text";
+  align-items: end;
+  gap: var(--s-5) var(--s-4);
+}
 .ghost {
   position: absolute;
   top: -0.08em;
@@ -246,7 +370,7 @@
   font-size: clamp(6.5rem, 2rem + 22vw, 19rem);
   font-weight: 800;
   font-stretch: 75%;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.035em;
   line-height: 0.8;
   color: var(--sector-tint);
   opacity: 0.6;
@@ -254,22 +378,24 @@
   user-select: none;
   white-space: nowrap;
 }
-.sectorArt { position: relative; z-index: 1; width: min(52%, 230px); }
-.sectorText { position: relative; z-index: 1; display: grid; gap: var(--s-4); min-width: 0; }
+.sectorArt { position: relative; z-index: 1; grid-area: art; width: 100%; }
+.sectorHead { position: relative; z-index: 1; grid-area: head; display: grid; gap: var(--s-3); min-width: 0; padding-bottom: var(--s-1); }
+.sectorText { position: relative; z-index: 1; grid-area: text; display: grid; gap: var(--s-4); min-width: 0; }
 .sectorKicker { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); font-size: var(--t-13); font-weight: 650; color: var(--sector-deep); }
 .sectorKicker > span:first-child { background: var(--surface); }
 .sectorName {
   font-family: var(--font-display);
   word-spacing: 0.06em;
-  font-size: clamp(2.75rem, 1.7rem + 4.6vw, 4.75rem);
-  font-weight: 780;
-  font-stretch: 82%;
-  letter-spacing: -0.05em;
+  font-size: clamp(2.25rem, 1.55rem + 2.8vw, 4.75rem);
+  font-weight: 760;
+  font-stretch: 84%;
+  letter-spacing: -0.035em;
   line-height: 0.92;
   color: var(--sector-deep);
 }
-.sectorAbout { max-width: 30rem; font-size: var(--t-20); line-height: 1.4; color: var(--ink); }
-.sectorCols { display: grid; gap: var(--s-5); margin-top: var(--s-2); }
+.sectorAbout { max-width: 30rem; font-size: var(--t-17); line-height: 1.45; color: var(--ink); }
+.sectorCols { display: grid; gap: var(--s-5); }
+.asksCol { display: none; }
 .sectorLabel { margin-bottom: var(--s-2); font-size: var(--t-13); font-weight: 700; line-height: 1.3; color: var(--sector-deep); }
 .asks { display: grid; gap: 7px; }
 .asks li { position: relative; padding-left: 20px; font-size: var(--t-15); line-height: 1.4; color: var(--ink); }
@@ -301,17 +427,25 @@
 }
 .askRange { margin-top: var(--s-3); font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
 .sectorFoot { display: flex; gap: var(--s-2); max-width: 40rem; font-size: var(--t-13); line-height: 1.45; color: var(--sector-deep); }
-.sectorFoot svg { margin-top: 1px; }
-.ladder { padding: var(--s-8) 0 0; }
-.ladder p { max-width: 38rem; font-size: var(--t-15); line-height: 1.5; color: var(--ink-2); }
+.sectorFoot svg { flex: none; margin-top: 1px; }
 @media (min-width: 700px) {
-  .sectorCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-8); }
+  .sector { grid-template-columns: 180px minmax(0, 1fr); gap: var(--s-6) var(--s-8); }
+  .sectorAbout { font-size: var(--t-20); line-height: 1.4; }
+  .asksCol { display: block; }
+  .sectorCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-8); margin-top: var(--s-2); }
 }
 @media (min-width: 900px) {
-  .sector { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); align-items: center; gap: var(--s-16); }
-  .sectorArt { width: 100%; }
-  .sectorFlip { grid-template-columns: minmax(0, 1fr) minmax(0, 300px); }
-  .sectorFlip .sectorArt { order: 2; }
+  .sector {
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    grid-template-areas: "art head" "art text";
+    grid-template-rows: auto auto;
+    align-content: center;
+    align-items: start;
+    gap: var(--s-4) var(--s-16);
+  }
+  .sectorArt { align-self: center; }
+  .sectorHead { align-self: end; padding-bottom: 0; }
+  .sectorFlip { grid-template-columns: minmax(0, 1fr) minmax(0, 300px); grid-template-areas: "head art" "text art"; }
   /* The ticker rises behind the arched window: its upper part shows above the arch. */
   .ghost {
     top: calc(50% - 187px);
@@ -324,41 +458,42 @@
   .sectorFlip .ghost { left: auto; right: 150px; transform: translate(50%, -46%); }
 }
 
-/* ---------- How a check works ---------- */
-.how { display: grid; gap: var(--s-10); }
-.how .head { margin-bottom: var(--s-8); }
-.steps { display: grid; gap: var(--s-8); counter-reset: step; }
+/* ---------- Try three questions, and how a check works ---------- */
+.how { display: grid; gap: var(--s-12); }
+.howTry { width: 100%; max-width: 440px; justify-self: center; }
+.howText { display: grid; gap: var(--s-6); align-content: start; min-width: 0; }
+.steps { display: grid; gap: var(--s-5); counter-reset: step; }
 .steps > li { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4); }
 .steps > li:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 23px;
-  top: 56px;
-  bottom: calc(-1 * var(--s-8) + 8px);
+  left: 17px;
+  top: 44px;
+  bottom: calc(-1 * var(--s-5) + 6px);
   border-left: 2px dashed var(--line-2);
 }
 .stepNo {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--ink);
   color: var(--on-ink);
   font-family: var(--font-display);
-  font-size: var(--t-24);
+  font-size: var(--t-17);
   font-weight: 750;
   line-height: 1;
 }
-.stepBody { display: grid; gap: var(--s-2); padding-top: 9px; min-width: 0; }
-.stepBody > p { color: var(--ink-2); }
+.stepBody { display: grid; gap: var(--s-1); padding-top: 6px; min-width: 0; }
+.stepBody > p { font-size: var(--t-15); line-height: 1.5; color: var(--ink-2); }
 .stepTitle {
   font-family: var(--font-display);
-  font-size: var(--t-24);
+  font-size: var(--t-20);
   font-weight: 700;
   font-stretch: 90%;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s-2); }
 .chips li {
@@ -372,14 +507,30 @@
   color: var(--ink);
 }
 .chips .chipAge { background: var(--ink); color: var(--on-ink); box-shadow: none; font-variant-numeric: tabular-nums; }
-.howTry { width: 100%; max-width: 440px; justify-self: center; }
+/* On a phone the step text names the six age bands and eleven situations; the chips are for wider screens. */
+@media (max-width: 699px) {
+  .chips { display: none; }
+}
+@media (min-width: 700px) {
+  .steps { gap: var(--s-8); }
+  .steps > li:not(:last-child)::before { left: 23px; top: 56px; bottom: calc(-1 * var(--s-8) + 8px); }
+  .stepNo { width: 48px; height: 48px; font-size: var(--t-24); }
+  .stepBody { gap: var(--s-2); padding-top: 9px; }
+  .stepBody > p { font-size: var(--t-17); }
+  .stepTitle { font-size: var(--t-24); letter-spacing: -0.025em; line-height: 1.12; }
+}
 @media (min-width: 900px) {
-  .how { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: var(--s-16); align-items: start; }
+  /* The panel on the left, under the heading; the steps and the short records beside it. */
+  .how { grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: var(--s-16); align-items: start; }
   .howTry { position: sticky; top: var(--s-6); }
+  .howText { gap: var(--s-8); padding-top: var(--s-2); }
 }
 
-.after { margin-top: var(--s-16); }
-.afterHead { display: grid; gap: var(--s-3); margin-bottom: var(--s-6); }
+/* After the check. A phone has one line; the list of the tools that are on shows from 700px. */
+.after { display: grid; gap: var(--s-3); margin-top: var(--s-4); padding-top: var(--s-6); border-top: 1px solid var(--line-2); }
+.afterFull { display: none; }
+.afterLead { max-width: 38rem; margin-bottom: var(--s-5); color: var(--ink-2); }
+.afterShort, .afterSoon { max-width: 38rem; font-size: var(--t-15); line-height: 1.5; color: var(--ink-2); }
 .afterList {
   border-radius: var(--r-xl);
   background: var(--surface);
@@ -387,8 +538,8 @@
 }
 .afterList li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas: "icon text" "icon tags";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "icon text tags";
   align-items: center;
   gap: var(--s-2) var(--s-4);
   padding: var(--s-4) var(--s-5);
@@ -396,31 +547,38 @@
 .afterList li + li { border-top: 1px solid var(--line); }
 .afterIcon {
   grid-area: icon;
-  align-self: start;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   background: var(--sector-wash);
   color: var(--sector-deep);
 }
 .afterText { grid-area: text; display: grid; gap: 2px; min-width: 0; }
-.afterTitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-3); font-family: var(--font-display); font-size: var(--t-20); font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
+.afterTitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-3); font-family: var(--font-display); font-size: var(--t-17); font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
 .afterRhythm { font-family: var(--font-text); font-size: var(--t-13); font-weight: 600; letter-spacing: 0; color: var(--ink-3); }
 .afterDetail { font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
-.afterTags { grid-area: tags; display: flex; flex-wrap: wrap; gap: 6px; }
-.afterNote { max-width: 38rem; margin-top: var(--s-4); font-size: var(--t-13); line-height: 1.45; color: var(--ink-2); }
+.afterTags { grid-area: tags; display: flex; flex-wrap: wrap; justify-content: end; gap: 6px; }
 @media (min-width: 700px) {
-  .afterList li { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon text tags"; padding: var(--s-5) var(--s-6); }
-  .afterIcon { align-self: center; }
+  .after { margin-top: var(--s-6); padding-top: var(--s-8); }
+  .afterFull { display: block; }
+  .afterShort { display: none; }
+  .afterSoon { font-size: var(--t-17); }
+}
+
+/* What a result looks like: from 700px. On a phone the quote of the sample is on the street. */
+.sampleSection { display: none; }
+@media (min-width: 700px) {
+  .sampleSection { display: block; }
 }
 
 /* ---------- Share and compare ---------- */
 .together { display: grid; gap: var(--s-12); }
 .shareBlock, .compareBlock { display: grid; gap: var(--s-6); align-content: start; }
-.shareArt { width: min(72%, 300px); margin: var(--s-2) 0 var(--s-2) var(--s-3); transform: rotate(-3deg); }
-.blockText { display: grid; gap: var(--s-2); max-width: 30rem; }
+.shareArt { width: min(64%, 280px); margin: var(--s-2) 0 var(--s-2) var(--s-3); transform: rotate(-3deg); }
+/* Positioned, so the text paints above the transformed share card and its shadow. */
+.blockText { position: relative; z-index: 1; display: grid; gap: var(--s-2); max-width: 30rem; }
 .blockText > p { color: var(--ink-2); }
 .blockText > .caption { color: var(--ink-3); }
 .pairArt {
@@ -433,6 +591,11 @@
   box-shadow: var(--shadow-2), inset 0 0 0 1px var(--edge);
 }
 .pairCol { display: grid; gap: var(--s-3); min-width: 0; }
+/* On a phone the two quotes stand for the two skylines: the city is drawn enough times above. */
+.pairSky { display: none; }
+@media (min-width: 700px) {
+  .pairSky { display: block; }
+}
 .pairHead { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
 .pairType {
   display: flex;
@@ -460,53 +623,68 @@
   border-radius: var(--r-xl);
   background: var(--surface);
   box-shadow: var(--shadow-2), inset 0 0 0 1px var(--edge);
+  overflow: hidden;
 }
-.ledger > div { display: grid; gap: 2px; padding: var(--s-4) var(--s-5); }
-.ledger > div + div { border-top: 1px dashed var(--line-2); }
-.ledger dt { display: flex; align-items: center; gap: var(--s-3); font-weight: 650; line-height: 1.3; }
-.ledger dd { padding-left: 36px; font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
+.ledgerLabel {
+  padding: var(--s-4) var(--s-5) 0;
+  font-size: var(--t-13);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+.ledgerLabelKept { margin-top: var(--s-2); padding-top: var(--s-4); border-top: 2px solid var(--ink); color: var(--ink); }
+.ledgerNot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--s-2) var(--s-2) var(--s-3); }
+.ledgerNot > div { display: grid; align-content: start; gap: 2px; padding: var(--s-2) var(--s-3); min-width: 0; }
+.ledgerNot dt { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-15); font-weight: 650; line-height: 1.3; }
+.ledgerNot dd { padding-left: 32px; font-size: var(--t-13); line-height: 1.4; color: var(--ink-2); }
+/* An odd one out at the end takes the whole row, so its longer name does not wrap three times. */
+.ledgerNot > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* How the rest is handled: from 700px. A phone keeps the grid of what is never collected and the link to the notice. */
+.ledgerKeptPart { display: none; }
+.ledgerKept > div { display: grid; gap: 2px; padding: var(--s-4) var(--s-5); }
+.ledgerKept > div + div { border-top: 1px dashed var(--line-2); }
+.ledgerKept dt { display: flex; align-items: center; gap: var(--s-3); font-weight: 650; line-height: 1.3; }
+.ledgerKept dd { padding-left: 36px; font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
 .ledgerMark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; }
-.kept .ledgerMark { background: var(--ink); color: var(--on-ink); }
-.notKept .ledgerMark { box-shadow: inset 0 0 0 1.5px var(--line-2); color: var(--ink-2); }
-.notKept + .kept { border-top: 2px solid var(--ink) !important; }
+.ledgerNot .ledgerMark { box-shadow: inset 0 0 0 1.5px var(--line-2); color: var(--ink-2); }
+.ledgerKept .ledgerMark { background: var(--ink); color: var(--on-ink); }
+@media (min-width: 700px) {
+  .ledgerKeptPart { display: block; }
+}
 @media (min-width: 600px) {
-  .ledger > div { grid-template-columns: 15rem minmax(0, 1fr); align-items: baseline; gap: var(--s-4); padding: var(--s-4) var(--s-6); }
-  .ledger dd { padding-left: 0; }
-  .ledger dt { align-self: start; }
+  .ledgerLabel { padding-inline: var(--s-6); }
+  .ledgerNot { grid-template-columns: repeat(3, minmax(0, 1fr)); padding-inline: var(--s-3); }
+  .ledgerNot > div:last-child:nth-child(odd) { grid-column: auto; }
+  .ledgerKept > div { grid-template-columns: 15rem minmax(0, 1fr); align-items: baseline; gap: var(--s-4); padding: var(--s-4) var(--s-6); }
+  .ledgerKept dd { padding-left: 0; }
+  .ledgerKept dt { align-self: start; }
 }
 @media (min-width: 900px) {
   .data { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--s-16); align-items: start; }
   .dataText { position: sticky; top: var(--s-8); }
 }
 
-/* ---------- What it is not, and who builds it ---------- */
-.honest { display: grid; gap: var(--s-12); }
-.limits, .team { display: grid; gap: var(--s-5); align-content: start; justify-items: start; }
-.limitList { width: 100%; }
-.limitList li {
-  padding: var(--s-3) 0;
-  border-top: 1px solid var(--line-2);
-  font-family: var(--font-display);
-  font-size: var(--t-20);
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
-}
-.limitList li:last-child { border-bottom: 1px solid var(--line-2); }
-.teamText { max-width: 32rem; font-size: var(--t-20); line-height: 1.45; color: var(--ink-2); }
-.teamFacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); width: 100%; padding-top: var(--s-5); border-top: 1px solid var(--line-2); }
+/* ---------- Who builds it ---------- */
+.teamSection { padding: clamp(56px, 8vw, 96px) 0; }
+.team { display: grid; gap: var(--s-8); }
+.teamHead { display: grid; gap: var(--s-4); justify-items: start; align-content: start; }
+.teamText { max-width: 32rem; font-size: var(--t-17); line-height: 1.5; color: var(--ink-2); }
+.teamFacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); width: 100%; padding-top: var(--s-5); border-top: 1px solid var(--line-2); align-self: end; }
 .teamFacts dt {
   font-family: var(--font-display);
   font-size: clamp(2.25rem, 1.8rem + 2vw, 3.25rem);
   font-weight: 750;
-  font-stretch: 80%;
-  letter-spacing: -0.04em;
+  font-stretch: 82%;
+  letter-spacing: -0.025em;
   line-height: 1;
   font-variant-numeric: tabular-nums lining-nums;
 }
 .teamFacts dd { margin-top: var(--s-1); font-size: var(--t-13); line-height: 1.35; color: var(--ink-2); }
+@media (min-width: 700px) {
+  .teamText { font-size: var(--t-20); line-height: 1.45; }
+}
 @media (min-width: 900px) {
-  .honest { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-16); }
+  .team { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-16); align-items: end; }
 }
 
 /* ---------- Closing: the city at dusk. Fixed colours in both themes, like the share image. ---------- */
@@ -519,8 +697,8 @@
   font-family: var(--font-display);
   font-size: clamp(2.25rem, 1.35rem + 4.2vw, 4.25rem);
   font-weight: 750;
-  font-stretch: 84%;
-  letter-spacing: -0.045em;
+  font-stretch: 86%;
+  letter-spacing: -0.035em;
   line-height: 0.96;
 }
 .closingFact { font-size: var(--t-17); line-height: 1.45; color: var(--k-star); }

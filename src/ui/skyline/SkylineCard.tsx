@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { quote } from '@/copy/common';
 import { cx } from '../cx';
 import { formatPrice } from '../format';
 import { SECTOR_CODES, type SectorCode } from '../sectors';
@@ -27,12 +28,17 @@ export function SkylineCard({ legend = true, corner, className, ...sky }: Skylin
           {SECTOR_CODES.map((code: SectorCode) => {
             const v = sky.prices[code];
             const listed = typeof v === 'number' && Number.isFinite(v) && !sky.build;
+            // Under a tower without a price, say why, as the sector board does. In the check
+            // nothing is priced yet, so the dot stands in.
+            const why = sky.status?.[code] === 'unlisted' ? quote.notListed : quote.notEnoughData;
             return (
               <div key={code} className={styles.cell}>
                 <dt className={styles.code} style={{ color: `var(--${code.toLowerCase()}-deep)` }}>
                   {code}
                 </dt>
-                <dd className={styles.value}>{listed ? formatPrice(v as number) : <span aria-hidden="true">·</span>}</dd>
+                <dd className={styles.value}>
+                  {listed ? formatPrice(v as number) : sky.build ? <span aria-hidden="true">·</span> : <span className={styles.none}>{why}</span>}
+                </dd>
               </div>
             );
           })}

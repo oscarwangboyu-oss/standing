@@ -12,7 +12,13 @@ type Holder = { [KEY]?: Promise<Db> };
  */
 export function getDb(env: Env): Promise<Db> {
   const holder = globalThis as Holder;
-  if (!holder[KEY]) holder[KEY] = open(env);
+  // A failed open is not kept: the next request tries again instead of failing until a restart.
+  if (!holder[KEY]) {
+    holder[KEY] = open(env).catch((error: unknown) => {
+      delete holder[KEY];
+      throw error;
+    });
+  }
   return holder[KEY];
 }
 

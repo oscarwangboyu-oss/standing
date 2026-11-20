@@ -12,7 +12,11 @@
 //    (another background, other sectors left out, another bank), the contributions are left
 //    as measured and the rest is listed as one line of kind "other".
 // Either way the lines of a price add up to its change (to rounding of floating point, far
-// below 1e-9).
+// below 1e-9). The answer, extra and version lines come largest first; the line "other" is
+// always last, since it is no single reason.
+//
+// The result carries the situation and the age band of each side, and nothing else of the
+// background, so a screen can say why a line "other" is there when they differ.
 //
 // Answers that were overridden by a micro app are compared as they were scored: the line
 // carries the source of the answer in force.
@@ -20,7 +24,7 @@
 import { BREAKDOWN } from './config';
 import { compute } from './score';
 import { AREA_IDS } from './types';
-import type { AreaId, ComputeInput, Extra, Override, Result, Source, Step, StepDetail } from './types';
+import type { AreaId, Background, ComputeInput, Extra, Override, Result, RoleId, Source, Step, StepDetail } from './types';
 
 /** An answer as it was scored. */
 export interface AnswerState {
@@ -62,11 +66,31 @@ export interface PriceBreakdown {
   method: 'scaled' | 'remainder' | 'none';
 }
 
+/** The part of a background a breakdown carries: the situation and the age band. No answers. */
+export interface BreakdownCohort {
+  role: RoleId;
+  /** Index into bank.ages. */
+  age: number;
+}
+
 export interface Breakdown {
   sectors: Record<AreaId, PriceBreakdown>;
   overall: PriceBreakdown;
   /** How many questions and extra items changed between the two inputs. */
   changed: number;
+  /**
+   * The situation and age band of each input. When they differ, the contributions are left as
+   * measured and the rest of a move is a line "other" (see the top of this file).
+   */
+  cohorts: { before: BreakdownCohort; after: BreakdownCohort };
+}
+
+const cohortOf = (background: Background): BreakdownCohort => ({ role: background.role, age: background.age });
+
+/** Answer, extra and version lines largest first, so the top line is the main reason. The line "other" last. */
+function byWeight(x: BreakdownLine, y: BreakdownLine): number {
+  const rest = Number(x.kind === 'other') - Number(y.kind === 'other');
+  return rest !== 0 ? rest : Math.abs(y.points) - Math.abs(x.points);
 }
 
 type Quantity = AreaId | 'overall';
@@ -190,12 +214,16 @@ export function breakdown(before: ComputeInput, after: ComputeInput): Breakdown 
       const rest = delta - listed;
       if (rest !== 0) lines.push({ kind: 'other', id: null, source: null, before: null, after: null, points: rest });
     }
-    // Largest first, so the top line is the main reason.
-    lines.sort((x, y) => Math.abs(y.points) - Math.abs(x.points));
+    lines.sort(byWeight);
     return { before: from, after: to, delta, lines, method: lines.length === 0 ? 'none' : scaled ? 'scaled' : 'remainder' };
   };
 
   const sectors = {} as Record<AreaId, PriceBreakdown>;
   for (const a of AREA_IDS) sectors[a] = explain(a);
-  return { sectors, overall: explain('overall'), changed: changes.filter((c) => c.line.kind !== 'version').length };
+  return {
+    sectors,
+    overall: explain('overall'),
+    changed: changes.filter((c) => c.line.kind !== 'version').length,
+    cohorts: { before: cohortOf(before.background), after: cohortOf(after.background) },
+  };
 }

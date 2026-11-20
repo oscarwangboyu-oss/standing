@@ -31,7 +31,7 @@ export function sectorStyle(code: SectorCode): CSSProperties {
 
 export interface SectorTagProps {
   code: SectorCode;
-  /** Show the sector name after the code: "BODY Body". */
+  /** Show the sector name after the code: "SKIL Capability". Left out where the name is the code itself (BODY, MIND). */
   name?: boolean;
   size?: 'sm' | 'md';
   className?: string;
@@ -39,11 +39,12 @@ export interface SectorTagProps {
 
 /** A sector's ticker on its own colour, with its building as a glyph. */
 export function SectorTag({ code, name = false, size = 'md', className }: SectorTagProps) {
+  const showName = name && sectorNames[code].toUpperCase() !== code;
   return (
     <span className={cx(styles.sector, styles[size], className)} style={sectorStyle(code)}>
       <SectorGlyph code={code} size={size === 'sm' ? 14 : 16} />
       <span className={styles.code}>{code}</span>
-      {name && <span className={styles.name}>{sectorNames[code]}</span>}
+      {showName && <span className={styles.name}>{sectorNames[code]}</span>}
     </span>
   );
 }

@@ -36,6 +36,15 @@
 //   03-30  active p1, p3, p5, p6: 4   2 of 3 (p1, p5; p6 has no health consent)
 //   All    12 person-days         4 of 11
 //
+// DAILY OPEN, WEEK BY WEEK (the same person-days added up by calendar week; the weeks start on
+// Monday 2026-01-26, the week of 2026-01-31, the first of the last 60 days)
+//   02-16  02-21                  people p1, p2      2 person-days   1 of 2
+//   02-23  02-27                  people p1, p3      2               0 of 2
+//   03-16  03-21, 03-22           people p5, p1      2               0 of 2
+//   03-23  03-27, 03-29           people p5, p1      2               1 of 2 (p1 on 03-29)
+//   03-30  03-30                  people p1, p3, p5, p6   4          2 of 3
+//   All                           people p1, p2, p3, p5, p6: 5   12   4 of 11
+//
 // APPS, RECENT WINDOW ENDING TODAY
 //   daily open, 7 days (03-25 to 03-31): active p1, p3, p5, p6 = 4; offered 3; used p1, p5 -> 2 of 3; 3 entries.
 //   payday, 30 days (03-02 to 03-31): active 4; offered p1, p3, p5 = 3; used p1 -> 1 of 3 (gate 50%: not met); 1 entry.
@@ -160,6 +169,12 @@ describe('the stage 2 dashboard on a constructed dataset', () => {
       ],
     });
     expect(res.body.rows.length).toBe(3);
+    // One first-check day per week here: 02-20 is in the week of 02-16, 03-20 in that of 03-16.
+    expect(res.body.weeks).toEqual([
+      { weekStart: 'all', people: 6, returns: row('all').returns },
+      { weekStart: '2026-02-16', people: 4, returns: row('2026-02-20').returns },
+      { weekStart: '2026-03-16', people: 2, returns: row('2026-03-20').returns },
+    ]);
   });
 
   it('share of active people who did the daily open, each day', async () => {
@@ -184,6 +199,21 @@ describe('the stage 2 dashboard on a constructed dataset', () => {
     expect(lines[1]).toBe(`all,12,11,4,${4 / 11}`);
     expect(lines[lines.length - 1]).toBe(`2026-03-30,4,3,2,${2 / 3}`);
     expect(lines.length).toBe(9);
+  });
+
+  it('the daily open week by week, in person-days, from the Monday of the first of the 60 days', async () => {
+    const res = await team('/api/team/daily');
+    expect(res.body.weeksFrom).toBe('2026-01-26');
+    expect(res.body.weeks).toEqual([
+      { weekStart: 'all', people: 5, active: 12, dailyOpen: { count: 4, of: 11, rate: 4 / 11 } },
+      { weekStart: '2026-02-16', people: 2, active: 2, dailyOpen: { count: 1, of: 2, rate: 0.5 } },
+      { weekStart: '2026-02-23', people: 2, active: 2, dailyOpen: { count: 0, of: 2, rate: 0 } },
+      { weekStart: '2026-03-16', people: 2, active: 2, dailyOpen: { count: 0, of: 2, rate: 0 } },
+      { weekStart: '2026-03-23', people: 2, active: 2, dailyOpen: { count: 1, of: 2, rate: 0.5 } },
+      { weekStart: '2026-03-30', people: 4, active: 4, dailyOpen: { count: 2, of: 3, rate: 2 / 3 } },
+    ]);
+    // The weeks add up to the same person-days as the days.
+    expect(res.body.weeks[0].dailyOpen).toEqual(res.body.rows[0].dailyOpen);
   });
 
   it('share of active people each app is offered to who used it, and the weekly apps week by week', async () => {
@@ -256,11 +286,9 @@ describe('the stage 2 dashboard on a constructed dataset', () => {
     expect(lines.length).toBe(7);
   });
 
-  it('a skipped question and a retest fill the two stage 1 gates', async () => {
+  it('a skipped question fills the skip-rate gate once its version has been shown to 30 checks', async () => {
     const other = await makeApi({ now: NOW });
     const db = other.db;
-    await addPerson(db, { id: 'q1', role: 'emp', day0: '2026-03-01', overall: 100 });
-    await addPerson(db, { id: 'q2', role: 'emp', day0: '2026-03-01', overall: 110 });
     const event = (session: string, user: string, action: string) =>
       db.query(
         `insert into question_events (session_id, seq, action, user_id, item_id, version_key, lang, option_index, seconds,
@@ -268,16 +296,24 @@ describe('the stage 2 dashboard on a constructed dataset', () => {
          values ($1, 0, $2, $3, 'B1', 'base', 'en', $4, $5, 'worst_first', $6, '2.1', '2026-03-01T10:01:00.000Z')`,
         [session, action, user, action === 'select' ? 2 : null, action === 'shown' ? null : 3, action === 'select' ? 'middle' : null],
       );
-    for (const [session, user, answer] of [['q1-s1', 'q1', 'select'], ['q2-s1', 'q2', 'skip']] as const) {
-      await event(session, user, 'shown');
-      await event(session, user, answer);
-    }
-    const gates = (await other.call('GET', '/api/team/gates', { token: TEAM_PASSPHRASE })).body.gates;
-    // B1 was shown twice and skipped once: 50%, far over the 10% gate.
-    expect(gates[1]).toMatchObject({ id: 'max_item_skip_rate', value: 0.5, met: false, note: 'B1/base' });
-    expect(gates[0]).toMatchObject({ value: 1, count: 2, of: 2, met: true });
+    const person = async (n: number, answer: 'select' | 'skip') => {
+      await addPerson(db, { id: `q${n}`, role: 'emp', day0: '2026-03-01', overall: 100 + n });
+      await event(`q${n}-s1`, `q${n}`, 'shown');
+      await event(`q${n}-s1`, `q${n}`, answer);
+    };
+    await person(1, 'select');
+    await person(2, 'skip');
+    const gatesOf = async () => (await other.call('GET', '/api/team/gates', { token: TEAM_PASSPHRASE })).body.gates;
+    // B1 was shown twice and skipped once: 50%, from 2 checks. Too few to judge the gate.
+    expect((await gatesOf())[1]).toMatchObject({ id: 'max_item_skip_rate', value: null, count: null, of: null, met: null, note: null });
+
+    // 28 more people: q3, q4 and q5 skip. 4 of 30 is 13.3%, over the 10% gate.
+    for (let n = 3; n <= 30; n++) await person(n, n <= 5 ? 'skip' : 'select');
+    const gates = await gatesOf();
+    expect(gates[1]).toMatchObject({ id: 'max_item_skip_rate', value: 4 / 30, count: 4, of: 30, met: false, note: 'B1/base' });
+    expect(gates[0]).toMatchObject({ value: 1, count: 30, of: 30, met: true });
     // Nobody is 7 days past a first check that anyone returned from.
-    expect(gates[3]).toMatchObject({ id: 'day7_return', value: 0, count: 0, of: 2, met: false });
+    expect(gates[3]).toMatchObject({ id: 'day7_return', value: 0, count: 0, of: 30, met: false });
     expect(gates[5]).toMatchObject({ id: 'payday_share', value: null, of: 0, met: null });
   });
 

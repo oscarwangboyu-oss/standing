@@ -10,6 +10,11 @@ export const brand = {
   company: 'Bayu Technology',
   place: 'Atlanta, Georgia',
   email: 'teambayutech@gmail.com',
+  /**
+   * The site address printed on the share image, without https://, such as "example.com".
+   * null until the domain is bound; the image leaves the line out while it is null.
+   */
+  host: null as string | null,
   /** Plain statement of what the product is. Used for the page description and the manifest. */
   description:
     'Standing is a whole-person check. It prices five sectors of a person like stocks: body, mind, wealth, capability and network. 100 is the median of the same age band and situation.',
@@ -87,6 +92,8 @@ export const chart = {
     `Pentagon chart of five sector prices. ${parts.join(', ')}. The ring at 100 is the issue price.`,
   ruler: (value: string) => `Scale from 55 to 145. This price is ${value}. 100 is the median.`,
   rulerMedian: 'median',
+  /** Under a sector code of the pentagon when the sector has no price. */
+  noPrice: 'No price',
 } as const;
 
 export const nav = {
@@ -103,8 +110,12 @@ export const streak = {
   recorded: 'recorded',
   missed: 'missed',
   pending: 'not recorded yet',
+  /** A day before the first check: there was no price to keep yet. */
+  before: 'before your first check',
   /** "6 days in a row" */
   count: (days: number) => `${days} ${days === 1 ? 'day' : 'days'} in a row`,
+  /** In place of the figure while the run is 0. */
+  none: 'No run yet. Open today to start one.',
 } as const;
 
 export const useful = {

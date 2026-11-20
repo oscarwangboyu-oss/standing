@@ -76,8 +76,13 @@ async function team(request: Request, deps: Deps, name: string, url: URL): Promi
   const asCsv = format === 'csv';
   const now = deps.now();
   // A CSV has no place for the demo mark of the JSON body, so it travels as a header.
+  // A file saved from it also carries the mark in its name.
   const marked = (data: { demoPeople: number }, response: Response): Response => {
     response.headers.set(DEMO_HEADER, String(data.demoPeople));
+    const disposition = response.headers.get('content-disposition');
+    if (data.demoPeople > 0 && disposition) {
+      response.headers.set('content-disposition', disposition.replace(/\.csv"$/, '-simulated.csv"'));
+    }
     return response;
   };
   switch (name) {

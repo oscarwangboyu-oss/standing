@@ -150,7 +150,7 @@ export { canLogDailyFor, dailyOpenInput, dailyStreak } from './live/daily';
 export type { DailyOpenInput, DailyReading, Streak } from './live/daily';
 export { PAY_FREQUENCIES, PAY_PERIODS_PER_YEAR, paydayBandsFor, paydayBaselineOf, paydayEligible } from './live/payday';
 export type { PayFrequency, PaydayAmounts, PaydayBaseline, PaydayLocal, PaydaySetup } from './live/payday';
-export { explainDays, timeline, timelineInputOn } from './timeline';
+export { explainCheckDay, explainDays, timeline, timelineInputOn } from './timeline';
 export type {
   PersonHistory,
   ScoringVersions,

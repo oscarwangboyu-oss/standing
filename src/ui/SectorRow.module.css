@@ -25,6 +25,9 @@ button.main { cursor: pointer; grid-template-columns: auto minmax(0, 1fr) auto a
   color: var(--sector-line);
 }
 .id { display: grid; gap: 1px; min-width: 0; }
+/* BODY and MIND: the code alone, centred on the chip. */
+.idSolo { align-content: center; min-height: 44px; }
+.codeLine { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s-2); min-width: 0; }
 .code {
   font-family: var(--font-display);
   font-size: var(--t-17);
@@ -39,16 +42,15 @@ button.main { cursor: pointer; grid-template-columns: auto minmax(0, 1fr) auto a
 .nums { display: grid; justify-items: end; gap: 4px; }
 .none { grid-column: 3 / -1; font-size: var(--t-15); font-weight: 600; color: var(--ink-2); text-align: right; }
 .chevron { color: var(--ink-3); }
-.under {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin: var(--s-3) 0 0 56px;
-}
-.under > :first-child { flex: 1; }
+/* Every bar spans the same width as the scale under the board: 56px in from the left (the chip
+   and its gap) to the right edge of the row. Nothing else sits on this line. */
+.under { display: block; margin: var(--s-3) 0 0 56px; }
 .extra { margin: var(--s-3) 0 0 56px; font-size: var(--t-15); line-height: 1.45; color: var(--ink-2); }
 .halted .chip, .halted .code { filter: saturate(0.3); }
 .scale { margin: 0 0 0 56px; padding-top: var(--s-1); }
+/* 70 at the left end, 100 exactly in the middle over the ticks, 130 at the right end. */
+.scale > span { display: grid; grid-template-columns: 1fr auto 1fr; }
+.scale > span > :last-child { justify-self: end; }
 @media (min-width: 400px) {
   .spark { display: block; }
 }

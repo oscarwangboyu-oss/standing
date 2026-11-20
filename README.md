@@ -21,7 +21,9 @@ npm run seed:demo    # optional: 330 simulated people, so the dashboard and the 
 npm run dev          # http://localhost:3000
 ```
 
-No account is needed. The database is an embedded Postgres (PGlite) in `.data/local`, created and migrated on first use. The team dashboard is at `/team`; the local passphrase is in `.env.development`. Add `?debug=1` to any app address to get the developer panel, which starts a random check and answers one to the end.
+`npm run seed:demo` also makes one more simulated person, the demo viewer (ticker DEMO), with two checks and 45 days of steady Daily Open, Weekly Win, People Nudge and Payday records. It prints that person's recovery code. Open http://localhost:3000/settings?restore=1, enter the code, and the market home, the price chart, "Why it moved" and the log all show 45 days of history. Every screen of that record says "Simulated data". `--no-viewer` leaves it out. A database seeded before refuses the same seed: run `npm run seed:demo -- --reset` (with `npm run dev` stopped) to replace every simulated person, the viewer included. Its history ends the day before the seed, so run it again after a few days away; Body and Mind halt 14 days after its last record.
+
+No account is needed. The database is an embedded Postgres (PGlite) in `.data/local`, created and migrated on first use. The team dashboard is at `/team`; the local passphrase is in `.env.development`. Add `?debug=1` to any app address to get the developer panel, which starts a random check and answers one to the end. It works locally and on preview deployments, never in production, where its random checks would count as real people. `npm run dev` also answers on http://127.0.0.1:3000, a second origin with its own device storage: handy for looking at the app as a new visitor while localhost holds a record.
 
 Stop `npm run dev` before a script writes to the local database: the embedded Postgres takes one process at a time.
 
@@ -33,15 +35,16 @@ Stop `npm run dev` before a script writes to the local database: the embedded Po
 | `npm run test:e2e` | Flow tests (Playwright, phone viewports of 360 and 412 wide, the installed Chrome). Builds the app, serves it on port 8799 with its own database in `.data/e2e`, which is emptied first |
 | `npm run typecheck` | Engine purity check, then the whole project. The build itself skips type checking |
 | `npm run db:migrate` | Apply `supabase/migrations/` to the database in `DATABASE_URL`, or to the local one |
-| `npm run seed:demo` | Generate simulated people, flagged `is_demo`. Refuses to run in production |
+| `npm run seed:demo` | Generate simulated people, flagged `is_demo`, plus the demo viewer and its recovery code. Refuses to run in production |
 | `npm run recompute` | Re-score every stored check with a chosen algorithm version and print old against new |
 | `npm run eval` | The seven scoring tests over the stored checks |
+| `npm run shots -- --url http://localhost:3000` | Walks every screen as a person would and saves a PNG of each, phone 390 wide in light and dark and desktop 1440 wide, into `design/shots/final`. Start a local server first; set `TEAM_PASSPHRASE` for the dashboard. Each run makes new people in that server's database |
 
 ## The stack and why
 
 - **Next.js (App Router), React, TypeScript, on Vercel.** One project holds the pages and the API (`app/api/[[...path]]/route.ts`, Node runtime). A push to GitHub deploys. The roadmap names this stack; the first brief named Cloudflare Pages and D1, and the roadmap wins.
 - **Supabase Postgres in production.** Plain SQL with `$1` placeholders through one small interface (`src/server/db.ts`). The server connects with the pooled connection string. Standing uses nothing else of Supabase: no auth, no client library, no Data API.
-- **PGlite locally and in tests.** An embedded Postgres, so local runs and tests need no account and behave like production: the same SQL, the same migrations.
+- **PGlite locally and in tests.** An embedded Postgres, so local runs and tests need no account and behave like production: the same SQL, the same migrations. The two drivers do differ in small ways (postgres.js encodes JSON parameters itself; PGlite takes text), so `tests/unit/server/driver.test.ts` runs a full check, the micro apps and every team table through the production driver too, over a small wire bridge to PGlite. Keep it green when you touch SQL.
 - **PostHog, from the server only, and only when `POSTHOG_KEY` is set.** The browser loads no third-party script. Ten funnel events are forwarded (`src/server/posthog.ts`), with a salted hash in place of the user id, never an answer, a price or an IP address.
 - **A dependency-free scoring engine** in `src/engine/`: pure TypeScript with no DOM, no Node, no clock and no randomness, so the browser, the server and a later mobile app compute the same result. `reference/` holds the verified bank, the reference engine and 335 golden vectors; the engine is tested against all of them.
 - **Fonts are bundled** from `node_modules`. No request leaves the site. The flow tests fail on any request to another origin.
@@ -60,9 +63,9 @@ supabase/migrations/  The schema, applied in file-name order
 scripts/              migrate, recompute, eval, seed-demo
 tests/unit/           Vitest
 tests/e2e/            Playwright flows
-design/shots/         Screenshots, not in git. final/ has every screen at 390 wide, light and dark
+design/shots/         Screenshots, not in git. final/ has every screen at 390 wide in light and dark, and nine at 1440 (npm run shots)
 reference/            The verified question bank, reference engine and golden vectors. Read-only
-docs/                 The roadmap text
+docs/                 The roadmap text. screens/ has three contact sheets of the key screens, made from design/shots/final
 ```
 
 ## Environment variables
@@ -86,16 +89,17 @@ Read only in `src/server/env.ts`. Locally nothing needs to be set.
 
 The founder does these himself, in this order. Nothing here has been done for him.
 
-1. **Create the Supabase project.** In the project, open Connect and copy the pooled connection string of the Transaction pooler (port 6543), with the database password filled in. The server opens it with prepared statements off, which that pooler needs.
+1. **Create the Supabase project** in the region East US (North Virginia), next to the Vercel functions (`vercel.json` pins them to `iad1`; change both together). In the project, open Connect and copy the pooled connection string of the Transaction pooler (port 6543), with the database password filled in. The server opens it with prepared statements off, which that pooler needs, and always over TLS. Under Database settings, turn on "Enforce SSL on incoming connections".
 2. **Create the tables.** From this folder:
    ```sh
    DATABASE_URL="postgresql://postgres.<project>:<password>@<host>:6543/postgres" npm run db:migrate
    ```
    It prints the migrations it applied. Running it again applies only what is new. Migration 0006 turns on row level security for every table, so the Supabase Data API serves none of them; the server connects as the owner of the tables and is not affected.
 3. **Create the Vercel project** from the GitHub repository. The framework is detected as Next.js; keep the default build settings.
-4. **Set the environment variables** for the Production environment in Vercel: `DATABASE_URL` (the same pooled string), `ADMIN_PASSPHRASE` (long and random), `STANDING_ENV=production`, and optionally `POSTHOG_KEY`.
-5. **Deploy.** Open `/api/health`: it answers `{"ok":true,"environment":"production"}`. Open `/team` and enter the passphrase.
-6. **Turn on stage 2 when the team decides to**, one switch at a time (see Stage switches), and redeploy.
+4. **Set the environment variables** for the Production environment in Vercel: `DATABASE_URL` (the same pooled string), `ADMIN_PASSPHRASE` (random, 20 characters or more: a shorter one keeps `/team` closed in production), `STANDING_ENV=production`, and optionally `POSTHOG_KEY`.
+5. **Deploy.** Open `/api/health`: it answers `{"ok":true,"environment":"production"}`. Then take one real check on a phone to the end, and open the market home: health only says the server runs, the check proves the database round trip. Delete that record in Settings afterwards. Open `/team` and enter the passphrase.
+6. **Add rate limits in the Vercel Firewall** (Project, Firewall, Rules): for example 20 requests a minute per IP on `POST /api/users`, `POST /api/restore` and `/api/team/*`. The app cannot count requests itself, because serverless instances share no memory. Recovery codes (100 bits) and invite codes (128 bits) cannot be guessed either way; the limits keep junk records out of the dashboard.
+7. **Turn on stage 2 when the team decides to**, one switch at a time (see Stage switches), and redeploy.
 
 Notes:
 
@@ -143,7 +147,7 @@ A bank version that has produced results is never edited: stored checks must re-
 4. Point `CURRENT.bank` at `2.2` in `src/engine/registry.ts`.
 5. Run `npm test`. `tests/unit/engine/bank.test.ts` pins bank 2.1 to `reference/bank_v2.1.json`; keep that test on 2.1 and add what the new bank changes. `parseBank` refuses a file with the wrong shape.
 6. Deploy. A browser that still holds the old bank cannot start a check (the server answers `bank_version_mismatch`); the start screen then asks the person to reload. Checks already completed keep their bank version, and a check in progress finishes on the bank it started with.
-7. Log the day for the chart: `insert into version_log (kind, version, effective_day, logged_at) values ('bank', '2.2', '2026-12-01', '2026-12-01T00:00:00.000Z');`
+7. Log the day: `insert into version_log (kind, version, effective_day, logged_at) values ('bank', '2.2', '2026-12-01', '2026-12-01T00:00:00.000Z');`. It goes into the export and the record of what changed when. A person's chart does not draw a line on that day: a bank version belongs to each check, so their chart marks the change on their first check with the new bank. Algorithm and norm changes, which re-score every day, do draw a line on the day.
 
 The team dashboard keys its per-question table by bank version, question and version key, so numbers of the old and the new wording never mix.
 
@@ -183,27 +187,29 @@ New norms go the same way: add an entry to `NORMS` in `config.ts`, point `CURREN
 | Highest skip rate of one question, 10% or less | The largest skip rate of any question version on the per-question table, over all roles |
 | Retest correlation, 0.75 or more | Pearson correlation of the overall price in two checks of the same person 10 to 21 days apart, one pair per person (their earliest) |
 | Back on day 7, 25% or more; day 30, 12% or more | People who used Standing on day N after the local date of their first completed check (a visit, or a micro-app entry), of people whose day N is over (two UTC dates later) |
-| Payday Check share, 50% or more | Of people active in the last 30 days to whom Payday Check is offered, those who recorded one in that window. This gate is from the brief, not the roadmap |
+| Payday Check share, 50% or more | Of people active in the last 30 days to whom Payday Check is offered, those who recorded one in that window. This gate is from the brief, not the roadmap. It counts in the Stage 2 score like the deck's two gates |
 
-**Overview.** Checks started and completed, people started and completed (a person who takes the check twice counts once), the same by role, and the retest correlation.
+**Needs attention.** The top card lists every gate not met (actual against the gate), the five question versions with the most red lines, and the scoring tests that warn, each linking to its row.
+
+**Overview.** Checks started and completed, people started and completed (a person who takes the check twice counts once), the same by role, and the retest correlation. **Last 7 days** puts the checks started, the checks completed, the people completed and the finish rate of the last 7 days next to the 7 before, by the day a check was started.
 
 **Questions**, one row per question version that was shown, for all roles or one:
 
 - *Shown*: checks with any event for the version.
-- *Skip*: of those shown, checks that skipped it. Red above 10%.
-- *Drop-off*: of those shown, checks that did not answer, skip or mark it, are unfinished and have been idle for more than 30 minutes. Red above 3%.
-- *Time*: median seconds to select an option, against the median of the medians of other versions whose stems are of similar length (within a ratio of 1.5, at least 3 of them). Red above twice that.
+- *Skip*: of those shown, checks that skipped it. Red above 10%, from 30 checks shown.
+- *Drop-off*: of those shown, checks that did not answer, skip or mark it, are unfinished and have been idle for more than 30 minutes. Red above 3%, from 30 checks shown.
+- *Time*: median seconds to select an option, against the median of the medians of other versions whose stems are of similar length (within a ratio of 1.5, at least 3 of them). Red above twice that, from 30 answers.
 - *Options*: share of the selections on each option. Red when one option is above 60% or any is below 3%.
-- *Not applicable*: of those shown, checks that marked it not applicable or chose an option with no score. Red above 15%.
-- *Retest*: of people who chose an option of this version in two checks 10 to 21 days apart, the share who chose another one the second time. Red above 30%.
+- *Not applicable*: of those shown, checks that marked it not applicable or chose an option with no score. Red above 15%, from 30 checks shown.
+- *Retest*: of people who chose an option of this version in two checks 10 to 21 days apart, the share who chose another one the second time. Red above 30%, from 30 pairs.
 
 **Prices.** Per sector and cohort (everyone, by role, by age band, role with age band): each person once, with their latest completed check; head count, median, minimum, maximum, and a histogram in bands of 15 points from 55 to 145.
 
 **Norms.** The same cohorts over the internal 0 to 1 sector values: median, mean, sample standard deviation and n, next to the norm in force. This is the table to read before replacing the provisional norm.
 
-**Returns.** By the date of the first completed check: people, and for day 1, 7 and 30 the share who came back, as in the gates.
+**Returns.** By the calendar week of the first completed check (the CSV keeps one row per day): people, and for day 1, 7 and 30 the share who came back, as in the gates.
 
-**Micro apps.** A person is active on a day when they had completed a check and opened Standing or recorded an entry that day. Per app: active people in the window (7 days; 30 for payday), those the app is offered to (Daily Open: with the Body and Mind consent; Payday: own earnings and an eligible role; the weekly apps: everyone), those with an entry, and the entries. Day by day: the share of active people with the consent who did the Daily Open. Week by week: the share of active people with a Weekly Win and with a People Nudge.
+**Micro apps.** A person is active on a day when they had completed a check and opened Standing or recorded an entry that day. Per app: active people in the window (7 days; 30 for payday), those the app is offered to (Daily Open: with the Body and Mind consent; Payday: own earnings and an eligible role; the weekly apps: everyone), those with an entry, and the entries. Week by week, in person-days: the share of active people with the consent who did the Daily Open (the CSV keeps one row per day). Week by week: the share of active people with a Weekly Win and with a People Nudge.
 
 **Scoring tests.** The seven tests of `src/engine/evaluation.ts`, the same as `npm run eval`: range (the overall price spreads and few prices sit on a limit), stability (retest correlation), response (points per changed answer between consecutive checks), validity (objective position against the ladder answer, and no two sectors correlating above 0.85), fairness (largest gap between role medians and between age-band medians), gaming (all-best answers, speeding, grade C), version effect (old against new prices where a second version is stored). Each gives pass, warn or not enough data (fewer than 30 records). The thresholds are `EVALUATION` in `config.ts`.
 
@@ -222,7 +228,7 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - **Stage 3:** paid reports, subscription, Stripe, email.
 - **Stage 4:** bank connections and a verified statement. The `connected` source exists as a name in the engine and nothing writes it.
 - **The native app, HealthKit and notifications.** The Daily Open reminder is a calendar file the person saves.
-- **Accounts.** There is no sign-up, email or password. A device token links a browser to a record, and a recovery code connects another device.
+- **Accounts.** There is no sign-up, email or password. A device token links a browser to a record, and a recovery code connects another device. The start screen links to it ("Took the check on another device?"), which opens Settings with the code sheet open.
 - **A language switch.** English only.
 - **Public rankings**, and any screen that names a winner in a comparison.
 
@@ -231,20 +237,23 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - The baseline is provisional: median 0.5 and standard deviation 0.2 for every sector. Until a real norm replaces it, "100 is the median of your group" is a design setting, and the result page, the market home and the share image say so.
 - Every threshold in `src/engine/config.ts` is an initial setting without data behind it.
 - The ticker is set when a check starts. Settings shows it and links to a retake; there is no endpoint to change it alone.
-- The steps of `/start` are not kept across a reload. The check itself resumes at the same question on any device with the token.
+- The steps of `/start` are kept for the life of the browser tab (sessionStorage, `src/client/startDraft.ts`), so a reload comes back to the same step; a new tab starts at the introduction. The check itself resumes at the same question on any device with the token.
 - Daily records count once 4 of the last 7 days are recorded, and the screen reaches today and yesterday. A price cannot move from Daily Open before the fourth day.
-- The Daily Open streak shows the days before a person's first check as missed, and offers yesterday for backfill on the first day.
+- The Daily Open streak shows the days before a person's first check as empty windows. Yesterday is offered for filling in only from the second day on; the server still accepts it on the first day.
 - Payday amounts, win titles, people's names and invite links live in the browser. Clearing its data, or moving to another device, loses them. The export file includes what the browser holds.
-- A Payday Check moves Wealth only for people whose check asked the two questions it can answer (see Open decisions).
+- A Payday Check moves Wealth through months of savings (W3) and the debt or saving share (W5). The other four wealth answers wait for the next full check (see Open decisions).
 - The embedded local database takes one process: stop the dev server before running a script against it.
-- Social images resolve their address from Vercel's own variables. With a custom domain, set `metadataBase` in `app/layout.tsx`.
-- Not verified in a browser by anyone: a version marker on the price chart, the "Resumed" tag, the retake prompt on day 90, and the offline paths of the micro apps. The engine and server rules behind them have unit tests.
+- Social images resolve their address from Vercel's own variables. With a custom domain, set `metadataBase` in `app/layout.tsx`, and set `host` in `brand` (`src/copy/common.ts`) to the bare domain (for example `standing.example`): the share image then prints it under "Standing".
+- The landing page is static, so it reads the stage switches when it is built. Turning a switch on takes a redeploy, as every change of an environment variable on Vercel does.
+- An invite code travels in the link's path (`/i/CODE`), so it appears in the host's request logs while it is valid (14 days, one use). The database keeps only its hash, and `Referrer-Policy: no-referrer` keeps it out of other sites' logs. Moving it into the fragment (`/i#CODE`) would keep it out of the host's logs as well.
+- The version marker on the price chart, the "Resumed" tag, the retake prompt on day 90 and the offline paths of the micro apps were checked in a browser on 2026-11-20, with the browser clock moved and `/api/me` answers built from real engine output. They have no flow test of their own, because a flow test cannot move the server's clock.
 - The flow tests run in Chrome only, at 360 and 412 wide. Safari on a real iPhone has not been tested.
+- The interface uses US spelling. The English text of question bank 2.1 has British spelling in a few places ("licence" in the capability questions). The bank is read-only in `reference/`; changing its text means a new bank version.
 
 ## Open decisions for the founder
 
 1. **The f10 speed check cannot give 2 points.** A mean time multiplier under 0.7 gives 1 point; the reference also lists 2 points under 0.5, and no answer counts below the floor of 0.5, so that level never fires. The fastest possible session gets 1 point and keeps data grade A. Raising the first threshold (the golden vectors stay green up to 0.55) changes the reference rule and needs a new algorithm version. `config.ts`, `flags.speeding`.
-2. **Which Wealth answers Payday Check may replace.** Today: the share saved (W5) only for the wording that asks about saving, which high-tier earners get; the other wordings ask about debt payments, which the three numbers do not hold, so those people's share is stored and moves nothing. Months of savings (W3) only when the whole estimated range has left the answered band. Income, emergency expense, net worth and money worry are never touched. A fourth number, debt payments, would let Payday Check move Wealth for everyone; the roadmap asks for three. `config.ts`, `payday`.
+2. **What Payday Check asks.** The roadmap deck says "three numbers: income, spending, savings"; PROMPT.md section 10 asks for the money available now, debt paid and the amount saved, with take-home pay filled in from the last payday, and replaces W3 and W5 from them. Spending answers no wealth question, so with the deck's three numbers Wealth could move only for high-tier earners. The screen follows PROMPT.md: take-home pay, money available now, debt paid, saved. W3 (months of savings) is the money now over a month of essential spending; W5 is the debt share for most people (its "debt" and "hh" wordings) and the saving share for the high tier, each averaged over the last three paydays. Income, the emergency expense, net worth and money worry keep the check's answers. Paydays recorded before this change carry spending and still count for the saving share. `config.ts`, `payday`.
 3. **One payday is enough** for the saved share to replace the check answer (`payday.minPeriods: 1`). Raise it if single paydays turn out noisy.
 4. **The ten type names and their lines** (The Builder, The Operator, and so on) are a first proposal. `src/copy/types.ts` is the only place they live.
 5. **Extra items from the micro apps.** How you feel (load 1 in Mind), weeks with a win (load 0.5 in Capability) and people reached (load 0.5 in Network) have no counterpart in the questionnaire. Their loads and windows are design settings.
@@ -258,3 +267,5 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 13. **Vercel plan.** Hobby is for non-commercial use. Decide before the first paying user, at the latest.
 14. **When to replace the provisional norm**, and with how many people per cohort. The Norms table shows n for each.
 15. **The cohort line under the ticker** uses short role names (`src/copy/market.ts`, `roleNames`). They are our wording, not the bank's.
+16. **The skip-rate gate and small numbers.** A share is judged only when at least 30 records stand behind it: checks shown the question for skip, drop-off and not applicable; answers for the option spread and the median time; retest pairs for the retest change. Below that the dashboard prints the counts, draws the figure lighter and never marks it red. The skip-rate gate takes the highest skip rate among question versions shown to 30 or more checks, and says "No data yet" until one has been, so a role-specific version seen by a handful of people no longer holds the gate red on one or two skips. The deck says "no question skipped by over 10%" without a minimum; 30 is our reading. The minimum is `DASHBOARD_READING.minRecords` in `src/engine/config.ts`, the same number the scoring tests need.
+17. **What withdrawing the Body and Mind consent does.** From that moment the live price, Why it moved, comparisons and the team's price and norm tables leave Body and Mind out, and the Daily Open closes. Results already recorded stay as they were on the result page, and the raw answers stay until the person deletes their data; the per-question table of the dashboard still counts their past Body and Mind answers. Whether withdrawal should also delete those answers, or offer to, is for the lawyer to decide.

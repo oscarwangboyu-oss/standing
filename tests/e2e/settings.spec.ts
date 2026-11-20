@@ -35,11 +35,15 @@ test('a recovery code connects a second device to the same record', async ({ pag
   const code = (await page.getByRole('status', { name: 'Your recovery code' }).innerText()).trim();
   expect(code).toMatch(/^[0-9A-Z]{5}(-[0-9A-Z]{5}){3}$/);
 
+  // The second device starts where a new visitor does: the start screen links to the code.
   const other = await secondDevice(browser, testInfo, watch);
-  await other.page.goto('/settings');
+  await other.page.goto('/start');
+  await other.page.getByRole('link', { name: 'Use your recovery code' }).click();
+  await other.page.waitForURL(/\/settings\?restore=1$/);
   await expect(other.page.getByText('This device holds no record')).toBeVisible();
-  await other.page.getByRole('button', { name: 'Enter a recovery code' }).click();
+  // The sheet is already open.
   const sheet = other.page.getByRole('dialog', { name: 'Connect this device' });
+  await expect(sheet).toBeVisible();
   await sheet.getByLabel('Recovery code').fill(code.toLowerCase());
   await sheet.getByRole('button', { name: 'Connect this device' }).click();
   await other.page.waitForURL(/\/market$/);

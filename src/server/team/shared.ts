@@ -5,9 +5,28 @@
  * person, and every share is returned with the counts it came from.
  */
 import type { Rate, TeamGoCriteria, TeamRedLines } from '../../shared/api';
-import { DASHBOARD_RED_LINES, GO_CRITERIA, RETEST_WINDOW_DAYS } from '../../engine';
+import { DASHBOARD_RED_LINES, GO_CRITERIA, RETEST_WINDOW_DAYS, dayNumber, dayOf, weekOf } from '../../engine';
+import { DASHBOARD_READING } from '../../engine/config';
 import type { Db } from '../db';
 import { first } from '../db';
+
+/**
+ * Fewest records behind a share before the dashboard judges it. A share over a red line is red
+ * only from this denominator up, and the skip-rate gate only reads question versions shown to
+ * at least this many checks.
+ */
+export const MIN_RECORDS = DASHBOARD_READING.minRecords;
+
+/** True when a share has enough records behind it to be judged against a line. */
+export function judged(r: Rate): r is Rate & { rate: number } {
+  return r.rate !== null && r.of >= MIN_RECORDS;
+}
+
+/** Monday of the calendar week of a YYYY-MM-DD day. Weeks start on Monday, as in the engine. */
+export function mondayOf(day: string): string {
+  // weekOf counts weeks from the Monday 1970-01-05 (day 4): week w starts on day 7w - 3.
+  return dayOf(weekOf(dayNumber(day)) * 7 - 3);
+}
 
 /**
  * How many people, and how many of their checks, are simulated (made by npm run seed:demo).

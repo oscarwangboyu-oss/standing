@@ -32,10 +32,15 @@
 //   r9    22        0 -> 4                60 -> 140            no
 //   r10    9        0 -> 4                60 -> 140            no
 //   Sector C price of each check equals its overall price.
+//
+// No question version here reaches the 30 records a red line needs (DASHBOARD_READING.minRecords):
+// every share is returned with its counts and none is red. The last describe block builds a
+// second dataset in which some do.
 
 import { beforeAll, describe, expect, it } from 'vitest';
 import { REPORT_SECTIONS, type TeamItemRow, type TeamNormRow, type TeamPriceRow } from '@/shared/api';
 import { DASHBOARD_RED_LINES, GO_CRITERIA } from '@/engine';
+import { DASHBOARD_READING } from '@/engine/config';
 import type { Db } from '@/server/db';
 import { makeApi, TEAM_PASSPHRASE, type TestApi } from './helpers/api';
 
@@ -250,6 +255,18 @@ beforeAll(async () => {
 });
 
 describe('overview', () => {
+  it('the last 7 days against the 7 before, by the time a check was created', async () => {
+    const { body } = await get('/api/team/overview');
+    // From 2026-02-21 12:00 to now: only u10 (started 6 minutes ago, not completed).
+    // From 2026-02-14 12:00 to 2026-02-21 12:00: a1..a10 and u1..u9, of which a10 did not complete.
+    // Group R checked in January and early February: in neither window.
+    expect(body.recent).toEqual({
+      days: 7,
+      last: { sessions: { count: 0, of: 1, rate: 0 }, people: { count: 0, of: 1, rate: 0 } },
+      previous: { sessions: { count: 18, of: 19, rate: 18 / 19 }, people: { count: 18, of: 19, rate: 18 / 19 } },
+    });
+  });
+
   it('started, completed and completion rate, with counts', async () => {
     const { body } = await get('/api/team/overview');
     // Checks: 10 + 10 + 21 started; 9 + 9 + 21 completed. People: 30 started, 28 completed.
@@ -302,8 +319,12 @@ describe('overview', () => {
     expect(body.redLines).toEqual({ ...DASHBOARD_RED_LINES });
     // 28 of 30 people completed: above 70%.
     expect(body.status.completionRate).toEqual({ count: 28, of: 30, rate: 28 / 30, met: true });
-    // B1 was skipped by 3 of the 20 who saw it: above the 10% allowed.
-    expect(body.status.maxItemSkipRate).toEqual({ value: 0.15, itemId: 'B1', versionKey: 'base', met: false });
+    // B1 was skipped by 3 of the 20 who saw it (15%), but no version was shown to 30 checks:
+    // the gate has nothing to judge yet.
+    expect(DASHBOARD_READING.minRecords).toBe(30);
+    expect(body.status.maxItemSkipRate).toEqual({
+      value: null, itemId: null, versionKey: null, count: null, of: null, met: null, minShown: 30,
+    });
     expect(body.status.retestCorrelation.met).toBe(true);
     expect(body.status.retestCorrelation.pairs).toBe(6);
   });
@@ -323,6 +344,7 @@ describe('per question, all roles', () => {
       minSimilarStems: 3,
       dropOffIdleMinutes: 30,
       retestWindowDays: { min: 10, max: 21 },
+      minRecords: 30,
     });
   });
 
@@ -332,21 +354,21 @@ describe('per question, all roles', () => {
     expect(rows.N2.area).toBe('N');
   });
 
-  it('skip rate: of those shown; red above 10%', () => {
-    // B1: shown to 20, skipped by a8, a9 and u9.
+  it('skip rate: of those shown; over 10% but not red under 30 shown', () => {
+    // B1: shown to 20, skipped by a8, a9 and u9. 15% is over the line, 20 is under the 30 it needs.
     expect(rows.B1.shown).toBe(20);
-    expect(rows.B1.skip).toEqual({ count: 3, of: 20, rate: 0.15, red: true });
+    expect(rows.B1.skip).toEqual({ count: 3, of: 20, rate: 0.15, red: false });
     expect(rows.B4.skip).toEqual({ count: 0, of: 5, rate: 0, red: false });
     expect(rows.M1.skip).toEqual({ count: 0, of: 21, rate: 0, red: false });
   });
 
-  it('drop-off rate: shown, nothing after it; red above 3%', () => {
+  it('drop-off rate: shown, nothing after it; over 3% but not red under 30 shown', () => {
     // Only a10 left at B1. u10 is still inside the 30 idle minutes.
-    expect(rows.B1.dropOff).toEqual({ count: 1, of: 20, rate: 0.05, red: true });
+    expect(rows.B1.dropOff).toEqual({ count: 1, of: 20, rate: 0.05, red: false });
     expect(rows.B3.dropOff).toEqual({ count: 0, of: 3, rate: 0, red: false });
   });
 
-  it('median seconds, and red when above twice the median of stems of similar length', () => {
+  it('median seconds, compared with twice the median of stems of similar length', () => {
     // Medians: B1 8 (1..15), B4 2, B3 2 (1,2,9), N2 3, M1 5.
     expect(rows.B1.time.medianSeconds).toBe(8);
     expect(rows.B4.time.medianSeconds).toBe(2);
@@ -362,41 +384,43 @@ describe('per question, all roles', () => {
     //   B4 (12): B1, B3, N2, M1 -> medians [8,2,3,5], median 4.   2 > 8?  no.
     //   B3 (14): B4, N2, M1     -> [2,3,5], median 3.             2 > 6?  no.
     //   N2 (15): B4, B3, M1     -> [2,2,5], median 2.             3 > 4?  no.
-    //   M1 (17): B4, B3, N2     -> [2,2,3], median 2.             5 > 4?  yes, red.
+    //   M1 (17): B4, B3, N2     -> [2,2,3], median 2.             5 > 4?  yes, but from 21 answers: not red.
     expect(rows.B1.time).toMatchObject({ similarCount: 1, similarMedianSeconds: null, red: false });
     expect(rows.B4.time).toMatchObject({ similarCount: 4, similarMedianSeconds: 4, red: false });
     expect(rows.B3.time).toMatchObject({ similarCount: 3, similarMedianSeconds: 3, red: false });
     expect(rows.N2.time).toMatchObject({ similarCount: 3, similarMedianSeconds: 2, red: false });
-    expect(rows.M1.time).toMatchObject({ similarCount: 3, similarMedianSeconds: 2, red: true });
+    expect(rows.M1.time).toMatchObject({ similarCount: 3, similarMedianSeconds: 2, red: false });
+    expect(rows.M1.answered).toBe(21);
   });
 
-  it('option distribution; red when one option is above 60% or any is below 3%', () => {
-    // B1: 15 selections. Option 3 has 10 of 15 (67%), option 0 has none.
+  it('option distribution; uneven when one option is above 60% or any is below 3%, red from 30 answers', () => {
+    // B1: 15 selections. Option 3 has 10 of 15 (67%), option 0 has none. Uneven, from 15 answers.
     expect(rows.B1.answered).toBe(15);
     expect(rows.B1.options.counts).toEqual([0, 1, 2, 10, 2]);
     expect(rows.B1.options.shares).toEqual([0, 1 / 15, 2 / 15, 10 / 15, 2 / 15]);
-    expect(rows.B1.options.red).toBe(true);
+    expect(rows.B1.options.red).toBe(false);
     // M1: 21 selections, [3, 11, 1, 1, 5]. Largest 52%, smallest 4.8%: inside both lines.
     expect(rows.M1.options.counts).toEqual([3, 11, 1, 1, 5]);
     expect(rows.M1.options.red).toBe(false);
-    // B3: everyone chose option 3.
+    // B3: everyone chose option 3, but there are 3 answers.
     expect(rows.B3.options.counts).toEqual([0, 0, 0, 3, 0]);
-    expect(rows.B3.options.red).toBe(true);
+    expect(rows.B3.options.red).toBe(false);
   });
 
-  it('not-applicable share: marked not applicable or an option whose score is null, over those shown; red above 15%', () => {
+  it('not-applicable share: marked not applicable or an option whose score is null, over those shown', () => {
     // B4: shown to 5, 1 chose option 6, the one without a score. Nobody marked it not applicable.
+    // 20% is over the 15% line, 5 shown is under the 30 it needs.
     expect(rows.B4.options.counts).toEqual([1, 1, 1, 1, 0, 0, 1]);
-    expect(rows.B4.notApplicable).toEqual({ count: 1, of: 5, rate: 0.2, red: true, hasOption: true, marked: 0, unscoredOption: 1 });
+    expect(rows.B4.notApplicable).toEqual({ count: 1, of: 5, rate: 0.2, red: false, hasOption: true, marked: 0, unscoredOption: 1 });
     // B1: shown to 20. No unscored option and nobody marked it.
     expect(rows.B1.notApplicable).toEqual({ count: 0, of: 20, rate: 0, red: false, hasOption: false, marked: 0, unscoredOption: 0 });
   });
 
-  it('retest change: same person, two checks 10 to 21 days apart; red above 30%', () => {
+  it('retest change: same person, two checks 10 to 21 days apart; over 30% but six pairs are not enough for red', () => {
     // M1 pairs: r1 1->1, r2 1->1, r3 1->2, r4 1->3, r7 1->1, r8 1->0. Three of six changed.
     // r5 (5 days), r6 (30), r9 (22) and r10 (9) all changed their answer and are outside the window.
     // r1's third check pairs with the second, but only a person's earliest pair counts.
-    expect(rows.M1.retest).toEqual({ count: 3, of: 6, rate: 0.5, red: true });
+    expect(rows.M1.retest).toEqual({ count: 3, of: 6, rate: 0.5, red: false });
     expect(rows.B1.retest).toEqual({ count: 0, of: 0, rate: null, red: false });
   });
 });
@@ -409,12 +433,12 @@ describe('per question, filtered by role', () => {
     expect(Object.keys(rows).sort()).toEqual(['B1', 'B3', 'B4', 'M1', 'N2']);
     // Group A only: shown 10, skipped 2, a10 dropped, 7 selections [3,3,3,3,3,4,1] in 1..7 seconds.
     expect(rows.B1.shown).toBe(10);
-    expect(rows.B1.skip).toEqual({ count: 2, of: 10, rate: 0.2, red: true });
-    expect(rows.B1.dropOff).toEqual({ count: 1, of: 10, rate: 0.1, red: true });
+    expect(rows.B1.skip).toEqual({ count: 2, of: 10, rate: 0.2, red: false });
+    expect(rows.B1.dropOff).toEqual({ count: 1, of: 10, rate: 0.1, red: false });
     expect(rows.B1.options.counts).toEqual([0, 1, 0, 5, 1]);
     expect(rows.B1.time.medianSeconds).toBe(4);
-    expect(rows.M1.retest).toEqual({ count: 3, of: 6, rate: 0.5, red: true });
-    expect(rows.M1.time.red).toBe(true);
+    expect(rows.M1.retest).toEqual({ count: 3, of: 6, rate: 0.5, red: false });
+    expect(rows.M1.time.red).toBe(false);
   });
 
   it('role=ug4', async () => {
@@ -437,8 +461,8 @@ describe('per question, filtered by role', () => {
     api.setNow('2026-02-28T12:30:00.000Z');
     const { body } = await get('/api/team/items?role=ug4');
     api.setNow(NOW);
-    // u10 saw B1 at 11:55. At 12:30 that is 35 minutes ago.
-    expect(body.rows[0].dropOff).toEqual({ count: 1, of: 10, rate: 0.1, red: true });
+    // u10 saw B1 at 11:55. At 12:30 that is 35 minutes ago. 10 shown: counted, not red.
+    expect(body.rows[0].dropOff).toEqual({ count: 1, of: 10, rate: 0.1, red: false });
   });
 });
 
@@ -601,6 +625,13 @@ describe('return rates by the date of the first check', () => {
         ],
       },
     ]);
+    // By calendar week: 2026-01-10 is a Saturday in the week of Monday 2026-01-05, and
+    // 2026-02-20 a Friday in the week of 2026-02-16. One first-check day per week here.
+    expect(body.weeks).toEqual([
+      { weekStart: 'all', people: 28, returns: body.rows[0].returns },
+      { weekStart: '2026-01-05', people: 10, returns: body.rows[1].returns },
+      { weekStart: '2026-02-16', people: 18, returns: body.rows[2].returns },
+    ]);
   });
 });
 
@@ -643,10 +674,10 @@ describe('CSV', () => {
     );
     expect(rows.length).toBe(6);
     const b1 = rows.find((r) => r.startsWith('B1,'))!.split(',');
-    expect(b1.slice(0, 11)).toEqual(['B1', 'base', 'B', '20', '3', '0.15', 'true', '1', '0.05', 'true', '15']);
+    expect(b1.slice(0, 11)).toEqual(['B1', 'base', 'B', '20', '3', '0.15', 'false', '1', '0.05', 'false', '15']);
     expect(b1[16]).toBe('0|1|2|10|2');
     const m1 = rows.find((r) => r.startsWith('M1,'))!.split(',');
-    expect(m1.slice(-4)).toEqual(['6', '3', '0.5', 'true']);
+    expect(m1.slice(-4)).toEqual(['6', '3', '0.5', 'false']);
   });
 
   it('overview, go criteria, prices, norms and returns', async () => {
@@ -660,7 +691,7 @@ describe('CSV', () => {
     const status = lines((await get('/api/team/overview?format=csv&table=status')).text);
     expect(status[0]).toBe('metric,value,count,of,criterion,met');
     expect(status[1]).toBe(`completion_rate_people,${28 / 30},28,30,0.7,true`);
-    expect(status[2]).toBe('max_item_skip_rate,0.15,,,0.1,false');
+    expect(status[2]).toBe('max_item_skip_rate,,,,0.1,');
     expect(status[3].startsWith('retest_correlation,0.9855')).toBe(true);
 
     const prices = lines((await get('/api/team/prices?format=csv')).text);
@@ -707,5 +738,136 @@ describe('aggregates only', () => {
     const after = await api.db.query('select (select count(*) from users)::int as u, (select count(*) from question_events)::int as e');
     expect(after).toEqual(before);
     expect(before).toEqual([{ u: 30, e: 102 }]);
+  });
+});
+
+// ---------------------------------------------------------------- red lines need a denominator
+//
+// A second dataset, with the clock at 2026-04-15 12:00 UTC (a Wednesday).
+//
+//   d1..d30  role emp, one check each started 2026-04-10 10:00; d30 did not complete.
+//            B1: shown to all 30, d1..d4 skipped, the other 26 chose option 2.
+//            B3: all 30 chose option 3. B4: d1..d29 chose option 1.
+//   e1..e7   role ug4, one check each. e1 started 2026-04-08 12:00 exactly, e2..e7 on
+//            2026-04-02 10:00; e7 did not complete.
+//            N2: shown to all 7, e1 and e2 skipped, the other 5 chose option 2.
+//   g1..g30  role emp, two checks 14 days apart (2026-03-01 and 2026-03-15), M1 in each.
+//            g1..g10 chose option 1 and then 2, g11..g30 option 1 twice.
+//   Visits   g1 and g2 on 2026-03-02: day 1 after their first check. (No one is active in the
+//            last 30 days, so the micro-app tables have nobody to read.)
+//
+//   B1  skip 4 of 30   = 13.3%  over 10% with 30 shown: red, and it decides the skip gate.
+//   N2  skip 2 of 7    = 28.6%  higher, but 7 shown: not red, and the gate ignores it.
+//   B3  option 3 at 100% of 30 answers: red.   B4  option 1 at 100% of 29 answers: not red.
+//   B1  option 2 at 100% of 26 answers: not red.
+//   M1  retest change 10 of 30 pairs = 33.3%: red.
+
+describe('red lines need a denominator', () => {
+  const LATER = '2026-04-15T12:00:00.000Z';
+  let other: TestApi;
+  const team = (path: string) => other.call('GET', path, { token: TEAM_PASSPHRASE });
+
+  beforeAll(async () => {
+    other = await makeApi({ now: LATER });
+    const db = other.db;
+    for (let i = 1; i <= 30; i++) {
+      const user = `d${i}`;
+      const session = `sd${i}`;
+      const at = '2026-04-10T10:00:00.000Z';
+      await addUser(db, user);
+      await addSession(db, { id: session, user, role: 'emp', age: 2, created: at, completed: i < 30 ? '2026-04-10T10:10:00.000Z' : null });
+      await addQuestion(db, { session, user, seq: 0, item: 'B1', answer: i <= 4 ? 'skip' : 2, at });
+      await addQuestion(db, { session, user, seq: 1, item: 'B3', answer: 3, at });
+      if (i < 30) await addQuestion(db, { session, user, seq: 2, item: 'B4', answer: 1, at });
+    }
+    for (let i = 1; i <= 7; i++) {
+      const user = `e${i}`;
+      const session = `se${i}`;
+      const at = i === 1 ? '2026-04-08T12:00:00.000Z' : '2026-04-02T10:00:00.000Z';
+      await addUser(db, user);
+      await addSession(db, { id: session, user, role: 'ug4', age: 0, created: at, completed: i < 7 ? at : null });
+      await addQuestion(db, { session, user, seq: 0, item: 'N2', answer: i <= 2 ? 'skip' : 2, at });
+    }
+    for (let i = 1; i <= 30; i++) {
+      const user = `g${i}`;
+      await addUser(db, user);
+      const checks = [
+        { id: `sg${i}a`, at: '2026-03-01T15:00:00.000Z', m1: 1 },
+        { id: `sg${i}b`, at: '2026-03-15T15:00:00.000Z', m1: i <= 10 ? 2 : 1 },
+      ];
+      for (const c of checks) {
+        await addSession(db, { id: c.id, user, role: 'emp', age: 3, created: c.at, completed: c.at });
+        await addQuestion(db, { session: c.id, user, seq: 0, item: 'M1', answer: c.m1, at: c.at });
+      }
+    }
+    await addVisit(db, 'g1', '2026-03-02');
+    await addVisit(db, 'g2', '2026-03-02');
+  });
+
+  it('a share over its line is red from 30 records: 4 of 30 is, 2 of 7 is not', async () => {
+    const { body } = await team('/api/team/items');
+    const rows: Record<string, TeamItemRow> = Object.fromEntries(body.rows.map((r: TeamItemRow) => [r.itemId, r]));
+    expect(body.definitions.minRecords).toBe(30);
+    expect(rows.B1.skip).toEqual({ count: 4, of: 30, rate: 4 / 30, red: true });
+    expect(rows.N2.skip).toEqual({ count: 2, of: 7, rate: 2 / 7, red: false });
+    expect(rows.N2.skip.rate).toBeGreaterThan(rows.B1.skip.rate as number);
+  });
+
+  it('the option spread is judged from 30 answers', async () => {
+    const { body } = await team('/api/team/items');
+    const rows: Record<string, TeamItemRow> = Object.fromEntries(body.rows.map((r: TeamItemRow) => [r.itemId, r]));
+    expect([rows.B3.answered, rows.B3.options.red]).toEqual([30, true]);
+    expect([rows.B4.answered, rows.B4.options.red]).toEqual([29, false]);
+    expect([rows.B1.answered, rows.B1.options.red]).toEqual([26, false]);
+  });
+
+  it('the retest change is judged from 30 pairs', async () => {
+    const { body } = await team('/api/team/items');
+    const m1 = body.rows.find((r: TeamItemRow) => r.itemId === 'M1') as TeamItemRow;
+    expect(m1.retest).toEqual({ count: 10, of: 30, rate: 10 / 30, red: true });
+  });
+
+  it('the skip-rate gate reads only versions shown to 30 or more checks', async () => {
+    const { body } = await team('/api/team/overview');
+    expect(body.status.maxItemSkipRate).toEqual({
+      value: 4 / 30, itemId: 'B1', versionKey: 'base', count: 4, of: 30, met: false, minShown: 30,
+    });
+    const gates = (await team('/api/team/gates')).body.gates;
+    expect(gates[1]).toMatchObject({ id: 'max_item_skip_rate', value: 4 / 30, count: 4, of: 30, met: false, note: 'B1/base' });
+  });
+
+  it('the last 7 days include their first moment, the 7 before include theirs', async () => {
+    const { body } = await team('/api/team/overview');
+    // Last 7 days, from 2026-04-08 12:00: d1..d30 (29 completed) and e1, started at 12:00 exactly.
+    // The 7 before, from 2026-04-01 12:00: e2..e7, of which e7 did not complete. The g checks are older.
+    expect(body.recent).toEqual({
+      days: 7,
+      last: { sessions: { count: 30, of: 31, rate: 30 / 31 }, people: { count: 30, of: 31, rate: 30 / 31 } },
+      previous: { sessions: { count: 5, of: 6, rate: 5 / 6 }, people: { count: 5, of: 6, rate: 5 / 6 } },
+    });
+  });
+
+  it('return rates by the calendar week of the first check add up the days of the week', async () => {
+    const { body } = await team('/api/team/returns');
+    // Week of 2026-02-23: g1..g30, first check on Sunday 2026-03-01. g1 and g2 came back on day 1.
+    // Week of 2026-03-30: e2..e6, first check on Thursday 2026-04-02.
+    // Week of 2026-04-06: e1 (Wednesday 04-08) and d1..d29 (Friday 04-10). Day 1 has passed for
+    //   all 30 of them, day 7 for none.
+    const week = (start: string) => body.weeks.find((w: any) => w.weekStart === start);
+    expect(body.weeks.map((w: any) => w.weekStart)).toEqual(['all', '2026-02-23', '2026-03-30', '2026-04-06']);
+    expect(week('2026-04-06')).toEqual({
+      weekStart: '2026-04-06',
+      people: 30,
+      returns: [
+        { day: 1, count: 0, of: 30, rate: 0 },
+        { day: 7, count: 0, of: 0, rate: null },
+        { day: 30, count: 0, of: 0, rate: null },
+      ],
+    });
+    expect(week('2026-03-30')).toMatchObject({ people: 5, returns: [{ day: 1, count: 0, of: 5 }, { day: 7, count: 0, of: 5 }, { day: 30, count: 0, of: 0 }] });
+    expect(week('2026-02-23')).toMatchObject({ people: 30, returns: [{ day: 1, count: 2, of: 30 }, { day: 7, count: 0, of: 30 }, { day: 30, count: 0, of: 30 }] });
+    expect(week('all')).toEqual({ weekStart: 'all', people: 65, returns: body.rows[0].returns });
+    // The day rows stay for the CSV: 04-08 and 04-10 are two rows there.
+    expect(body.rows.map((r: any) => r.firstDay)).toEqual(['all', '2026-03-01', '2026-04-02', '2026-04-08', '2026-04-10']);
   });
 });

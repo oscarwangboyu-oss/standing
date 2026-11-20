@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { demo as copy } from '@/copy/landing';
+import { START_HREF, demo as copy } from '@/copy/landing';
 import { Button } from '../Button';
-import { IconRetake } from '../icons';
+import { IconArrowRight, IconRetake } from '../icons';
 import { OptionList } from '../OptionList';
-import { ProgressCount } from '../ProgressCount';
 import type { SectorCode } from '../sectors';
 import { Skyline } from '../skyline/Skyline';
-import { sectorStyle } from '../Tag';
+import { SectorTag, sectorStyle } from '../Tag';
 import styles from './try.module.css';
 
 const SECTOR: SectorCode = 'BODY';
@@ -61,7 +60,6 @@ export function TryCheck() {
   };
 
   const built = copy.sectorFirst - 1 + floors;
-  const inSector = Math.min(copy.sectorFirst + step, copy.sectorTotal);
 
   return (
     <div className={styles.try} style={sectorStyle(SECTOR)}>
@@ -72,19 +70,26 @@ export function TryCheck() {
         {done ? (
           <div className={styles.done}>
             <h3 ref={heading} tabIndex={-1} className={styles.question}>
-              {copy.doneTitle}
+              {copy.doneTitle(floors)}
             </h3>
             <p className={styles.doneText}>{copy.doneText}</p>
-            <p className={styles.floors}>{copy.floors(floors)}</p>
-            <div>
-              <Button variant="secondary" size="md" icon={<IconRetake size={18} />} onClick={restart}>
+            <div className={styles.doneActions}>
+              <Button href={START_HREF} size="md" iconEnd={<IconArrowRight size={20} />}>
+                {copy.start}
+              </Button>
+              <Button variant="quiet" size="md" icon={<IconRetake size={18} />} onClick={restart}>
                 {copy.again}
               </Button>
             </div>
           </div>
         ) : (
           <>
-            <ProgressCount current={copy.first + step} total={copy.total} sector={SECTOR} inSector={{ current: inSector, total: copy.sectorTotal }} />
+            <div className={styles.count}>
+              <SectorTag code={SECTOR} name />
+              <p className={styles.counter} aria-live="polite">
+                {copy.counter(step + 1)}
+              </p>
+            </div>
             <h3 ref={heading} tabIndex={-1} id="try-question" className={styles.question}>
               {question.text}
             </h3>

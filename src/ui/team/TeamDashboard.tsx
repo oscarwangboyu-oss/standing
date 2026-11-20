@@ -7,17 +7,18 @@
  * passphrase is kept in the memory of this page only and travels in the Authorization header.
  * Everything shown is a total: no table here has a row for one person.
  */
-import { useId, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { errorCodeOf, useAsync, useConfig } from '@/client/api';
 import { team as copy } from '@/copy/team';
 import type { RoleId } from '@/engine';
 import { createTeamClient, type StandingTeamClient } from '@/shared/client';
-import { Button, Card, Note, Spot, Wordmark } from '@/ui';
+import { Button, Card, Note, Spot, Wordmark, formatDay } from '@/ui';
 import { AppsSummary, AppsWeeks, Daily, Report, Returns } from './Activity';
+import { Attention } from './Attention';
 import { Norms, Prices } from './Cohorts';
 import { Items } from './Items';
 import { ROLE_IDS, roleLabel } from './labels';
-import { CsvButton, Loaded, Section, Select, SubHead, stamp } from './parts';
+import { CsvButton, Loaded, Section, Select, SimulatedContext, SubHead, stamp } from './parts';
 import { Gates, Overview } from './Scoreboard';
 import { Tests } from './Tests';
 import styles from './team.module.css';
@@ -109,7 +110,69 @@ function Gate({ closed, onOpen }: { closed: boolean; onOpen: (passphrase: string
 
 // ---------------------------------------------------------------- the board
 
-const NAV = ['gates', 'overview', 'items', 'prices', 'norms', 'returns', 'apps', 'tests', 'report'] as const;
+const NAV = ['attention', 'gates', 'overview', 'items', 'prices', 'norms', 'returns', 'apps', 'tests', 'report'] as const;
+type NavId = (typeof NAV)[number];
+
+/**
+ * Keeps the heights of the sticky simulated-data banner and the sticky section nav in CSS
+ * variables on the board (--demo-h, --nav-h), so the nav sits under the banner and a section
+ * scrolled to by a link lands under both. Marks the section in view in the nav.
+ */
+function useStickyNav(demo: boolean) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const demoRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [current, setCurrent] = useState<NavId>(NAV[0]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const measure = () => {
+      root.style.setProperty('--demo-h', `${demoRef.current?.offsetHeight ?? 0}px`);
+      root.style.setProperty('--nav-h', `${navRef.current?.offsetHeight ?? 0}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (demoRef.current) observer.observe(demoRef.current);
+    if (navRef.current) observer.observe(navRef.current);
+    return () => observer.disconnect();
+  }, [demo]);
+
+  useEffect(() => {
+    // The section in view is the last one whose top has passed under the sticky bars.
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const offset = (demoRef.current?.offsetHeight ?? 0) + (navRef.current?.offsetHeight ?? 0) + 24;
+      let found: NavId = NAV[0];
+      for (const id of NAV) {
+        const el = document.getElementById(`team-${id}`);
+        if (el && el.getBoundingClientRect().top - offset <= 0) found = id;
+      }
+      setCurrent(found);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    // On a phone the nav is one row that scrolls sideways: keep the current link in it.
+    const list = navRef.current?.querySelector('ul');
+    const link = list?.querySelector<HTMLElement>(`[data-nav="${current}"]`);
+    if (!list || !link || list.scrollWidth <= list.clientWidth) return;
+    const left = link.offsetLeft - (list.clientWidth - link.offsetWidth) / 2;
+    list.scrollTo({ left: Math.max(0, left) });
+  }, [current]);
+
+  return { rootRef, demoRef, navRef, current };
+}
 
 function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => void }) {
   const [role, setRole] = useState('all');
@@ -117,7 +180,10 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
 
   const overview = useAsync(() => client.overview(), [client]);
   const gates = useAsync(() => client.gates(), [client]);
-  const items = useAsync(() => client.items(itemRole), [client, itemRole]);
+  // All roles feeds the attention list and the table; one role only the table.
+  const allItems = useAsync(() => client.items(null), [client]);
+  const roleItems = useAsync(() => client.items(itemRole), [client, itemRole], { enabled: itemRole !== null });
+  const items = itemRole === null ? allItems : roleItems;
   const prices = useAsync(() => client.prices(), [client]);
   const norms = useAsync(() => client.norms(), [client]);
   const returns = useAsync(() => client.returns(), [client]);
@@ -126,7 +192,7 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
   const tests = useAsync(() => client.tests(), [client]);
   const report = useAsync(() => client.report(), [client]);
 
-  const all = [overview, gates, items, prices, norms, returns, apps, daily, tests, report];
+  const all = [overview, gates, allItems, ...(itemRole === null ? [] : [roleItems]), prices, norms, returns, apps, daily, tests, report];
   const refresh = () => {
     for (const view of all) void view.refresh();
   };
@@ -138,10 +204,13 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
 
   const roleOptions = useMemo(() => [{ value: 'all', label: copy.common.allRoles }, ...ROLE_IDS.map((id) => ({ value: id as string, label: roleLabel(id) }))], []);
 
+  const sticky = useStickyNav(demoPeople > 0);
+
   return (
-    <>
+    <SimulatedContext value={demoPeople > 0}>
+      <div className={styles.boardRoot} ref={sticky.rootRef}>
       {demoPeople > 0 && (
-        <div className={styles.demo} role="status">
+        <div className={styles.demo} role="status" ref={sticky.demoRef}>
           <div className={styles.demoInner}>
             <strong className={styles.demoTitle}>{copy.demo.title}</strong>
             <span className={styles.demoText}>{copy.demo.text(demoPeople, demoChecks)}</span>
@@ -169,15 +238,19 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
           </div>
         </header>
 
-        <nav className={styles.nav} aria-label={copy.meta.sections}>
+        <nav className={styles.nav} aria-label={copy.meta.sections} ref={sticky.navRef}>
           <ul>
             {NAV.map((id) => (
               <li key={id}>
-                <a href={`#team-${id}`}>{copy.nav[id]}</a>
+                <a href={`#team-${id}`} data-nav={id} aria-current={sticky.current === id ? 'location' : undefined}>
+                  {copy.nav[id]}
+                </a>
               </li>
             ))}
           </ul>
         </nav>
+
+        <Attention gates={gates} items={allItems} tests={tests} />
 
         <Section id="team-gates" title={copy.gates.title} tools={<CsvButton client={client} table="gates" name={copy.gates.table} file="standing-gates" />}>
           <Loaded view={gates}>{(data) => <Gates data={data} />}</Loaded>
@@ -226,12 +299,15 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
               <Loaded view={apps}>{(data) => <AppsWeeks data={data} />}</Loaded>
             </div>
             <div>
-              <SubHead
-                title={copy.apps.daily}
-                lead={daily.data ? copy.apps.dailyLead(daily.data.days) : undefined}
-                tools={<CsvButton client={client} table="daily" name={copy.apps.dailyTable} file="standing-daily" />}
-              />
-              <Loaded view={daily}>{(data) => <Daily data={data} />}</Loaded>
+              <SubHead title={copy.apps.daily} tools={<CsvButton client={client} table="daily" name={copy.apps.dailyTable} file="standing-daily" />} />
+              <Loaded view={daily}>
+                {(data) => (
+                  <>
+                    <Daily data={data} />
+                    <p className={styles.footnote}>{copy.apps.dailyLead(formatDay(data.weeks.find((w) => w.weekStart !== 'all')?.weekStart ?? data.weeksFrom))}</p>
+                  </>
+                )}
+              </Loaded>
             </div>
           </div>
         </Section>
@@ -244,7 +320,8 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
           <Loaded view={report}>{(data) => <Report data={data} />}</Loaded>
         </Section>
       </main>
-    </>
+      </div>
+    </SimulatedContext>
   );
 }
 

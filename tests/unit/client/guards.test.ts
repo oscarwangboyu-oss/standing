@@ -131,11 +131,19 @@ describe('the frame of a route', () => {
     expect(shellDefaultsFor('/market').nav).toBe('market');
     expect(shellDefaultsFor('/log/win').nav).toBe('log');
     expect(shellDefaultsFor('/settings')).toMatchObject({ nav: 'settings', footer: true });
-    expect(shellDefaultsFor('/compare')).toMatchObject({ nav: null, width: 'wide' });
+    // Compare is reached from the market's entries, so the navigation marks Market.
+    expect(shellDefaultsFor('/compare')).toMatchObject({ nav: 'market', width: 'wide' });
     expect(shellDefaultsFor('/check')).toMatchObject({ nav: undefined, fill: true });
     expect(shellDefaultsFor('/result').nav).toBeUndefined();
     expect(shellDefaultsFor('/start').nav).toBeUndefined();
     expect(shellDefaultsFor('/i/abc').nav).toBeUndefined();
     expect(shellDefaultsFor('/team')).toMatchObject({ nav: undefined, width: 'wide' });
+  });
+
+  it('puts the footer with the required statements on every screen that shows prices', () => {
+    for (const path of ['/market', '/open', '/log', '/log/payday', '/settings', '/compare', '/result', '/start']) {
+      expect(shellDefaultsFor(path).footer, path).toBe(true);
+    }
+    expect(shellDefaultsFor('/check').footer).toBe(false);
   });
 });

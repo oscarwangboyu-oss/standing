@@ -10,7 +10,7 @@ import { roleLabelOf } from './labels';
 import { MIN_COHORT, Status, TableBox, line, num, pct, type StatusKind } from './parts';
 import styles from './team.module.css';
 
-type Verdict = 'pass' | 'warn' | 'insufficient_data';
+export type Verdict = 'pass' | 'warn' | 'insufficient_data';
 
 const KIND: Record<Verdict, StatusKind> = { pass: 'met', warn: 'not_met', insufficient_data: 'none' };
 
@@ -21,7 +21,7 @@ interface Figure {
   line?: string;
 }
 
-interface TestView {
+export interface TestView {
   id: keyof typeof copy.tests.names;
   verdict: Verdict;
   reasons: string[];
@@ -38,7 +38,7 @@ function pairName(key: string): string {
     .join(' / ');
 }
 
-function viewsOf(data: TeamTestsResponse): TestView[] {
+export function viewsOf(data: TeamTestsResponse): TestView[] {
   const r = data.results;
   const t = data.thresholds;
   const L = copy.tests.labels;
@@ -108,7 +108,7 @@ function viewsOf(data: TeamTestsResponse): TestView[] {
         groups.length > 0 ? (
           <details className={styles.details}>
             <summary className={styles.detailsSummary}>{copy.tests.groups}</summary>
-            <TableBox caption={copy.tests.groupsCaption} className={styles.gapTop}>
+            <TableBox caption={copy.tests.groupsCaption} spaced>
               <thead>
                 <tr>
                   <th scope="col">{copy.tests.group}</th>
@@ -169,7 +169,7 @@ export function Tests({ data }: { data: TeamTestsResponse }) {
       </p>
       <ol className={styles.tests}>
         {views.map((test, i) => (
-          <li key={test.id} className={styles.test}>
+          <li key={test.id} className={cx(styles.test, test.verdict === 'warn' && styles.testDown)} id={`team-test-${test.id}`}>
             <div className={styles.testHead}>
               <span className={styles.testIndex} aria-hidden="true">
                 {i + 1}

@@ -15,6 +15,20 @@ test('the landing page links into /start', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
+test('three sample questions can be tried on the landing page', async ({ page }) => {
+  await page.goto('/');
+  const how = page.locator('#how');
+  await expect(how.getByText('Sample question 1 of 3')).toBeVisible();
+  await how.getByRole('radio', { name: '150 to 299' }).click();
+  await expect(how.getByText('Sample question 2 of 3')).toBeVisible();
+  await how.getByRole('button', { name: 'Skip' }).click();
+  await expect(how.getByText('Sample question 3 of 3')).toBeVisible();
+  await how.getByRole('button', { name: 'Skip' }).click();
+  await expect(how.getByRole('heading', { name: 'One floor added.' })).toBeVisible();
+  await expect(how.getByRole('link', { name: /Start the check/ })).toHaveAttribute('href', '/start');
+  expect(await page.evaluate(() => window.localStorage.length)).toBe(0);
+});
+
 test('a person under 18 is stopped and nothing is saved', async ({ page }) => {
   await page.goto('/start');
   await page.getByRole('button', { name: 'Begin' }).click();

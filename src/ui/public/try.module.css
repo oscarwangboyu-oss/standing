@@ -8,6 +8,8 @@
 }
 .sky { border-bottom: 1px solid var(--line); }
 .body { display: grid; gap: var(--s-4); padding: var(--s-5); min-height: 420px; align-content: start; }
+.count { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.counter { font-size: var(--t-13); font-weight: 650; line-height: 1.3; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .question {
   font-family: var(--font-display);
   font-size: var(--t-24);
@@ -21,14 +23,7 @@
 .skip { display: flex; justify-content: center; }
 .done { display: grid; gap: var(--s-3); justify-items: start; align-content: center; min-height: 380px; }
 .doneText { color: var(--ink-2); max-width: 34ch; }
-.floors {
-  padding: 0.3em 0.8em 0.34em;
-  border-radius: var(--r-pill);
-  background: var(--sector-wash);
-  color: var(--sector-deep);
-  font-size: var(--t-13);
-  font-weight: 700;
-}
+.doneActions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); margin-top: var(--s-2); }
 .note {
   padding: var(--s-3) var(--s-5);
   border-top: 1px solid var(--line);

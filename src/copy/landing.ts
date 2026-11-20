@@ -38,7 +38,6 @@ export const sample = {
   price: 104.37,
   prices: { SKIL: 111.2, WLTH: 96.85, NETW: 103.4, BODY: 108.1, MIND: 102.3 } as Record<Code, number>,
   tag: 'Sample data',
-  note: 'RIVR is a sample, not a real person.',
 } as const;
 
 /** The second sample, for the compare picture. */
@@ -51,16 +50,18 @@ export const sampleFriend = {
 export const hero = {
   titleA: 'See where you stand.',
   titleB: 'Five parts of your life, priced like a stock.',
-  lead: 'Standing is a check of your capability, wealth, network, body and mind. Each one gets a price and a tower. 100 is the median of people your age in your situation.',
+  lead: 'A price for your capability, wealth, network, body and mind. 100 is the median of people your age in your situation.',
   cta: 'Start the check',
   fact: '31 to 34 questions. No sign-up.',
   overall: 'Overall',
-  horizon: 'The horizon is 100, the median.',
+  /** For a person on a new device. Opens the recovery code sheet in Settings. */
+  restoreText: 'Took the check before?',
+  restoreLink: 'Use your recovery code',
 } as const;
 
 export const result = {
   title: 'What a result looks like',
-  lead: 'A ticker, an overall price, five sector prices and a type. This one is a sample. Move a sector and the city follows.',
+  lead: 'This one is a sample. Move a sector and the city follows.',
   hintFine: 'Drag a roof, or move a slider.',
   hintTouch: 'Move a slider.',
   overall: 'Overall price',
@@ -75,13 +76,17 @@ export const result = {
 
 export const reading = {
   title: 'How to read a price',
-  lead: 'A price says where you stand against people like you. The skyline draws it as the height of a tower.',
+  /** The one large sentence of the dark band. The facts below it give the rest of the scale. */
+  statement: 'A price of 115 is one standard deviation above the median of people like you.',
   facts: [
-    { figure: '100', text: 'The median of people in your age band and situation. In every skyline it is the horizon.' },
-    { figure: '15', text: 'Points in one standard deviation. 115 is one above the median. 85 is one below.' },
-    { figure: '55 to 145', text: 'The range of every price. 145 is limit up. 55 is limit down. A tower at 55 is still a whole building.' },
+    { figure: '100', text: 'The median of your group. In every skyline it is the horizon.' },
+    { figure: '15', text: 'Points in one standard deviation. 85 is one below the median.' },
+    { figure: '55 to 145', text: 'The range. 145 is limit up and 55 is limit down.' },
     { figure: '5', text: 'Sectors, weighted equally. The overall price is their mean.' },
   ],
+  baselineTitle: 'The baseline is provisional.',
+  baseline: 'Until enough people have taken the check, 100 is a stand-in. Prices will be re-based when real medians replace it.',
+  method: 'Read how scoring works',
   figure: {
     label:
       'Drawing of one tower next to a scale from 55 to 145. The horizon is at 100, the median. One standard deviation is 15 points. One floor is 5 points. The sample tower stands at 111.20.',
@@ -93,7 +98,6 @@ export const reading = {
     limitDown: 'limit down',
     street: 'street level',
   },
-  rulerLabel: 'The sample on the full scale',
 } as const;
 
 export interface SectorCopy {
@@ -104,7 +108,7 @@ export interface SectorCopy {
   building: string;
   /** How many questions, from the bank. */
   count: string;
-  /** What its questions ask about. Summarised from the items of the sector in bank 2.1. */
+  /** What its questions ask about. Summarized from the items of the sector in bank 2.1. */
   asks: readonly string[];
   /** One real question from the bank, word for word. */
   question: string;
@@ -116,12 +120,12 @@ export interface SectorCopy {
 
 export const sectors = {
   title: 'Five sectors, five buildings',
-  lead: 'Each sector has its own ticker, its own colour and its own building, so you can tell them apart at a glance. The questions change with your situation. A student is not asked about years of work.',
+  lead: 'Each sector has its own ticker, color and building. The questions change with your situation. A student is not asked about years of work.',
+  /** Names the scrolling row of sector cards on a phone. */
+  railLabel: 'The five sectors',
   asksLabel: 'The questions ask about',
   questionLabel: 'One of the questions',
   answersLabel: (first: string, last: string) => `Answers run from "${first}" to "${last}".`,
-  ladder:
-    'One last question asks where you place yourself on a ladder of ten rungs. With it the check comes to 31 to 34 questions.',
   list: [
     {
       code: 'SKIL',
@@ -130,7 +134,7 @@ export const sectors = {
       count: '8 to 10 questions, depending on your situation',
       asks: [
         'Your experience and the level of your work or study',
-        'Education, licences and certifications',
+        'Education, licenses and certifications',
         'Hours of courses and training in the past 12 months',
         'The languages you can work in',
         'One question on compound interest',
@@ -141,7 +145,7 @@ export const sectors = {
     },
     {
       code: 'WLTH',
-      about: 'Your cushion and your footing. Every answer is a range, never an exact amount.',
+      about: 'Your cushion and your footing. Every answer is a range. No exact amounts are asked.',
       building: 'A bank with six columns and a vault door.',
       count: '6 questions',
       asks: [
@@ -160,7 +164,7 @@ export const sectors = {
       building: 'Two slim towers joined by skybridges.',
       count: '5 or 6 questions',
       asks: [
-        'The kinds of people you could ask for a small favour',
+        'The kinds of people you could ask for a small favor',
         'Who would recommend you for a job or lend you $500',
         'Groups you take an active part in',
         'A mentor, or people you guide yourself',
@@ -213,19 +217,18 @@ export const types = {
 
 export const how = {
   title: 'How a check works',
-  lead: 'It takes a phone and a few minutes. Nothing to install, no account to make.',
   steps: [
     {
       title: 'Choose your age band and your situation',
-      text: 'Six age bands and eleven situations. Your group is the people who chose the same two, and 100 is their median. You confirm that you are 18 or older.',
+      text: 'Six age bands and eleven situations. Your group is the people who chose the same two. You confirm that you are 18 or older.',
     },
     {
       title: 'Answer one question per screen',
-      text: '31 to 34 questions, each answered with one tap. Every question can be skipped or marked not applicable. A tower gains a floor with each answer.',
+      text: 'Each sector has 5 to 10 questions, one tap each. A last question asks where you place yourself on a ladder of ten rungs. Any question can be skipped or marked not applicable.',
     },
     {
       title: 'See your skyline and your prices',
-      text: 'A ticker, an overall price, five sector prices and your type. Strengths come first. There is no public ranking.',
+      text: 'A ticker, an overall price, five sector prices and your type. Strengths come first.',
     },
   ],
   agesLabel: 'Age bands',
@@ -251,9 +254,8 @@ export const demo = {
   title: 'Try three questions',
   note: 'Real questions from the Body sector. Nothing is saved.',
   skip: 'Skip',
-  /** A full-time employee gets 34 questions. Body starts at question 23. */
-  total: 34,
-  first: 24,
+  counter: (n: number) => `Sample question ${n} of 3`,
+  /** Body has 5 questions. The panel starts at the second, so one floor already stands. */
   sectorTotal: 5,
   sectorFirst: 2,
   questions: [
@@ -281,10 +283,11 @@ export const demo = {
       ],
     },
   ],
-  doneTitle: 'Three questions, that fast.',
-  doneText: 'The full check has 31 to 34 questions and ends with your skyline and your prices.',
+  /** The title once the three are done. A skipped question adds no floor. */
+  doneTitle: (floors: number) => (floors === 0 ? 'No floors added.' : `${['One', 'Two', 'Three'][floors - 1] ?? floors} ${floors === 1 ? 'floor' : 'floors'} added.`),
+  doneText: 'The full check covers all five sectors and ends with your skyline and your prices.',
+  start: 'Start the check',
   again: 'Try again',
-  floors: (n: number) => `${n} ${n === 1 ? 'floor' : 'floors'} added`,
 } as const;
 
 export const after = {
@@ -301,7 +304,7 @@ export const after = {
     {
       id: 'payday',
       title: 'Payday Check',
-      text: 'Three numbers each payday. The amounts stay on your device.',
+      text: 'Four numbers each payday, no bank link. The amounts stay on your device.',
       sectors: ['WLTH'],
       rhythm: 'Each payday',
     },
@@ -321,7 +324,11 @@ export const after = {
     },
   ] as ReadonlyArray<{ id: 'open' | 'payday' | 'win' | 'people'; title: string; text: string; sectors: readonly Code[]; rhythm: string }>,
   staged: 'In stages',
-  note: 'These four are being switched on in stages. Each one opens after the step before it meets its numbers.',
+  /** When none of the four is switched on. */
+  soon: 'Short daily and weekly records come next. They open in stages.',
+  /** The phone form when some are on. */
+  short: 'Short daily and weekly records keep your prices current. They open in stages.',
+  plan: 'See the plan',
 } as const;
 
 export const together = {
@@ -342,13 +349,13 @@ export const data = {
   title: 'What is collected, and what is not',
   lead: 'The check works without knowing who you are.',
   notLabel: 'Not collected',
-  yesLabel: 'Collected',
+  yesLabel: 'How the rest is handled',
   rows: [
     { item: 'Name', value: 'Not collected', kept: false },
     { item: 'Email address', value: 'Not collected', kept: false },
     { item: 'Phone number', value: 'Not collected', kept: false },
     { item: 'IP address', value: 'Not stored', kept: false },
-    { item: 'Scripts from other companies', value: 'None load in your browser', kept: false },
+    { item: 'Other companies’ scripts', value: 'None load in your browser', kept: false },
     { item: 'Your answers', value: 'The ranges you tapped, under a random id on the server', kept: true },
     { item: 'This device', value: 'Keeps a token that links it to that id', kept: true },
     { item: 'Body and mind answers', value: 'Only with a separate consent. Without it you still get the other three sectors', kept: true },
@@ -358,23 +365,9 @@ export const data = {
   more: 'Read the privacy notice',
 } as const;
 
-export const limits = {
-  title: 'What Standing is not',
-  items: [
-    'Not a medical diagnosis.',
-    'Not financial advice.',
-    'Not a credit score.',
-    'Not a security. The price shows a personal index and cannot be traded.',
-  ],
-  baselineTitle: 'The baseline is provisional',
-  baseline:
-    '100 stands in for the median of your group until enough people have taken the check. Prices will be re-based when real data replaces it.',
-  method: 'Read how scoring works',
-} as const;
-
 export const team = {
   title: 'Who builds it',
-  text: 'Bayu Technology was founded in 2026 in Atlanta, Georgia. The team is ten students from five universities. Standing is its first consumer product.',
+  text: 'Standing is the first consumer product of Bayu Technology, a student team.',
   facts: [
     { figure: '2026', text: 'Founded in Atlanta, Georgia' },
     { figure: '10', text: 'Students on the team' },
@@ -400,4 +393,5 @@ export const footerLinks = [
   { href: '/method', label: 'Method' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
+  { href: '/settings?restore=1', label: 'Recovery code' },
 ] as const;

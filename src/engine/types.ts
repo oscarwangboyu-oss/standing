@@ -340,11 +340,17 @@ export interface PaydayParams {
     /** Key of BANK_BANDS that places months of savings. */
     band: string;
   };
-  /** Question whose answer the saving share replaces, in the version that asks for it. */
+  /** Question whose answer the saving share or the debt share replaces, in the version that asks for it. */
   shareItemId: string;
   saveShare: {
-    /** Version of the question that asks for the share saved. Other versions keep the questionnaire answer. */
+    /** Version of the question that asks for the share saved. */
     versionKey: string;
+    /** Key of BANK_BANDS that places the share. */
+    band: string;
+  };
+  debtShare: {
+    /** Versions of the question that ask for the share that goes to debt payments. */
+    versionKeys: string[];
     /** Key of BANK_BANDS that places the share. */
     band: string;
   };
@@ -458,12 +464,15 @@ export interface PaydayBands {
   periods: number;
   /** Option index of the saving-share question the averaged share falls in, or null. */
   saveShare: number | null;
+  /** Option index of the debt-share question (W5 "debt" and "hh") the averaged share falls in, or null. Missing on older records. */
+  debtShare?: number | null;
   /**
-   * Option index of the months-of-savings question the estimate has provably reached, or null
-   * when the questionnaire answer still stands.
+   * Option index of the months-of-savings question: from the money that can be used now, or,
+   * on older paydays, the band the estimate has provably reached. null when the questionnaire
+   * answer stands.
    */
   runway: number | null;
-  /** Day of the full check whose answer the runway estimate started from. null without one. */
+  /** Older paydays: day of the full check whose answer the runway estimate started from. null otherwise. */
   baselineDay: string | null;
 }
 

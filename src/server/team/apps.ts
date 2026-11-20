@@ -1,7 +1,7 @@
 /**
  * Team dashboard, stage 2: who uses the four micro apps (PROMPT.md section 7.2, last paragraph).
  *
- * - teamDaily: day by day, the share of active people who did the daily open.
+ * - teamDaily: day by day and week by week, the share of active people who did the daily open.
  * - teamApps: for each app, the share of active people it is offered to who used it in a recent
  *   window, and week by week the share who logged a weekly win and a people nudge.
  *
@@ -22,12 +22,13 @@ import {
   type TeamAppsResponse,
   type TeamDailyResponse,
   type TeamDailyRow,
+  type TeamDailyWeekRow,
 } from '../../shared/api';
 import { BANKS, addDays, getBank, paydayEligible, type RoleId } from '../../engine';
 import { TEAM_APP_WEEKS, TEAM_APP_WINDOW_DAYS, TEAM_DAILY_DAYS } from '../config';
 import type { Db } from '../db';
 import { csv, utcDay, type CsvCell } from '../http';
-import { activeCte, demoCounts, rate } from './shared';
+import { activeCte, demoCounts, mondayOf, rate } from './shared';
 
 /** Share of active people who did the daily open, for each of the last TEAM_DAILY_DAYS days. */
 export async function teamDaily(db: Db, now: Date): Promise<TeamDailyResponse> {
@@ -54,11 +55,41 @@ export async function teamDaily(db: Db, now: Date): Promise<TeamDailyResponse> {
       rows.reduce((sum, r) => sum + r.dailyOpen.of, 0),
     ),
   };
+
+  // Week by week, in person-days, from the Monday of the week of the first of those days, so the
+  // first week is whole. Weeks start on Monday, as in the engine.
+  const weeksFrom = mondayOf(addDays(today, -(TEAM_DAILY_DAYS - 1)));
+  const weekRows = await db.query<{ week_start: string; is_total: number; people: number; active: number; eligible: number; done: number }>(
+    `with ${activeCte()},
+     days as (
+       select a.user_id, a.day, date_trunc('week', a.day::date::timestamp)::date as week,
+         (u.health_consent_version is not null) as consent,
+         exists (select 1 from daily_entries d where d.user_id = a.user_id and d.logged_on = a.day) as done
+       from active a join users u on u.id = a.user_id
+       where a.day >= $1 and a.day <= $2
+     )
+     select to_char(week, 'YYYY-MM-DD') as week_start, grouping(week)::int as is_total,
+       count(distinct user_id)::int as people, count(*)::int as active,
+       (count(*) filter (where consent))::int as eligible,
+       (count(*) filter (where consent and done))::int as done
+     from days
+     group by grouping sets ((week), ())
+     order by is_total desc, week`,
+    [weeksFrom, today],
+  );
+  const weeks: TeamDailyWeekRow[] = weekRows.map((r) => ({
+    weekStart: r.is_total === 1 ? 'all' : r.week_start,
+    people: r.people,
+    active: r.active,
+    dailyOpen: rate(r.done, r.eligible),
+  }));
   return {
     generatedAt: now.toISOString(),
     demoPeople: (await demoCounts(db)).people,
     days: TEAM_DAILY_DAYS,
     rows: [total, ...rows],
+    weeksFrom,
+    weeks: weeks.length > 0 ? weeks : [{ weekStart: 'all', people: 0, active: 0, dailyOpen: rate(0, 0) }],
   };
 }
 
@@ -113,10 +144,13 @@ async function summaryRow(db: Db, app: MicroApp, today: string, flags: FeatureFl
   const offered = people.filter((p) => {
     if (app === 'daily_open') return p.health;
     if (app !== 'payday') return true;
-    return (
-      Object.hasOwn(BANKS, p.bank_version) &&
-      paydayEligible(getBank(p.bank_version), { age: p.age, role: p.role, extra: p.extra })
-    );
+    if (!Object.hasOwn(BANKS, p.bank_version)) return false;
+    // One stored background the engine cannot read must not take the whole table down.
+    try {
+      return paydayEligible(getBank(p.bank_version), { age: p.age, role: p.role, extra: p.extra });
+    } catch {
+      return false;
+    }
   });
   const entries = await db.query<{ n: number }>(
     `select count(*)::int as n from ${table} where ${day} > $1 and ${day} <= $2`,

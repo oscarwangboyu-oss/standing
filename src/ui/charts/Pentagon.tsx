@@ -8,7 +8,7 @@ import styles from './charts.module.css';
 export interface PentagonProps {
   /** The five prices. A sector without a price is null: its corner is left open. */
   prices: Partial<Record<SectorCode, number | null>>;
-  /** A second shape, drawn as a dashed outline: the other person in a compare view. */
+  /** A second shape, drawn as a dotted outline: the other person in a compare view. */
   other?: Partial<Record<SectorCode, number | null>>;
   /** Print the price under each sector code. Default on. */
   values?: boolean;
@@ -25,14 +25,13 @@ export function Pentagon({ prices, other, values = true, className }: PentagonPr
     return typeof v === 'number' && Number.isFinite(v) ? v : null;
   });
   const shape = pentagonShape(list);
-  const second = other
-    ? pentagonShape(
-        SECTOR_CODES.map((code) => {
-          const v = other[code];
-          return typeof v === 'number' && Number.isFinite(v) ? v : null;
-        }),
-      )
+  const otherList = other
+    ? SECTOR_CODES.map((code) => {
+        const v = other[code];
+        return typeof v === 'number' && Number.isFinite(v) ? v : null;
+      })
     : null;
+  const second = otherList ? pentagonShape(otherList) : null;
   const label = copy.pentagon(SECTOR_CODES.map((code, i) => `${sectorNames[code]} ${list[i] === null ? 'no price' : formatPrice(list[i] as number)}`));
   return (
     <svg className={cx(styles.pentagon, className)} viewBox={`0 0 ${PENTAGON.width} ${PENTAGON.height}`} role="img" aria-label={label}>
@@ -41,10 +40,12 @@ export function Pentagon({ prices, other, values = true, className }: PentagonPr
       ))}
       {SECTOR_CODES.map((code, i) => {
         const rim = pentagonVertex(i, 130);
-        return <line key={code} className={styles.spoke} x1={PENTAGON.cx} y1={PENTAGON.cy} x2={rim.x.toFixed(1)} y2={rim.y.toFixed(1)} />;
+        // A sector without a price: its spoke is dashed, so the open corner reads as left out, not as low.
+        const open = list[i] === null && (!other || otherList?.[i] === null);
+        return <line key={code} className={open ? styles.spokeOpen : styles.spoke} x1={PENTAGON.cx} y1={PENTAGON.cy} x2={rim.x.toFixed(1)} y2={rim.y.toFixed(1)} />;
       })}
       {second && second.count >= 3 && <polygon className={styles.shapeOther} points={second.points} />}
-      {shape.count >= 3 && <polygon className={styles.shape} points={shape.points} />}
+      {shape.count >= 3 && <polygon className={cx(styles.shape, shape.count < 4 && styles.shapeFew)} points={shape.points} />}
       {shape.count === 2 && <polyline className={styles.shape} points={shape.points} />}
       {SECTOR_CODES.map((code, i) => {
         const v = list[i];
@@ -65,6 +66,11 @@ export function Pentagon({ prices, other, values = true, className }: PentagonPr
             {values && v !== null && v !== undefined && (
               <tspan className={styles.pValue} x={x.toFixed(1)} dy={17}>
                 {formatPrice(v)}
+              </tspan>
+            )}
+            {values && v === null && (
+              <tspan className={styles.pNone} x={x.toFixed(1)} dy={16}>
+                {copy.noPrice}
               </tspan>
             )}
           </text>

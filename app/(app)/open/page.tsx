@@ -4,12 +4,16 @@
  * Daily Open: three taps, then today's price. Last night's sleep, yesterday's exercise, how
  * you feel now. Yesterday can be filled in today. Body and Mind light up in the skyline once
  * the day is recorded. Not available without the Body and Mind consent.
+ *
+ * Taps that fail with a network or server error are kept on the device (src/client/
+ * pendingDaily.ts) and sent when the connection returns. Until then the screen says so.
  */
-import { useState } from 'react';
-import { api, applyLive, errorCodeOf, useAsync, useDevice, useMe } from '@/client/api';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { api, applyLive, errorCodeOf, isRetryable, useAsync, useDevice, useMe } from '@/client/api';
 import { newClientId } from '@/client/device';
 import { useFlags } from '@/client/flags';
 import { ROUTES } from '@/client/nav';
+import { pendingDaily, type PendingDaily, type PendingDailyState } from '@/client/pendingDaily';
 import { today as deviceToday } from '@/client/today';
 import { market, mindNotice } from '@/copy/market';
 import { open as copy, shared } from '@/copy/micro';
@@ -26,13 +30,28 @@ import {
   ProgressTape,
   Streak,
   Toast,
+  cx,
   formatDay,
   sectorStyle,
   useToast,
 } from '@/ui';
-import { daysWithoutRecord, streakWeek } from '@/ui/market/live';
+import { countWindow, daysWithoutRecord, litToday, openDays, streakWeek } from '@/ui/market/live';
 import { dailyReminderIcs, isReminderTime } from '@/ui/micro/ics';
-import { Moved, MicroClosed, MicroError, MicroHead, MicroSkeleton, MicroState, Pills, errorMessage } from '@/ui/micro/parts';
+import {
+  Facts,
+  Meter,
+  More,
+  Moved,
+  MicroClosed,
+  MicroError,
+  MicroHead,
+  MicroSkeleton,
+  MicroState,
+  Pills,
+  Recorded,
+  errorMessage,
+  useTopOnChange,
+} from '@/ui/micro/parts';
 import styles from '@/ui/micro/micro.module.css';
 import { rememberDaily, useDailyLog, type DailyLogView } from './dailyLog';
 
@@ -41,12 +60,35 @@ const STEPS = ['sleep', 'exercise', 'state'] as const;
 type StepName = (typeof STEPS)[number];
 type Taps = Record<StepName, number | null>;
 const NO_TAPS: Taps = { sleep: null, exercise: null, state: null };
+const NO_PENDING: PendingDailyState = Object.freeze({ waiting: [], delivered: [] });
+
+/** The line under the skyline names exactly the towers that are lit. */
+function litCaption(live: MeLive): string | undefined {
+  const lit = litToday(live);
+  if (lit.SKIL || lit.WLTH || lit.NETW) return copy.litUpdated;
+  if (lit.BODY && lit.MIND) return copy.litLine;
+  if (lit.BODY) return copy.litBody;
+  if (lit.MIND) return copy.litMind;
+  return undefined;
+}
 
 export default function OpenPage() {
   const me = useMe();
   const flags = useFlags();
   const device = useDevice();
   const log = useDailyLog(device.userId);
+  const pending = pendingDaily();
+  const kept = useSyncExternalStore(pending.subscribe, pending.get, () => NO_PENDING);
+  const userId = device.userId;
+  const waiting = userId ? kept.waiting.filter((e) => e.userId === userId) : [];
+
+  // A kept entry the server stored later, perhaps while another screen was open: this device's
+  // log of days learns it here.
+  const delivered = kept.delivered.length > 0;
+  useEffect(() => {
+    if (!delivered || !userId) return;
+    for (const e of pendingDaily().takeDelivered(userId)) rememberDaily({ day: e.day, sleep: e.sleep, exercise: e.exercise, state: e.state });
+  }, [delivered, userId]);
 
   if (!me.data || !flags.loaded) {
     if ((me.loaded && !me.loading && !me.data) || flags.error) {
@@ -79,26 +121,36 @@ export default function OpenPage() {
     );
   }
   if (!live) return <MicroSkeleton />;
-  return <DailyOpen me={me.data} live={live} log={log} />;
+  return <DailyOpen me={me.data} live={live} log={log} waiting={waiting} />;
 }
 
-function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: DailyLogView }) {
+function DailyOpen({ me, live, log, waiting }: { me: MeResponse; live: MeLive; log: DailyLogView; waiting: readonly PendingDaily[] }) {
   const params = getAlgo().live.dailyOpen;
   const yesterday = addDays(live.today, -1);
-  const canYesterday = live.streak.canBackfill.includes(yesterday);
+  const keptOn = (day: string) => waiting.find((e) => e.day === day) ?? null;
   const recordedToday = live.streak.recordedToday;
+  // Taps kept on this device that the server has not received yet.
+  const keptToday = recordedToday ? null : keptOn(live.today);
+  const keptYesterday = keptOn(yesterday);
+  const todayDone = recordedToday || keptToday !== null;
+  // Never a day before the first check: there was no price to keep yet.
+  const canYesterday = openDays(live.streak).includes(yesterday) && keptYesterday === null;
 
-  // The day being entered. null: nothing to enter, the screen shows today's open.
-  const [which, setWhich] = useState<Which | null>(recordedToday ? null : 'today');
+  // The day being entered. null: nothing to enter, the screen shows today's open. Today opens
+  // again when it is neither recorded nor kept (a kept entry the server later refused).
+  const [chosen, setWhich] = useState<Which | null>(todayDone ? null : 'today');
+  const which: Which | null = chosen ?? (todayDone ? null : 'today');
   const [step, setStep] = useState(0);
   const [taps, setTaps] = useState<Taps>(NO_TAPS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ which: Which; stored: boolean } | null>(null);
+  const [saved, setSaved] = useState<{ which: Which; stored: boolean; kept?: boolean } | null>(null);
   const toast = useToast();
+  // The done state starts at the top, with focus on its heading.
+  const top = useTopOnChange(which ?? 'done');
 
   const breakdown = useAsync(() => api.dayBreakdown({ day: live.today, today: live.today }), [live.today, live.sectors.B.target, live.sectors.M.target], {
-    enabled: which === null,
+    enabled: which === null && keptToday === null,
   });
 
   const bodyHalted = live.sectors.B.status === 'halted' || live.sectors.M.status === 'halted';
@@ -113,20 +165,33 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
     }
     setSaving(true);
     setError(null);
+    const localDate = deviceToday();
+    const entryDay = day === 'today' ? localDate : addDays(localDate, -1);
     try {
-      const localDate = deviceToday();
-      const res = await api.postDaily({ localDate, day: day === 'today' ? localDate : addDays(localDate, -1), ...all });
+      const res = await api.postDaily({ localDate, day: entryDay, ...all });
       if (res.stored) rememberDaily({ day: res.day, ...all });
       applyLive(res.live);
       setSaved({ which: day, stored: res.stored });
       // Yesterday first, then today: the day is not opened until today has its three taps.
-      const todayOpen = !(res.live?.streak.recordedToday ?? recordedToday);
+      const todayOpen = !(res.live?.streak.recordedToday ?? recordedToday) && keptToday === null;
       setWhich(day === 'yesterday' && todayOpen ? 'today' : null);
       setStep(0);
       setTaps(NO_TAPS);
+      // The connection works again: taps kept on the device go out too.
+      void pendingDaily().flush();
     } catch (e) {
-      setError(errorMessage(errorCodeOf(e)));
-      setStep(STEPS.length - 1);
+      if (isRetryable(e) || errorCodeOf(e) === 'bad_response') {
+        // Offline, a server error, or a page that is not the server's answer (a captive portal):
+        // the taps wait on the device and go out later. The server ignores a second entry for a day.
+        pendingDaily().keep({ userId: me.user.id, localDate, day: entryDay, ...all });
+        setSaved({ which: day, stored: false, kept: true });
+        setWhich(day === 'yesterday' && !todayDone ? 'today' : null);
+        setStep(0);
+        setTaps(NO_TAPS);
+      } else {
+        setError(errorMessage(errorCodeOf(e)));
+        setStep(STEPS.length - 1);
+      }
     } finally {
       setSaving(false);
     }
@@ -148,10 +213,16 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
     </Note>
   );
 
+  const counted = countWindow(live.apps.dailyOpen);
   const streakCard = (
     <Card variant="flat">
-      <Streak days={week} count={live.streak.current} />
-      <p className={styles.skyNote}>{copy.streakRule}</p>
+      <Streak days={week} count={live.streak.current} fresh={saved?.which === 'today' && saved.stored} />
+      <p className={styles.cardNote}>{copy.streakRule}</p>
+      {counted && (
+        <div className={cx(styles.meterGap, styles.meterGapPlain)}>
+          <Meter window={counted} text={copy.meter(counted.have, counted.need, counted.of)} sector="BODY" />
+        </div>
+      )}
     </Card>
   );
 
@@ -189,7 +260,9 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
               />
             </div>
           )}
-          {saved?.which === 'yesterday' && step === 0 && <p className={styles.resultLine}>{saved.stored ? copy.thenToday : copy.alreadyRecorded}</p>}
+          {saved?.which === 'yesterday' && step === 0 && (
+            <p className={styles.resultLine}>{saved.kept ? copy.thenTodayPending : saved.stored ? copy.thenToday : copy.alreadyRecorded}</p>
+          )}
           <ProgressTape total={STEPS.length} current={step + 1} />
           <h2 id={questionId} className={styles.question}>
             {copy.questions[which][name]}
@@ -217,17 +290,34 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
 
   // ---------------------------------------------------------------- today's open
   const overall = live.overall;
-  const todayTaps = log.tapsOf(live.today);
+  const todayTaps = log.tapsOf(live.today) ?? keptToday;
+  const filledYesterday = saved?.which === 'yesterday' && saved.stored;
+  // Saved on this device and not sent yet: today, or yesterday just now.
+  const kept = keptToday ?? (saved?.which === 'yesterday' && saved.kept ? keptYesterday : null);
   return (
     <>
       {notice}
-      <MicroHead title={saved?.which === 'yesterday' && saved.stored ? copy.doneYesterday : copy.doneToday} sectors={['BODY', 'MIND']} />
-      {saved && !saved.stored && (
+      {kept ? (
+        <Recorded level={1} headingRef={top} sector="BODY" title={copy.pendingTitle} detail={copy.pendingDetail} />
+      ) : (
+        <Recorded
+          level={1}
+          headingRef={top}
+          sector="BODY"
+          fresh={saved?.stored === true}
+          title={filledYesterday ? copy.doneYesterday : copy.doneToday}
+          detail={shared.recordedOn(formatDay(filledYesterday ? yesterday : live.today))}
+        />
+      )}
+      {saved && !saved.stored && !saved.kept && (
         <Note className={styles.noteTop}>
           <p>{copy.alreadyRecorded}</p>
         </Note>
       )}
-      {overall.price !== null && (
+      <div className={styles.streakCard}>{streakCard}</div>
+
+      {/* Until today's taps reach the server, nothing moved: the price and its breakdown wait. */}
+      {keptToday === null && overall.price !== null && (
         <div className={styles.resultHead}>
           <p className={styles.resultLabel}>{copy.priceToday}</p>
           <div className={styles.resultPrice}>
@@ -242,21 +332,22 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
         </div>
       )}
 
-      <div className={styles.note}>
-        <Moved
-          live={live}
-          areas={['B', 'M']}
-          label={copy.bodyMindLabel}
-          skyNote={live.sectors.B.status === 'listed' || live.sectors.M.status === 'listed' ? copy.litLine : undefined}
-          breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
-        />
-      </div>
+      {keptToday === null && (
+        <div className={styles.note}>
+          <Moved
+            live={live}
+            areas={['B', 'M']}
+            label={copy.bodyMindLabel}
+            skyNote={litCaption(live)}
+            breakdown={{ data: breakdown.data, loading: breakdown.loading, error: breakdown.error !== null, onRetry: () => void breakdown.refresh() }}
+          />
+        </div>
+      )}
       {unlisted && (
         <Note title={copy.unlistedTitle} className={styles.note}>
           <p>{copy.unlisted}</p>
         </Note>
       )}
-      <p className={`${styles.resultLine} ${styles.note}`}>{copy.rules(live.moveLimit, params.minDays, params.windowDays)}</p>
 
       {todayTaps && (
         <Card variant="flat" className={styles.note}>
@@ -271,8 +362,6 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
           </dl>
         </Card>
       )}
-
-      <div className={styles.note}>{streakCard}</div>
 
       {canYesterday && (
         <div className={`${styles.actions} ${styles.note}`}>
@@ -290,6 +379,10 @@ function DailyOpen({ me, live, log }: { me: MeResponse; live: MeLive; log: Daily
           </Button>
         </div>
       )}
+
+      <More className={styles.note}>
+        <Facts sector="BODY" title={copy.rulesTitle} items={copy.rulesList(live.moveLimit, params.minDays, params.windowDays)} />
+      </More>
 
       <Calendar startDay={live.today} onSaved={toast.show} />
       <Toast>{toast.message}</Toast>

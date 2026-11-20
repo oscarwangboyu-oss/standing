@@ -157,7 +157,7 @@ export function createClient(options: ClientOptions = {}) {
     /** The first save. Keep deviceToken and recoveryCode from the answer: they are not shown again. */
     createUser: (body: CreateUserRequest) => call<CreateUserResponse>('POST', '/users', body),
     restore: (body: RestoreRequest) => call<RestoreResponse>('POST', '/restore', body),
-    rotateRecovery: () => call<RotateRecoveryResponse>('POST', '/recovery/rotate', {}),
+    rotateRecovery: (body: { disconnectOthers?: boolean } = {}) => call<RotateRecoveryResponse>('POST', '/recovery/rotate', body),
     signOut: () => call<OkResponse>('POST', '/signout', {}),
     setConsent: (body: ConsentRequest) => call<ConsentResponse>('POST', '/consent', body),
 
@@ -211,7 +211,9 @@ export function createClient(options: ClientOptions = {}) {
       call<PostEventsResponse>('POST', `${session(id)}/events`, {
         events: events.map((e) => (e.seconds === null ? e : { ...e, seconds: clampSeconds(e.seconds) })),
       } satisfies PostEventsRequest),
-    completeSession: (id: string) => call<CompleteSessionResponse>('POST', `${session(id)}/complete`, {}),
+    /** `localDate` is the device's date at completion: the check counts from that day. */
+    completeSession: (id: string, localDate?: string) =>
+      call<CompleteSessionResponse>('POST', `${session(id)}/complete`, localDate === undefined ? {} : { localDate }),
 
     postReportEvents: (sessionId: string, events: ReportEventInput[]) =>
       call<PostReportEventsResponse>('POST', '/report-events', { sessionId, events } satisfies PostReportEventsRequest),
