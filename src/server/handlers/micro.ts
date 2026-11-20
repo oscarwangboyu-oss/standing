@@ -88,7 +88,7 @@ async function open(request: Request, deps: Deps, app: MicroApp): Promise<Opened
 async function start(deps: Deps, opened: Opened): Promise<Started> {
   if (opened.body.localDate === undefined || opened.body.localDate === null) throw invalid('localDate is required');
   const today = checkedLocalDay(opened.body.localDate, opened.now);
-  const person = await loadPerson(deps.db, opened.user.id, today);
+  const person = await loadPerson(deps.db, opened.user.id, today, opened.user.health_consent_version !== null);
   if (person.checks.length === 0) {
     throw new ApiError(409, 'check_required', 'complete a check first: the price starts from it');
   }
@@ -123,7 +123,7 @@ async function alreadyStored(deps: Deps, table: string, userId: string, id: stri
 async function finish(deps: Deps, started: Started, app: MicroApp, stored: boolean, day: string): Promise<Response> {
   const { user, today } = started;
   if (stored) deps.track?.({ name: 'micro_app_completed', userId: user.id, at: started.now.toISOString(), app });
-  const person = stored ? await loadPerson(deps.db, user.id, today) : started.person;
+  const person = stored ? await loadPerson(deps.db, user.id, today, user.health_consent_version !== null) : started.person;
   const response: MicroEntryResponse = { stored, day, live: liveOf(person, user, deps.env.flags, today) };
   return json(response, stored ? 201 : 200);
 }

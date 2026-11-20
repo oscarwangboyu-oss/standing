@@ -41,7 +41,9 @@ function GateRow({ gate }: { gate: TeamGate }) {
   const kind = gate.met === null ? 'none' : gate.met ? 'met' : 'not_met';
   const word = gate.met === null ? copy.gates.noData : gate.met ? copy.gates.met : copy.gates.notMet;
   let counts: string | null = null;
-  if (gate.count !== null && gate.of !== null) counts = copy.common.of(gate.count, gate.of);
+  if (gate.id === 'max_item_skip_rate' && gate.note && gate.count !== null && gate.of !== null) {
+    counts = copy.gates.skippedIn(gate.note, gate.count, gate.of);
+  } else if (gate.count !== null && gate.of !== null) counts = copy.common.of(gate.count, gate.of);
   else if (gate.id === 'retest_correlation' && gate.count !== null) counts = copy.gates.pairs(gate.count);
   else if (gate.note) counts = copy.gates.mostSkipped(gate.note);
   const small = gate.of !== null ? gate.of < SMALL_N : gate.id === 'retest_correlation' && gate.count !== null && gate.count < SMALL_N;

@@ -10,10 +10,11 @@
  *
  * Nothing is copied when an invite is accepted. Each side is read from the person's latest
  * completed check at the moment of the call, so a retake shows up and a deleted account takes
- * its numbers with it.
+ * its numbers with it. A person who withdrew the Body and Mind consent shows three sectors.
  */
 import {
   CLIENT_ID_PATTERN,
+  HEALTH_AREAS,
   type AcceptInviteResponse,
   type CompareSide,
   type Comparison,
@@ -24,13 +25,14 @@ import {
   type InviteLookupResponse,
   type InviteStatus,
 } from '../../shared/api';
-import { AREA_IDS, CURRENT, type AreaId } from '../../engine';
+import { AREA_IDS, BANKS, CURRENT, compute, getBank, type AreaId } from '../../engine';
 import { requireUser } from '../auth';
 import { COMPARE_INVITE_DAYS, MAX_OPEN_INVITES } from '../config';
 import { randomId, sha256Hex } from '../crypto';
 import type { Db } from '../db';
 import { first } from '../db';
 import { ApiError, bearer, json, readBody, type Deps } from '../http';
+import { backgroundOf, loadEvents, loadSession, stepsOf } from '../sessions';
 
 const DAY_MS = 86_400_000;
 
@@ -42,6 +44,8 @@ interface InviteRow {
 }
 
 interface SideRow {
+  session_id: string;
+  health_consent_version: string | null;
   ticker: string | null;
   overall: number | null;
   price_c: number | null;
@@ -69,19 +73,49 @@ function typeOf(value: unknown): [AreaId, AreaId] | null {
 async function sideOf(db: Db, userId: string): Promise<CompareSide | null> {
   const row = await first<SideRow>(
     db,
-    `select s.ticker, r.overall, r.price_c, r.price_w, r.price_n, r.price_b, r.price_m, r.result -> 'type' as type
-     from sessions s join results r on r.session_id = s.id
+    `select s.id as session_id, u.health_consent_version, s.ticker, r.overall, r.price_c, r.price_w, r.price_n,
+       r.price_b, r.price_m, r.result -> 'type' as type
+     from sessions s join results r on r.session_id = s.id join users u on u.id = s.user_id
      where s.user_id = $1 and s.completed_at is not null
      order by s.completed_at desc, s.id desc, (r.algo_version = $2 and r.norm_version = $3) desc, r.computed_at desc
      limit 1`,
     [userId, CURRENT.algo, CURRENT.norm],
   );
   if (!row) return null;
+  if (row.health_consent_version === null) return withoutHealth(db, userId, row);
   return {
     ticker: row.ticker,
     overall: row.overall,
     sectors: { C: row.price_c, W: row.price_w, N: row.price_n, B: row.price_b, M: row.price_m },
     type: typeOf(row.type),
+  };
+}
+
+/**
+ * A person without the Body and Mind consent, now: their latest check is scored again without
+ * those two sectors, so a friend sees three prices, and an overall price and a type made from
+ * those three only. The stored overall would let the two hidden prices be worked out.
+ */
+async function withoutHealth(db: Db, userId: string, row: SideRow): Promise<CompareSide> {
+  const session = await loadSession(db, userId, row.session_id);
+  const three: CompareSide = {
+    ticker: row.ticker,
+    overall: null,
+    sectors: { C: row.price_c, W: row.price_w, N: row.price_n, B: null, M: null },
+    type: null,
+  };
+  if (!Object.hasOwn(BANKS, session.bank_version)) return three;
+  const result = compute({
+    bank: getBank(session.bank_version),
+    background: backgroundOf(session),
+    steps: stepsOf(await loadEvents(db, session.id)),
+    excludedAreas: [...HEALTH_AREAS],
+  });
+  return {
+    ticker: row.ticker,
+    overall: result.overall,
+    sectors: { C: result.sectors.C.price, W: result.sectors.W.price, N: result.sectors.N.price, B: null, M: null },
+    type: result.type,
   };
 }
 

@@ -303,7 +303,7 @@ describe('overview', () => {
     // 28 of 30 people completed: above 70%.
     expect(body.status.completionRate).toEqual({ count: 28, of: 30, rate: 28 / 30, met: true });
     // B1 was skipped by 3 of the 20 who saw it: above the 10% allowed.
-    expect(body.status.maxItemSkipRate).toEqual({ value: 0.15, itemId: 'B1', versionKey: 'base', met: false });
+    expect(body.status.maxItemSkipRate).toEqual({ value: 0.15, itemId: 'B1', versionKey: 'base', count: 3, of: 20, met: false });
     expect(body.status.retestCorrelation.met).toBe(true);
     expect(body.status.retestCorrelation.pairs).toBe(6);
   });
@@ -660,7 +660,7 @@ describe('CSV', () => {
     const status = lines((await get('/api/team/overview?format=csv&table=status')).text);
     expect(status[0]).toBe('metric,value,count,of,criterion,met');
     expect(status[1]).toBe(`completion_rate_people,${28 / 30},28,30,0.7,true`);
-    expect(status[2]).toBe('max_item_skip_rate,0.15,,,0.1,false');
+    expect(status[2]).toBe('max_item_skip_rate,0.15,3,20,0.1,false');
     expect(status[3].startsWith('retest_correlation,0.9855')).toBe(true);
 
     const prices = lines((await get('/api/team/prices?format=csv')).text);

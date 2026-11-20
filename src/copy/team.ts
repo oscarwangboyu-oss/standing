@@ -120,6 +120,8 @@ export const team = {
     fromBrief: 'From the brief, not the roadmap deck.',
     /** "Most skipped: C_lic/oth" */
     mostSkipped: (id: string) => `Most skipped: ${id}`,
+    /** "C_lic/oth, skipped in 2 of 7 checks". A small second number makes the share noisy. */
+    skippedIn: (id: string, count: number, of: number) => `${id}, skipped in ${count} of ${of} ${of === 1 ? 'check' : 'checks'}`,
     pairs: (n: number) => plural(n, 'pair', 'pairs'),
     names: {
       completion_rate: 'Finish rate',

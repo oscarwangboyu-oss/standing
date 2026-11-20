@@ -5,13 +5,13 @@
  * question events, daily entries, payday bands, weekly wins, people nudges), and the engine
  * computes the day-by-day series from them. A year of full history costs a few milliseconds.
  *
- * Days. A micro-app entry carries the device's local date. A check has two dates: the local
- * date on which it was started (sessions.local_day) and the UTC time at which it was completed.
- * checkDayOf picks the local date when the two are within a day of each other, which is every
- * check finished in one sitting, and the UTC date of completion otherwise (a check resumed
- * days later counts from the day it was finished).
+ * Days. A micro-app entry carries the device's local date. A check counts from the device's
+ * local date on which it was completed (sessions.completed_local_day). For checks completed
+ * before that column existed: the local date on which it was started (sessions.local_day) when
+ * that is within a day of the UTC completion date, which is every check finished in one
+ * sitting, and the UTC date of completion otherwise.
  */
-import type { DayPrices, FeatureFlags, LiveApp, LiveSector, MeLive } from '../shared/api';
+import { HEALTH_AREAS, type DayPrices, type FeatureFlags, type LiveApp, type LiveSector, type MeLive } from '../shared/api';
 import {
   ALGOS,
   AREA_IDS,
@@ -48,9 +48,13 @@ import { daysBetween } from './http';
 import { backgroundOf, excludedAreasOf, stepOf, type EventRow, type SessionRow } from './sessions';
 import { versionMarkers } from './versions';
 
-/** The day a completed check counts from. See the top of this file. */
-export function checkDayOf(session: { local_day: string; completed_at: string | null }): string {
+/**
+ * The day a completed check counts from. The device's local date at completion when the client
+ * sent it; otherwise the rule at the top of this file.
+ */
+export function checkDayOf(session: { local_day: string; completed_at: string | null; completed_local_day?: string | null }): string {
   if (session.completed_at === null) return session.local_day;
+  if (session.completed_local_day) return session.completed_local_day;
   const done = session.completed_at.slice(0, 10);
   return Math.abs(daysBetween(session.local_day, done)) <= 1 ? session.local_day : done;
 }
@@ -98,8 +102,8 @@ interface WinRow {
 
 type NudgeRow = { day: string; planned: number } & Record<`reached_${NudgeCategory}`, number>;
 
-const SESSION_COLUMNS = `id, user_id, created_at, completed_at, local_day, age, role, extra, us_state, ticker,
-  lang, bank_version, health_consent`;
+const SESSION_COLUMNS = `id, user_id, created_at, completed_at, completed_local_day, local_day, age, role, extra,
+  us_state, ticker, lang, bank_version, health_consent`;
 
 /**
  * The versions the series starts with and the days they changed, from the version log. Without
@@ -126,7 +130,13 @@ async function versionOptions(db: Db, firstSessionId: string, today: string): Pr
 }
 
 /** Reads everything the timeline needs about one person. Five reads, plus two when a version changed. */
-export async function loadPerson(db: Db, userId: string, today: string): Promise<LoadedPerson> {
+/**
+ * `health` is whether the person holds the Body and Mind consent now. Without it every check is
+ * read without Body and Mind and the Daily Open records are left out, from the moment the
+ * consent is withdrawn: the live price shows those two sectors as not listed. The stored
+ * records themselves are untouched until the person deletes their data.
+ */
+export async function loadPerson(db: Db, userId: string, today: string, health: boolean): Promise<LoadedPerson> {
   const sessions = (
     await db.query<SessionRow>(
       `select ${SESSION_COLUMNS} from sessions where user_id = $1 and completed_at is not null
@@ -157,32 +167,29 @@ export async function loadPerson(db: Db, userId: string, today: string): Promise
     steps: stepsBySession.get(session.id) ?? [],
   }));
 
-  const dailyRows = await db.query<DailyRow>(
-    'select day, logged_on, sleep, exercise, state from daily_entries where user_id = $1 order by day',
-    [userId],
-  );
-  const paydayRows = await db.query<PaydayRow>(
-    'select day, periods, save_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
-    [userId],
-  );
-  const winRows = await db.query<WinRow>(
-    'select day, kind, hours, exam, level from weekly_wins where user_id = $1 order by at, id',
-    [userId],
-  );
-  const nudgeRows = await db.query<NudgeRow>(
-    `select day, planned, reached_family, reached_friend, reached_mentor, reached_work, reached_other
-     from people_nudges where user_id = $1 order by at, id`,
-    [userId],
-  );
+  // The four micro-app tables at once: on a hosted database each read is a round trip.
+  const [dailyRows, paydayRows, winRows, nudgeRows] = await Promise.all([
+    db.query<DailyRow>('select day, logged_on, sleep, exercise, state from daily_entries where user_id = $1 order by day', [userId]),
+    db.query<PaydayRow>(
+      'select day, periods, save_share, runway, baseline_day from payday_entries where user_id = $1 order by at, id',
+      [userId],
+    ),
+    db.query<WinRow>('select day, kind, hours, exam, level from weekly_wins where user_id = $1 order by at, id', [userId]),
+    db.query<NudgeRow>(
+      `select day, planned, reached_family, reached_friend, reached_mentor, reached_work, reached_other
+       from people_nudges where user_id = $1 order by at, id`,
+      [userId],
+    ),
+  ]);
 
   const timelineChecks: TimelineCheck[] = checks.map((c) => ({
     day: c.day,
     background: backgroundOf(c.session),
     steps: c.steps,
     bankVersion: c.session.bank_version,
-    excludedAreas: excludedAreasOf(c.session),
+    excludedAreas: health ? excludedAreasOf(c.session) : [...HEALTH_AREAS],
   }));
-  const daily: DailyEntry[] = dailyRows.map((r) => ({
+  const daily: DailyEntry[] = (health ? dailyRows : []).map((r) => ({
     day: r.day,
     loggedOn: r.logged_on,
     sleep: r.sleep,
@@ -307,7 +314,8 @@ export function liveOf(
   for (const area of AREA_IDS) {
     const s = now.sectors[area];
     const prev = before?.sectors[area] ?? null;
-    const base = atCheck?.sectors[area].price ?? null;
+    // From the price the last check gave on its own, so that day's micro-app records count as a move.
+    const base = atCheck ? (atCheck.check ? atCheck.check.prices[area] : atCheck.sectors[area].price) : null;
     const open = halts.find((h) => h.area === area && h.to === null);
     sectors[area] = {
       status: s.status,
@@ -327,7 +335,8 @@ export function liveOf(
   }
 
   const change = now.overall !== null && before !== null && before.overall !== null ? now.overall - before.overall : null;
-  const sinceCheck = now.overall !== null && atCheck !== null && atCheck.overall !== null ? now.overall - atCheck.overall : null;
+  const checkOverall = atCheck ? (atCheck.check ? atCheck.check.overall : atCheck.overall) : null;
+  const sinceCheck = now.overall !== null && checkOverall !== null ? now.overall - checkOverall : null;
 
   let high: number | null = null;
   let low: number | null = null;
@@ -340,7 +349,10 @@ export function liveOf(
   }
 
   const { daily = [], paydays = [], weeklyWins = [], peopleNudges = [] } = person.history;
-  const streak = dailyStreak(daily, until, tl.versions.algo);
+  const counted = dailyStreak(daily, until, tl.versions.algo);
+  // A day before the first full check is not offered for filling in: there was no price yet.
+  const firstCheckDay = person.checks[0].day;
+  const streak = { ...counted, canBackfill: counted.canBackfill.filter((day) => day >= firstCheckDay) };
   const week = weekOf(dayNumber(until));
   const appOf = (enabled: boolean, available: boolean, days: readonly string[]): LiveApp => {
     let lastDay: string | null = null;
@@ -374,7 +386,7 @@ export function liveOf(
       change,
       changePercent: percentOf(change, before?.overall ?? null),
       sinceCheck,
-      sinceCheckPercent: percentOf(sinceCheck, atCheck?.overall ?? null),
+      sinceCheckPercent: percentOf(sinceCheck, checkOverall),
       covers: now.overallCovers,
     },
     sectors,

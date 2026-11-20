@@ -5,7 +5,7 @@
  * breach tags (always a word, never colour alone), the CSV button, a section frame and a
  * table that scrolls inside its own box.
  */
-import { useId, useState, type ReactNode } from 'react';
+import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import { team as copy } from '@/copy/team';
 import { EVALUATION } from '@/engine';
 import type { Rate } from '@/shared/api';
@@ -127,15 +127,20 @@ export interface CsvButtonProps {
   file: string;
 }
 
+/** True when the numbers on the page include simulated people. CSV files are then named "-simulated". */
+export const SimulatedContext = createContext(false);
+
 /** Downloads one table as CSV. The passphrase travels in the header, so the file is fetched and then saved. */
 export function CsvButton({ client, table, name, params, file }: CsvButtonProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const simulated = useContext(SimulatedContext);
   const download = async () => {
     setBusy(true);
     setFailed(false);
     try {
-      saveFile(`${file}.csv`, 'text/csv;charset=utf-8', await client.csv(table, params));
+      // A saved file loses the banner of the page, so its name carries the mark.
+      saveFile(`${file}${simulated ? '-simulated' : ''}.csv`, 'text/csv;charset=utf-8', await client.csv(table, params));
     } catch {
       setFailed(true);
     } finally {

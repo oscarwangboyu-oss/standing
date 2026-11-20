@@ -4,6 +4,7 @@
  */
 import type { ConsentState, UserProfile, UsState } from '../shared/api';
 import type { Lang, RoleId } from '../engine';
+import { MIN_TEAM_PASSPHRASE_LENGTH } from './config';
 import { constantTimeEqual, sha256Hex } from './crypto';
 import { first } from './db';
 import { ApiError, bearer, type Deps } from './http';
@@ -76,6 +77,11 @@ export function profileOf(user: UserRow): UserProfile {
 export async function requireTeam(request: Request, deps: Deps): Promise<void> {
   const expected = deps.env.adminPassphrase;
   if (!expected) throw new ApiError(403, 'team_closed', 'the team dashboard is closed: no passphrase is configured');
+  // Guesses are not rate limited here (serverless instances share no memory), so production
+  // needs a passphrase too long to guess. A short one keeps the dashboard closed.
+  if (deps.env.environment === 'production' && expected.length < MIN_TEAM_PASSPHRASE_LENGTH) {
+    throw new ApiError(403, 'team_closed', `the team dashboard is closed: ADMIN_PASSPHRASE needs ${MIN_TEAM_PASSPHRASE_LENGTH} characters or more in production`);
+  }
   const given = bearer(request);
   // Compare even when nothing was sent, so both failures take the same time.
   const ok = await constantTimeEqual(given ?? '', expected);

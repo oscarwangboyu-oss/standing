@@ -34,6 +34,7 @@ export const shared = {
     health_consent_required: 'Daily Open needs your consent for Body and Mind answers. You can give it in Settings.',
     payday_not_eligible: 'Payday Check is offered to people who live on their own earnings.',
     entry_limit: 'This takes at most 10 entries a day. Try again tomorrow.',
+    clock_skew: 'Your phone’s date is more than a day off, so this was not saved. Set the date to automatic and try again.',
     unauthorized: 'This device is no longer connected to a record. Open Settings to restore it.',
     fallback: 'That was not saved. Try again.',
   },

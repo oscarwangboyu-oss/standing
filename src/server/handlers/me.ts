@@ -23,7 +23,7 @@ import { liveOf, loadPerson } from '../live';
 import { latestOpenSession, loadSession, pricesOf, shownResults, storedResult, versionsOf } from '../sessions';
 import { USERS_TABLE, USER_TABLES } from '../tables';
 import { versionMarkers } from '../versions';
-import { checkedLocalDay, overallChange } from './sessions';
+import { checkedLocalDay, clampedLocalDay, overallChange } from './sessions';
 
 /**
  * The day the live series ends on: the `today` query parameter, which is the device's local
@@ -31,7 +31,7 @@ import { checkedLocalDay, overallChange } from './sessions';
  */
 export function todayOf(request: Request, now: Date): string {
   const today = new URL(request.url).searchParams.get('today');
-  return checkedLocalDay(today === null || today === '' ? undefined : today, now);
+  return clampedLocalDay(today === null || today === '' ? undefined : today, now);
 }
 
 /** GET /api/me?today=YYYY-MM-DD */
@@ -72,7 +72,7 @@ export async function getMe(request: Request, deps: Deps): Promise<Response> {
     openSession: open ? { id: open.id, createdAt: open.created_at, answered: answered?.n ?? 0 } : null,
     versionMarkers: await versionMarkers(deps.db, utcDay(deps.now())),
     // Computed now from the raw records. Nothing of it is stored.
-    live: liveOf(await loadPerson(deps.db, user.id, today), user, deps.env.flags, today),
+    live: liveOf(await loadPerson(deps.db, user.id, today, user.health_consent_version !== null), user, deps.env.flags, today),
   };
   return json(response);
 }

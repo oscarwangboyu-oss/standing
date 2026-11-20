@@ -3,7 +3,7 @@
 // answers, leaving and coming back, an offline stretch and completion.
 
 import { describe, expect, it } from 'vitest';
-import { createDeviceStore, memoryStore, storageKey, type KeyValueStore } from '@/client/device';
+import { createDeviceStore, followOtherTabs, memoryStore, storageKey, type KeyValueStore } from '@/client/device';
 import { createQueue, type Timers } from '@/client/queue';
 import {
   CHECK_LANG,
@@ -466,6 +466,29 @@ describe('the check controller against the API', () => {
     expect(net.requests.length).toBe(requests);
     later.controller.clearReveal();
     expect(later.controller.get()).toMatchObject({ status: 'none', reveal: null });
+  });
+
+  it('a second tab of the same browser follows the tab that answered ahead', async () => {
+    const server = await makeApi();
+    const net: Net = { offline: false, requests: [] };
+    const storage = memoryStore();
+    const a = page(server, net, storage);
+    await a.controller.load();
+    await a.controller.start({ background: backgroundFor('emp'), healthConsent: true, usState: 'GA', ticker: 'twin' });
+    a.answerOne();
+    // The second tab opens the same check.
+    const b = page(server, net, storage);
+    await b.controller.load();
+    expect(b.controller.get().state?.steps.length).toBe(1);
+    // The first tab goes on; the browser tells the second one that storage changed.
+    a.answerOne();
+    a.answerOne();
+    const tabs = new EventTarget();
+    const stop = followOtherTabs(tabs as unknown as Window);
+    tabs.dispatchEvent(Object.assign(new Event('storage'), { key: null }));
+    stop();
+    expect(b.controller.get().state?.steps.length).toBe(3);
+    expect(b.controller.get().view?.id).toBe(a.controller.get().view?.id);
   });
 
   it('goes on from the server when the server has another path than the device', async () => {

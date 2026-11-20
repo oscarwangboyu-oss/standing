@@ -304,6 +304,11 @@ export interface DeviceRecord {
   wins: LocalWin[];
   /** People Nudge, with names. */
   people: LocalPerson[];
+  /**
+   * The record the payday amounts, win titles and names above belong to. They stay on the device
+   * when it loses its token, and are cleared when another record signs in on it.
+   */
+  localOwner: string | null;
 }
 
 export const EMPTY_DEVICE: DeviceRecord = Object.freeze({
@@ -318,6 +323,7 @@ export const EMPTY_DEVICE: DeviceRecord = Object.freeze({
   payday: Object.freeze({ setup: null, entries: [] as LocalPayday[] }),
   wins: [] as LocalWin[],
   people: [] as LocalPerson[],
+  localOwner: null,
 }) as DeviceRecord;
 
 export const DEVICE_VERSION = 1;
@@ -352,7 +358,18 @@ export function reviveDevice(value: unknown): DeviceRecord | null {
     },
     wins: Array.isArray(value.wins) ? (value.wins.filter(isRecord) as unknown as LocalWin[]) : [],
     people: Array.isArray(value.people) ? (value.people.filter(isRecord) as unknown as LocalPerson[]) : [],
+    // Records kept before this field existed belong to the record the device holds.
+    localOwner: text(value.localOwner) ?? text(value.userId),
   };
+}
+
+/**
+ * The private fields for `userId`: kept when they are that record's, emptied when they belong to
+ * another record or to nobody known.
+ */
+function privateFor(current: DeviceRecord, userId: string): Pick<DeviceRecord, 'payday' | 'wins' | 'people' | 'localOwner'> {
+  if (current.localOwner === userId) return { payday: current.payday, wins: current.wins, people: current.people, localOwner: userId };
+  return { payday: { setup: null, entries: [] }, wins: [], people: [], localOwner: userId };
 }
 
 export interface DeviceStore extends Slot<DeviceRecord> {
@@ -383,6 +400,7 @@ export function createDeviceStore(storage: KeyValueStore, migrations: Record<num
     patch,
     signIn: (created: Pick<CreateUserResponse, 'userId' | 'deviceToken' | 'recoveryCode' | 'consent'>) =>
       patch({
+        ...privateFor(slot.get(), created.userId),
         userId: created.userId,
         deviceToken: created.deviceToken,
         recoveryCode: created.recoveryCode,
@@ -393,6 +411,7 @@ export function createDeviceStore(storage: KeyValueStore, migrations: Record<num
       }),
     restore: (restored: { userId: string; deviceToken: string }) =>
       patch({
+        ...privateFor(slot.get(), restored.userId),
         userId: restored.userId,
         deviceToken: restored.deviceToken,
         recoveryCode: null,
@@ -404,6 +423,8 @@ export function createDeviceStore(storage: KeyValueStore, migrations: Record<num
     forgetAccount: (options: { keepRecoveryCode?: boolean } = {}) =>
       slot.update((current) => ({
         ...current,
+        // The private fields stay, and remember whose they are.
+        localOwner: current.localOwner ?? current.userId,
         deviceToken: null,
         userId: null,
         recoveryCode: options.keepRecoveryCode ? current.recoveryCode : null,

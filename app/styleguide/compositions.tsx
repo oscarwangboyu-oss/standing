@@ -336,7 +336,7 @@ export function CompareScreen() {
         <Card className={styles.shape}>
           <Pentagon prices={prices} other={other.prices} values={false} />
           <p className={styles.caption}>
-            Solid: {sample.ticker}. Dashed: {other.ticker}. The dashed ring is 100.
+            Solid line: {sample.ticker}. Dotted line: {other.ticker}. The dashed ring is 100.
           </p>
         </Card>
       </Block>

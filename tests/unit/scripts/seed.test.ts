@@ -241,7 +241,7 @@ describe('seeding', () => {
     let moved = 0;
     let halted = 0;
     for (const person of people) {
-      const live = liveOf(await loadPerson(db, person.id, '2026-06-15'), person, flags, '2026-06-15');
+      const live = liveOf(await loadPerson(db, person.id, '2026-06-15', person.health_consent_version !== null), person, flags, '2026-06-15');
       expect(live, person.id).not.toBeNull();
       if (!live) continue;
       expect(live.today).toBe('2026-06-15');

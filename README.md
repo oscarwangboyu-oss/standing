@@ -21,7 +21,9 @@ npm run seed:demo    # optional: 330 simulated people, so the dashboard and the 
 npm run dev          # http://localhost:3000
 ```
 
-No account is needed. The database is an embedded Postgres (PGlite) in `.data/local`, created and migrated on first use. The team dashboard is at `/team`; the local passphrase is in `.env.development`. Add `?debug=1` to any app address to get the developer panel, which starts a random check and answers one to the end.
+`npm run seed:demo` also makes one more simulated person, the demo viewer (ticker DEMO), with two checks and 45 days of steady Daily Open, Weekly Win, People Nudge and Payday records. It prints that person's recovery code. Open http://localhost:3000/settings?restore=1, enter the code, and the market home, the price chart, "Why it moved" and the log all show 45 days of history. Every screen of that record says "Simulated data". `--no-viewer` leaves it out.
+
+No account is needed. The database is an embedded Postgres (PGlite) in `.data/local`, created and migrated on first use. The team dashboard is at `/team`; the local passphrase is in `.env.development`. Add `?debug=1` to any app address to get the developer panel, which starts a random check and answers one to the end. It works locally and on preview deployments, never in production, where its random checks would count as real people. `npm run dev` also answers on http://127.0.0.1:3000, a second origin with its own device storage: handy for looking at the app as a new visitor while localhost holds a record.
 
 Stop `npm run dev` before a script writes to the local database: the embedded Postgres takes one process at a time.
 
@@ -33,15 +35,16 @@ Stop `npm run dev` before a script writes to the local database: the embedded Po
 | `npm run test:e2e` | Flow tests (Playwright, phone viewports of 360 and 412 wide, the installed Chrome). Builds the app, serves it on port 8799 with its own database in `.data/e2e`, which is emptied first |
 | `npm run typecheck` | Engine purity check, then the whole project. The build itself skips type checking |
 | `npm run db:migrate` | Apply `supabase/migrations/` to the database in `DATABASE_URL`, or to the local one |
-| `npm run seed:demo` | Generate simulated people, flagged `is_demo`. Refuses to run in production |
+| `npm run seed:demo` | Generate simulated people, flagged `is_demo`, plus the demo viewer and its recovery code. Refuses to run in production |
 | `npm run recompute` | Re-score every stored check with a chosen algorithm version and print old against new |
 | `npm run eval` | The seven scoring tests over the stored checks |
+| `npm run shots -- --url http://localhost:3000` | Walks every screen as a person would and saves a PNG of each, phone 390 wide in light and dark and desktop 1440 wide, into `design/shots/final`. Start a local server first; set `TEAM_PASSPHRASE` for the dashboard. Each run makes new people in that server's database |
 
 ## The stack and why
 
 - **Next.js (App Router), React, TypeScript, on Vercel.** One project holds the pages and the API (`app/api/[[...path]]/route.ts`, Node runtime). A push to GitHub deploys. The roadmap names this stack; the first brief named Cloudflare Pages and D1, and the roadmap wins.
 - **Supabase Postgres in production.** Plain SQL with `$1` placeholders through one small interface (`src/server/db.ts`). The server connects with the pooled connection string. Standing uses nothing else of Supabase: no auth, no client library, no Data API.
-- **PGlite locally and in tests.** An embedded Postgres, so local runs and tests need no account and behave like production: the same SQL, the same migrations.
+- **PGlite locally and in tests.** An embedded Postgres, so local runs and tests need no account and behave like production: the same SQL, the same migrations. The two drivers do differ in small ways (postgres.js encodes JSON parameters itself; PGlite takes text), so `tests/unit/server/driver.test.ts` runs a full check, the micro apps and every team table through the production driver too, over a small wire bridge to PGlite. Keep it green when you touch SQL.
 - **PostHog, from the server only, and only when `POSTHOG_KEY` is set.** The browser loads no third-party script. Ten funnel events are forwarded (`src/server/posthog.ts`), with a salted hash in place of the user id, never an answer, a price or an IP address.
 - **A dependency-free scoring engine** in `src/engine/`: pure TypeScript with no DOM, no Node, no clock and no randomness, so the browser, the server and a later mobile app compute the same result. `reference/` holds the verified bank, the reference engine and 335 golden vectors; the engine is tested against all of them.
 - **Fonts are bundled** from `node_modules`. No request leaves the site. The flow tests fail on any request to another origin.
@@ -86,16 +89,17 @@ Read only in `src/server/env.ts`. Locally nothing needs to be set.
 
 The founder does these himself, in this order. Nothing here has been done for him.
 
-1. **Create the Supabase project.** In the project, open Connect and copy the pooled connection string of the Transaction pooler (port 6543), with the database password filled in. The server opens it with prepared statements off, which that pooler needs.
+1. **Create the Supabase project** in the region East US (North Virginia), next to the Vercel functions (`vercel.json` pins them to `iad1`; change both together). In the project, open Connect and copy the pooled connection string of the Transaction pooler (port 6543), with the database password filled in. The server opens it with prepared statements off, which that pooler needs, and always over TLS. Under Database settings, turn on "Enforce SSL on incoming connections".
 2. **Create the tables.** From this folder:
    ```sh
    DATABASE_URL="postgresql://postgres.<project>:<password>@<host>:6543/postgres" npm run db:migrate
    ```
    It prints the migrations it applied. Running it again applies only what is new. Migration 0006 turns on row level security for every table, so the Supabase Data API serves none of them; the server connects as the owner of the tables and is not affected.
 3. **Create the Vercel project** from the GitHub repository. The framework is detected as Next.js; keep the default build settings.
-4. **Set the environment variables** for the Production environment in Vercel: `DATABASE_URL` (the same pooled string), `ADMIN_PASSPHRASE` (long and random), `STANDING_ENV=production`, and optionally `POSTHOG_KEY`.
-5. **Deploy.** Open `/api/health`: it answers `{"ok":true,"environment":"production"}`. Open `/team` and enter the passphrase.
-6. **Turn on stage 2 when the team decides to**, one switch at a time (see Stage switches), and redeploy.
+4. **Set the environment variables** for the Production environment in Vercel: `DATABASE_URL` (the same pooled string), `ADMIN_PASSPHRASE` (random, 20 characters or more: a shorter one keeps `/team` closed in production), `STANDING_ENV=production`, and optionally `POSTHOG_KEY`.
+5. **Deploy.** Open `/api/health`: it answers `{"ok":true,"environment":"production"}`. Then take one real check on a phone to the end, and open the market home: health only says the server runs, the check proves the database round trip. Delete that record in Settings afterwards. Open `/team` and enter the passphrase.
+6. **Add rate limits in the Vercel Firewall** (Project, Firewall, Rules): for example 20 requests a minute per IP on `POST /api/users`, `POST /api/restore` and `/api/team/*`. The app cannot count requests itself, because serverless instances share no memory. Recovery codes (100 bits) and invite codes (128 bits) cannot be guessed either way; the limits keep junk records out of the dashboard.
+7. **Turn on stage 2 when the team decides to**, one switch at a time (see Stage switches), and redeploy.
 
 Notes:
 
@@ -143,7 +147,7 @@ A bank version that has produced results is never edited: stored checks must re-
 4. Point `CURRENT.bank` at `2.2` in `src/engine/registry.ts`.
 5. Run `npm test`. `tests/unit/engine/bank.test.ts` pins bank 2.1 to `reference/bank_v2.1.json`; keep that test on 2.1 and add what the new bank changes. `parseBank` refuses a file with the wrong shape.
 6. Deploy. A browser that still holds the old bank cannot start a check (the server answers `bank_version_mismatch`); the start screen then asks the person to reload. Checks already completed keep their bank version, and a check in progress finishes on the bank it started with.
-7. Log the day for the chart: `insert into version_log (kind, version, effective_day, logged_at) values ('bank', '2.2', '2026-12-01', '2026-12-01T00:00:00.000Z');`
+7. Log the day: `insert into version_log (kind, version, effective_day, logged_at) values ('bank', '2.2', '2026-12-01', '2026-12-01T00:00:00.000Z');`. It goes into the export and the record of what changed when. A person's chart does not draw a line on that day: a bank version belongs to each check, so their chart marks the change on their first check with the new bank. Algorithm and norm changes, which re-score every day, do draw a line on the day.
 
 The team dashboard keys its per-question table by bank version, question and version key, so numbers of the old and the new wording never mix.
 
@@ -222,7 +226,7 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - **Stage 3:** paid reports, subscription, Stripe, email.
 - **Stage 4:** bank connections and a verified statement. The `connected` source exists as a name in the engine and nothing writes it.
 - **The native app, HealthKit and notifications.** The Daily Open reminder is a calendar file the person saves.
-- **Accounts.** There is no sign-up, email or password. A device token links a browser to a record, and a recovery code connects another device.
+- **Accounts.** There is no sign-up, email or password. A device token links a browser to a record, and a recovery code connects another device. The start screen links to it ("Took the check on another device?"), which opens Settings with the code sheet open.
 - **A language switch.** English only.
 - **Public rankings**, and any screen that names a winner in a comparison.
 
@@ -231,7 +235,7 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 - The baseline is provisional: median 0.5 and standard deviation 0.2 for every sector. Until a real norm replaces it, "100 is the median of your group" is a design setting, and the result page, the market home and the share image say so.
 - Every threshold in `src/engine/config.ts` is an initial setting without data behind it.
 - The ticker is set when a check starts. Settings shows it and links to a retake; there is no endpoint to change it alone.
-- The steps of `/start` are not kept across a reload. The check itself resumes at the same question on any device with the token.
+- The steps of `/start` are kept for the life of the browser tab (sessionStorage, `src/client/startDraft.ts`), so a reload comes back to the same step; a new tab starts at the introduction. The check itself resumes at the same question on any device with the token.
 - Daily records count once 4 of the last 7 days are recorded, and the screen reaches today and yesterday. A price cannot move from Daily Open before the fourth day.
 - The Daily Open streak shows the days before a person's first check as missed, and offers yesterday for backfill on the first day.
 - Payday amounts, win titles, people's names and invite links live in the browser. Clearing its data, or moving to another device, loses them. The export file includes what the browser holds.
@@ -258,3 +262,4 @@ The roadmap opens stage 2 only when stage 1 meets its gates. The Stage gates sec
 13. **Vercel plan.** Hobby is for non-commercial use. Decide before the first paying user, at the latest.
 14. **When to replace the provisional norm**, and with how many people per cohort. The Norms table shows n for each.
 15. **The cohort line under the ticker** uses short role names (`src/copy/market.ts`, `roleNames`). They are our wording, not the bank's.
+16. **The skip-rate gate and small numbers.** The gate takes the highest skip rate of any question version, as the deck says, however few checks saw it. Role-specific versions are seen by few people early on, so one or two skips can hold the gate red: the demo data shows 28.6% for a version seen by 7 checks. The card prints the counts behind the share ("C_lic/oth, skipped in 2 of 7 checks"). A minimum, for example judging only versions seen by 30 checks or more, would make the gate steadier; it is a change to the rule, so it is left to the team.

@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "recompute": "tsx scripts/recompute.ts",
-    "eval": "tsx scripts/eval.ts"
+    "eval": "tsx scripts/eval.ts",
+    "shots": "tsx scripts/shots.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.17",

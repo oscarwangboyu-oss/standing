@@ -9,7 +9,7 @@
  */
 import { Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { api, meResource, queue, useDevice, useResource } from './api';
+import { api, configResource, meResource, queue, useDevice, useResource } from './api';
 import { device, followOtherTabs } from './device';
 import { guard, type Standing } from './nav';
 import { check } from './session';
@@ -101,11 +101,14 @@ export function useLocation(): RouteLocation | null {
 
 /**
  * True in development, and once the address has carried ?debug=1 on this page load. It stays
- * true while the person moves between screens.
+ * true while the person moves between screens. Never in the production environment: the panel
+ * answers checks at random, and those would count as real people on the team dashboard.
  */
 export function useDebug(): boolean {
   useLocation();
-  return process.env.NODE_ENV === 'development' || debugSeen;
+  const config = useResource(configResource);
+  if (process.env.NODE_ENV === 'development') return true;
+  return debugSeen && config.data !== null && config.data.environment !== 'production';
 }
 
 // ---------------------------------------------------------------- the guard

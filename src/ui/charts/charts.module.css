@@ -85,7 +85,8 @@
 .ringPar { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .spoke { stroke: var(--line); stroke-width: 1; }
 .shape { fill: var(--ink); fill-opacity: 0.08; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
-.shapeOther { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+/* The other person: a dotted outline, so it never reads as the dashed 100 ring. */
+.shapeOther { fill: var(--ink-3); fill-opacity: 0.06; stroke: var(--ink-2); stroke-width: 3; stroke-dasharray: 0.1 6.5; stroke-linecap: round; stroke-linejoin: round; }
 .vertex { stroke: var(--surface); stroke-width: 2.5; }
 .pCode { font-family: var(--font-display); font-size: 13px; font-weight: 750; letter-spacing: 0.035em; }
 .pValue { fill: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }

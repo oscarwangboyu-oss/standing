@@ -51,6 +51,18 @@ describe('team passphrase', () => {
     expect((await empty.call('GET', '/api/team/overview', { token: '' })).status).toBe(403);
   });
 
+  it('stays closed in production with a passphrase shorter than 20 characters', async () => {
+    const short = await makeApi({ vars: { STANDING_ENV: 'production', ADMIN_PASSPHRASE: 'team2026' } });
+    const res = await short.call('GET', '/api/team/overview', { token: 'team2026' });
+    expect([res.status, res.body.error.code]).toEqual([403, 'team_closed']);
+    const long = 'a-long-random-passphrase-for-the-team';
+    const ok = await makeApi({ vars: { STANDING_ENV: 'production', ADMIN_PASSPHRASE: long, DATABASE_URL: 'postgres://x' } });
+    expect((await ok.call('GET', '/api/team/overview', { token: long })).status).toBe(200);
+    // Locally a short one is fine.
+    const local = await makeApi({ vars: { STANDING_ENV: 'local', ADMIN_PASSPHRASE: 'team2026' } });
+    expect((await local.call('GET', '/api/team/overview', { token: 'team2026' })).status).toBe(200);
+  });
+
   it('is read only', async () => {
     const api = await makeApi();
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {

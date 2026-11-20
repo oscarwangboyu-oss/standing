@@ -93,13 +93,22 @@ describe('creating a session', () => {
       [{ ...base, usState: 'ZZ' }, 400, 'invalid_request'],
       [{ ...base, lang: 'fr' }, 400, 'invalid_request'],
       [{ ...base, healthConsent: 'yes' }, 400, 'invalid_request'],
-      [{ ...base, localDate: '2020-01-01' }, 400, 'invalid_request'],
+      [{ ...base, localDate: '01/01/2020' }, 400, 'invalid_request'],
     ];
     for (const [body, status, code] of cases) {
       const res = await api.call('POST', '/api/sessions', { token: user.deviceToken, body });
       expect([res.status, res.body.error.code], JSON.stringify(body)).toEqual([status, code]);
     }
     expect((await api.db.query('select 1 from sessions')).length).toBe(0);
+  });
+
+  it('starts a check on a device whose clock is days off, dated with the server day', async () => {
+    const api = await makeApi({ now: '2026-03-01T12:00:00.000Z' });
+    const user = await newUser(api);
+    const body = { background: emp, lang: 'en', bankVersion: CURRENT.bank, healthConsent: true, localDate: '2020-01-01' };
+    const res = await api.call('POST', '/api/sessions', { token: user.deviceToken, body });
+    expect(res.status).toBe(201);
+    expect(await api.db.query('select local_day from sessions')).toEqual([{ local_day: '2026-03-01' }]);
   });
 
   it('a retried request with the same client id does not create a second session', async () => {

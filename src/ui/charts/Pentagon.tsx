@@ -8,7 +8,7 @@ import styles from './charts.module.css';
 export interface PentagonProps {
   /** The five prices. A sector without a price is null: its corner is left open. */
   prices: Partial<Record<SectorCode, number | null>>;
-  /** A second shape, drawn as a dashed outline: the other person in a compare view. */
+  /** A second shape, drawn as a dotted outline: the other person in a compare view. */
   other?: Partial<Record<SectorCode, number | null>>;
   /** Print the price under each sector code. Default on. */
   values?: boolean;

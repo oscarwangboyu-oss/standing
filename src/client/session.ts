@@ -558,8 +558,12 @@ export interface CheckController {
 }
 
 export const CHECK_VERSION = 1;
-/** A tap within this time of the question appearing cannot be an answer to it. Interface setting, not scoring. */
-export const MIN_ANSWER_SECONDS = 0.15;
+/**
+ * A tap within this time of the question appearing cannot be an answer to it: it is the second
+ * half of a double tap on the question before. 0.4 s catches double taps up to that gap and
+ * stays under the shortest reading threshold of the engine (0.6 s). Interface setting, not scoring.
+ */
+export const MIN_ANSWER_SECONDS = 0.4;
 
 export function createCheckSlot(storage: KeyValueStore): Slot<CheckState | null> {
   return createSlot<CheckState | null>({ storage, name: 'check', version: CHECK_VERSION, empty: null, revive: reviveCheck });
@@ -585,16 +589,28 @@ export function createCheckController(deps: CheckDeps): CheckController {
     for (const listener of [...listeners]) listener();
   };
 
+  /** True while this controller writes the slot, so its own writes are not read as another tab's. */
+  let writing = false;
+  const write = (next: CheckState | null) => {
+    writing = true;
+    try {
+      if (next) slot.set(next);
+      else slot.clear();
+    } finally {
+      writing = false;
+    }
+  };
+
   /** Puts a state in place: draws the direction of its question, stores it, derives the view. */
   const adopt = (state: CheckState | null, more: Partial<CheckSnapshot> = {}) => {
     if (!state) {
-      slot.clear();
+      write(null);
       timed = null;
       emit({ status: 'none', state: null, view: null, ...more });
       return;
     }
     const prepared = prepareQuestion(state, random());
-    slot.set(prepared);
+    write(prepared);
     const view = viewOf(prepared);
     if (timed && timed.seq !== prepared.steps.length) timed = null;
     emit({ status: view ? 'question' : 'finished', state: prepared, view, ...more });
@@ -649,6 +665,26 @@ export function createCheckController(deps: CheckDeps): CheckController {
     }
     return snapshot;
   };
+
+  // Another tab of this browser answered the same check (the slot was reloaded from storage).
+  // When it is ahead, this tab shows where it got to, so the two never answer the same question
+  // differently. When it finished or left the check, or started another, the server decides.
+  slot.subscribe(() => {
+    if (writing || completing || loading) return;
+    const mine = snapshot.state;
+    if (!mine) return;
+    const other = slot.get();
+    if (other === mine) return;
+    if (!other || other.sessionId !== mine.sessionId) {
+      void resync();
+      return;
+    }
+    if (other.steps.length > mine.steps.length) {
+      timed = null;
+      const view = viewOf(other);
+      emit({ status: view ? 'question' : 'finished', state: other, view });
+    }
+  });
 
   // The server refused events for good. Either the check is closed or gone, or the two sides
   // no longer agree on the path: in both cases the server's version is the one to continue from.
@@ -733,7 +769,7 @@ export function createCheckController(deps: CheckDeps): CheckController {
     if (!timed || timed.seq !== state.pending.seq) timed = { seq: state.pending.seq, at: clock() };
     const marked = markShown(state);
     if (!marked.event) return;
-    slot.set(marked.state);
+    write(marked.state);
     snapshot = { ...snapshot, state: marked.state };
     deps.queue.question(state.sessionId, marked.event);
   };
@@ -782,8 +818,8 @@ export function createCheckController(deps: CheckDeps): CheckController {
           emit({ status: 'finished', reveal: { ...reveal, status: 'waiting' }, error: new ApiRequestError(0, 'network', 'answers are still waiting to be sent') });
           return snapshot;
         }
-        const response = await deps.client.completeSession(state.sessionId);
-        slot.clear();
+        const response = await deps.client.completeSession(state.sessionId, today());
+        write(null);
         timed = null;
         deps.device.patch({ hasCheck: true, ticker: state.ticker });
         emit({

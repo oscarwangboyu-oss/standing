@@ -11,7 +11,7 @@ import { api, useAsync, useDevice, useMe } from '@/client/api';
 import { ROUTES, resultRoute } from '@/client/nav';
 import { useShell } from '@/client/shell';
 import { today } from '@/client/today';
-import { entries, market as copy, mindNotice, moved, openFeature, retake, roleNames, sectorLines } from '@/copy/market';
+import { checkInProgress, entries, market as copy, mindNotice, moved, openFeature, retake, roleNames, sectorLines } from '@/copy/market';
 import { getAlgo, getBank, type AreaId } from '@/engine';
 import type { MeLive, MeResponse } from '@/shared/api';
 import {
@@ -176,6 +176,22 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
     setSelected(area);
   };
 
+  // A check that was started and left: it goes on at the question where it stopped.
+  const inProgress = me.openSession;
+
+  // The change shown first: against yesterday. On the first day of the series there is no
+  // yesterday: then against the check before (a retake the same day), or against what today's
+  // check gave on its own (records made after it today). "First record" only when neither moved.
+  const sinceToday = live.overall.sinceCheck !== null && Math.abs(live.overall.sinceCheck) >= 0.005 ? live.overall.sinceCheck : null;
+  const headline =
+    live.overall.change !== null
+      ? { change: { value: live.overall.change, pct: live.overall.changePercent }, since: copy.sinceYesterday }
+      : me.change && me.change.delta !== null
+        ? { change: { value: me.change.delta, pct: me.change.percent }, since: copy.sinceLastCheck }
+        : sinceToday !== null
+          ? { change: { value: sinceToday, pct: live.overall.sinceCheckPercent }, since: copy.sinceTodaysCheck }
+          : { change: null, since: copy.sinceYesterday };
+
   return (
     <>
       {live.mindNotice && (
@@ -194,8 +210,8 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
             ticker={ticker}
             cohort={cohortOf(me)}
             price={overall}
-            change={live.overall.change !== null ? { value: live.overall.change, pct: live.overall.changePercent } : null}
-            since={copy.sinceYesterday}
+            change={headline.change}
+            since={headline.since}
           />
           <div className={styles.against}>
             <p className={styles.againstLine}>
@@ -216,9 +232,19 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
         </div>
       )}
 
-      {(feature || live.retake.due) && (
+      {(feature || live.retake.due || inProgress) && (
         <Block label={copy.today}>
-          {live.retake.due && (
+          {inProgress && (
+            <Note title={checkInProgress.title}>
+              <div className={styles.retake}>
+                <p>{checkInProgress.body(inProgress.answered)}</p>
+                <Button variant="secondary" size="sm" href={ROUTES.check} icon={<IconRetake size={18} />}>
+                  {checkInProgress.action}
+                </Button>
+              </div>
+            </Note>
+          )}
+          {live.retake.due && !inProgress && (
             <Note title={retake.title}>
               <div className={styles.retake}>
                 <p>{retake.body(live.retake.daysSinceCheck)}</p>
@@ -327,11 +353,17 @@ function Market({ me, live }: { me: MeResponse; live: MeLive }) {
               />
             )}
             <Entry
-              href={ROUTES.retake}
+              href={inProgress ? ROUTES.check : ROUTES.retake}
               icon={<IconRetake />}
               title={entries.retake.title}
-              detail={live.retake.due ? entries.retake.dueDetail(live.retake.daysSinceCheck) : entries.retake.detail(dailyParams.retestAfterDays)}
-              status={live.retake.due ? entries.retake.due : formatDay(live.retake.dueDay)}
+              detail={
+                inProgress
+                  ? checkInProgress.body(inProgress.answered)
+                  : live.retake.due
+                    ? entries.retake.dueDetail(live.retake.daysSinceCheck)
+                    : entries.retake.detail(dailyParams.retestAfterDays)
+              }
+              status={inProgress ? entries.retake.inProgress : live.retake.due ? entries.retake.due : formatDay(live.retake.dueDay)}
             />
             <Entry href={resultRoute()} icon={<IconMarket />} title={entries.result.title} detail={entries.result.detail} />
             <Entry href={ROUTES.compare} icon={<IconCompare />} title={entries.compare.title} detail={entries.compare.detail} />

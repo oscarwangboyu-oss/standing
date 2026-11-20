@@ -5,8 +5,10 @@
 // in force that day, with the overrides and extra items the four micro apps supply (see
 // live/). The price shown follows the target under three rules.
 // - Steady moves. A sector moves at most dailyMoveLimitPoints a day toward its target. What
-//   is left carries over to the following days. The day of a full check is not capped, and
-//   neither is the day the algorithm, bank or norm version changes: both are marked.
+//   is left carries over to the following days. A full check sets the price with no limit: on
+//   its day the price the check gives on its own is the starting point, and the micro-app
+//   records of that day move it at most the daily limit from there. The day the algorithm,
+//   bank or norm version changes is not capped either. Both days are marked.
 // - Halts. Once a micro app has been used, its sector is halted when more than haltAfterDays
 //   days have passed since the last entry: daily open for body and mind, payday for wealth,
 //   weekly win for capability, people nudge for network. A halted sector holds its price. It
@@ -121,6 +123,11 @@ export interface TimelinePoint {
   fullCheck: boolean;
   /** The algorithm, bank or norm version differs from the day before. */
   versionChange: boolean;
+  /**
+   * On the day of a full check: the prices the check gives on its own, before that day's
+   * micro-app records. "Since the last full check" is measured from these. null on other days.
+   */
+  check: { prices: Record<AreaId, number | null>; overall: number | null } | null;
 }
 
 export type TimelineMarker =
@@ -269,6 +276,15 @@ function stateOn(prepared: Prepared, t: number): DayState | null {
   };
 }
 
+/** The same day without the micro-app records: the full check in force on its own. */
+function checkOnly(state: DayState): DayState {
+  return {
+    ...state,
+    key: `${state.key}|check-only`,
+    input: { ...state.input, overrides: [], extras: [], mindNotice: false },
+  };
+}
+
 function resultOf(prepared: Prepared, state: DayState): Result {
   let result = prepared.results.get(state.key);
   if (!result) {
@@ -339,6 +355,10 @@ export function timeline(input: TimelineInput): Timeline {
     if (versionChange) markers.push({ day, kind: 'version_change', from: previousVersions as VersionSet, to: state.versions });
     const uncapped = fullCheck || versionChange;
     const limit = state.live.dailyMoveLimitPoints;
+    // On a check day, what the check gives on its own. The day's records move from there.
+    const own = fullCheck ? resultOf(prepared, checkOnly(state)) : null;
+    const step = (from: number, target: number): number =>
+      Math.abs(target - from) <= limit ? target : from + (target > from ? limit : -limit);
 
     const sectors = {} as Record<AreaId, TimelineSector>;
     for (const area of AREA_IDS) {
@@ -352,11 +372,12 @@ export function timeline(input: TimelineInput): Timeline {
       const fresh = lastFresh(prepared, area, t);
       const halted = fresh !== null && t - Math.max(fresh, state.check.view.dayNumber) > haltAfter(state.live, area);
       const before = shown[area];
+      const base = own?.sectors[area].price ?? null;
       let price: number;
-      if (uncapped || before === null) price = target;
+      if (base !== null) price = step(base, target);
+      else if (uncapped || before === null) price = target;
       else if (halted) price = before;
-      else if (Math.abs(target - before) <= limit) price = target;
-      else price = before + (target > before ? limit : -limit);
+      else price = step(before, target);
       shown[area] = price;
       sectors[area] = { status: halted ? 'halted' : 'listed', target, price };
     }
@@ -372,6 +393,9 @@ export function timeline(input: TimelineInput): Timeline {
       mindNotice: result.mindNotice,
       fullCheck,
       versionChange,
+      check: own
+        ? { prices: Object.fromEntries(AREA_IDS.map((a) => [a, own.sectors[a].price])) as Record<AreaId, number | null>, overall: own.overall }
+        : null,
     });
     previousVersions = state.versions;
     last = state;
@@ -402,6 +426,15 @@ export function timeline(input: TimelineInput): Timeline {
  */
 export function timelineInputOn(history: PersonHistory, day: string, options: TimelineOptions = {}): ComputeInput | null {
   return stateOn(prepare(history, options), dayNumber(day))?.input ?? null;
+}
+
+/**
+ * "Why it moved" on the day of a full check: from the check on its own to the day with its
+ * micro-app records. null when no check is in force on that day.
+ */
+export function explainCheckDay(history: PersonHistory, day: string, options: TimelineOptions = {}): Breakdown | null {
+  const state = stateOn(prepare(history, options), dayNumber(day));
+  return state ? breakdown(checkOnly(state).input, state.input) : null;
 }
 
 /**

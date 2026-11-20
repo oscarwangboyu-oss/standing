@@ -17,7 +17,7 @@ import { AppsSummary, AppsWeeks, Daily, Report, Returns } from './Activity';
 import { Norms, Prices } from './Cohorts';
 import { Items } from './Items';
 import { ROLE_IDS, roleLabel } from './labels';
-import { CsvButton, Loaded, Section, Select, SubHead, stamp } from './parts';
+import { CsvButton, Loaded, Section, Select, SimulatedContext, SubHead, stamp } from './parts';
 import { Gates, Overview } from './Scoreboard';
 import { Tests } from './Tests';
 import styles from './team.module.css';
@@ -139,7 +139,7 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
   const roleOptions = useMemo(() => [{ value: 'all', label: copy.common.allRoles }, ...ROLE_IDS.map((id) => ({ value: id as string, label: roleLabel(id) }))], []);
 
   return (
-    <>
+    <SimulatedContext value={demoPeople > 0}>
       {demoPeople > 0 && (
         <div className={styles.demo} role="status">
           <div className={styles.demoInner}>
@@ -244,7 +244,7 @@ function Board({ client, onLock }: { client: StandingTeamClient; onLock: () => v
           <Loaded view={report}>{(data) => <Report data={data} />}</Loaded>
         </Section>
       </main>
-    </>
+    </SimulatedContext>
   );
 }
 

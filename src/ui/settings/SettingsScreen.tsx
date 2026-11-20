@@ -114,6 +114,7 @@ function TickerBlock({ ticker }: { ticker: string | null }) {
 function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }) {
   const [shown, setShown] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [signOutOthers, setSignOutOthers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const codeId = useId();
@@ -133,11 +134,12 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
     setBusy(true);
     setProblem(null);
     try {
-      const { recoveryCode } = await api.rotateRecovery();
+      const { recoveryCode, disconnected } = await api.rotateRecovery({ disconnectOthers: signOutOthers });
       device().patch({ recoveryCode });
       setShown(true);
       setAsking(false);
-      notify(copy.recovery.rotated);
+      notify(signOutOthers ? copy.recovery.rotatedAndOut(disconnected) : copy.recovery.rotated);
+      setSignOutOthers(false);
     } catch (error) {
       setProblem(messageOf(error));
     } finally {
@@ -181,6 +183,19 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
       </Card>
       <Sheet open={asking} onClose={() => !busy && setAsking(false)} title={copy.recovery.rotateTitle}>
         <p className={styles.text}>{copy.recovery.rotateText}</p>
+        <label className={styles.checkLine}>
+          <input
+            type="checkbox"
+            className={styles.checkbox}
+            checked={signOutOthers}
+            onChange={(event) => setSignOutOthers(event.target.checked)}
+            disabled={busy}
+          />
+          <span>
+            {copy.recovery.disconnectOthers}
+            <span className={styles.checkHint}>{copy.recovery.disconnectHint}</span>
+          </span>
+        </label>
         <Problem>{problem}</Problem>
         <div className={styles.sheetActions}>
           <Button full onClick={rotate} disabled={busy}>

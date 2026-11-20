@@ -21,7 +21,7 @@ import {
   type Step,
   type WeeklyWinEntry,
 } from '@/engine';
-import { backgroundFor, completedCheck, makeApi, newUser, today, type TestApi } from './helpers/api';
+import { answer, backgroundFor, completedCheck, makeApi, newSession, newUser, today, type TestApi } from './helpers/api';
 
 const DAY0 = '2026-03-02';
 const DAY_MS = 86_400_000;
@@ -92,7 +92,10 @@ describe('the live series', () => {
     expect(res.status).toBe(200);
     expect(res.body.live).toBeNull();
     expect((await api.call('GET', '/api/me?today=2026-13-01', { token })).status).toBe(400);
-    expect((await api.call('GET', '/api/me?today=2026-03-09', { token })).status).toBe(400);
+    // A device clock days off still reads its prices, on the server's day.
+    const skewed = await api.call('GET', '/api/me?today=2026-03-09', { token });
+    expect(skewed.status).toBe(200);
+    expect(skewed.body.live.today).toBe(api.now().toISOString().slice(0, 10));
   });
 
   it('day 0: one point at the price of the check, no change yet', async () => {
@@ -131,7 +134,8 @@ describe('the live series', () => {
     expect(live.allTime).toEqual({ high: first.overall, highDay: DAY0, low: first.overall, lowDay: DAY0 });
     expect(live.lastCheckDay).toBe(DAY0);
     expect(live.mindNotice).toBe(false);
-    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: ['2026-03-01'], lastDay: null });
+    // Yesterday is before the first check: it is not offered for filling in.
+    expect(live.streak).toEqual({ current: 0, recordedToday: false, canBackfill: [], lastDay: null });
     const unused = { enabled: true, available: true, recordedToday: false, recordedThisWeek: false, lastDay: null };
     expect(live.apps).toEqual({
       dailyOpen: unused,
@@ -419,5 +423,57 @@ describe('the day of a check', () => {
     live = (await api.call('GET', '/api/me', { token: user.deviceToken })).body.live;
     expect([live.series.start, live.lastCheckDay]).toEqual(['2026-03-02', '2026-03-02']);
     expect(addDays(live.series.start, live.series.length - 1)).toBe(live.today);
+  });
+
+  it('is the local date the device sent at completion: a check resumed and finished in a US evening', async () => {
+    const api = await makeApi({ now: '2026-11-17T15:00:00.000Z' });
+    const user = await newUser(api);
+    const session = await newSession(api, user.deviceToken, { role: 'emp', healthConsent: true, body: { localDate: '2026-11-17' } });
+    await answer(api, user.deviceToken, session.id, backgroundFor('emp'), () => 1, { excludedAreas: [] });
+    // Finished at 20:00 in Atlanta on November 19, which is 01:00 UTC on November 20.
+    api.setNow('2026-11-20T01:00:00.000Z');
+    const done = await api.call('POST', `/api/sessions/${session.id}/complete`, { token: user.deviceToken, body: { localDate: '2026-11-19' } });
+    expect(done.status).toBe(200);
+    const live = (await api.call('GET', '/api/me?today=2026-11-19', { token: user.deviceToken })).body.live as MeLive;
+    expect([live.lastCheckDay, live.today]).toEqual(['2026-11-19', '2026-11-19']);
+    // A Daily Open that evening counts for today.
+    const daily = await api.call('POST', '/api/daily', {
+      token: user.deviceToken,
+      body: { localDate: '2026-11-19', day: '2026-11-19', sleep: 3, exercise: 2, state: 3 },
+    });
+    expect(daily.status).toBe(201);
+    expect(daily.body.live.streak.recordedToday).toBe(true);
+  });
+});
+
+describe('records made on the day of a full check', () => {
+  it('count as a move since the check, under the daily limit, and Why it moved explains them', async () => {
+    const api = await makeApi({ now: '2026-03-10T15:00:00.000Z' });
+    const user = await newUser(api);
+    await completedCheck(api, user.deviceToken, { localDate: '2026-03-10', choose: () => 1 });
+    // Three earlier days and today: four of the last seven, so sleep and activity are replaced today.
+    for (const d of ['2026-03-07', '2026-03-08', '2026-03-09']) {
+      await api.db.query(
+        `insert into daily_entries (user_id, day, logged_on, sleep, exercise, state, at) values ($1, $2, $2, 3, 4, null, $3)`,
+        [user.userId, d, `${d}T20:00:00.000Z`],
+      );
+    }
+    const posted = await api.call('POST', '/api/daily', {
+      token: user.deviceToken,
+      body: { localDate: '2026-03-10', day: '2026-03-10', sleep: 3, exercise: 4, state: null },
+    });
+    expect(posted.status).toBe(201);
+    const live = posted.body.live as MeLive;
+    const body = live.sectors.B;
+    expect(body.sinceCheck).not.toBe(0);
+    expect(Math.abs(body.sinceCheck as number)).toBeLessThanOrEqual(live.moveLimit + 1e-9);
+    expect(live.overall.sinceCheck).not.toBe(0);
+
+    const why = await api.call('GET', '/api/me/breakdown/day?today=2026-03-10', { token: user.deviceToken });
+    expect(why.status).toBe(200);
+    expect([why.body.from, why.body.to]).toEqual(['2026-03-10', '2026-03-10']);
+    const lines = why.body.breakdown.sectors.B.lines as Array<{ source?: string; kind: string }>;
+    expect(lines.length).toBeGreaterThan(0);
+    expect(why.body.prices.from.sectors.B.price).not.toBe(why.body.prices.to.sectors.B.target);
   });
 });

@@ -166,3 +166,6 @@
 /* ---------- Empty and about ---------- */
 .empty { display: grid; justify-items: start; gap: var(--s-4); }
 .versions { margin-top: var(--s-4); font-size: var(--t-13); line-height: 1.4; color: var(--ink-3); }
+
+/* A second line under the label of a checkbox. */
+.checkHint { display: block; margin-top: 2px; font-size: var(--t-13); line-height: 1.4; color: var(--ink-2); }

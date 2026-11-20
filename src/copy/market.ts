@@ -24,6 +24,10 @@ export const market = {
   noTicker: 'YOU',
   cohort: (ages: string, role: string) => `Ages ${ages}, ${role}`,
   sinceYesterday: 'since yesterday',
+  /** The first day of the series, after a second check that day. */
+  sinceLastCheck: 'since your last check',
+  /** The first day of the series, after records made since the check that day. */
+  sinceTodaysCheck: "since today's check",
   againstIssue: 'Against the issue price',
   sinceCheck: (day: string) => `Since the full check on ${day}`,
   /** The shown price trails what today's data gives. */
@@ -108,8 +112,19 @@ export const entries = {
     detail: (days: number) => `A full retake is due ${days} days after the last one.`,
     dueDetail: (days: number) => `Your last full check was ${days} days ago.`,
     due: 'Due',
+    inProgress: 'In progress',
   },
   settings: { title: 'Settings', detail: 'Recovery code, export and delete.' },
+} as const;
+
+/** A check that was started and left. It goes on at the question where it stopped. */
+export const checkInProgress = {
+  title: 'A check in progress',
+  body: (answered: number) =>
+    answered === 0
+      ? 'You started a check. It goes on at the first question.'
+      : `You answered ${answered} ${answered === 1 ? 'question' : 'questions'}. The check goes on at the next one.`,
+  action: 'Continue the check',
 } as const;
 
 /** The quarterly retake prompt. */
@@ -138,6 +153,8 @@ export const moved = {
   sinceYesterday: 'since yesterday',
   sinceCheck: 'Since the last full check',
   between: (from: string, to: string) => `From ${from} to ${to}`,
+  /** The records of the day of a full check, against what the check gave on its own. */
+  afterCheck: (day: string) => `On ${day}, after the full check`,
   targetMove: (from: string, to: string) => `The data moved the target from ${from} to ${to}.`,
   /** What a breakdown explains, and why the shown price can differ. */
   howToRead: (limit: number) =>

@@ -40,9 +40,16 @@ export const settings = {
       'This device does not hold the code. The server keeps only a hash of it and cannot show it again. Make a new code to have one.',
     rotate: 'Make a new code',
     rotateTitle: 'Make a new recovery code',
-    rotateText: 'The current code stops working at once. Devices that are already connected stay connected.',
+    rotateText: 'The current code stops working at once. Devices that are already connected stay connected, unless you sign them out here.',
+    disconnectOthers: 'Also sign out every other device',
+    disconnectHint: 'Use this if someone else may have seen your code. This device stays connected.',
     rotateConfirm: 'Make a new code',
     rotated: 'New recovery code made. The old one no longer works.',
+    /** "New recovery code made. 2 other devices were signed out." */
+    rotatedAndOut: (n: number) =>
+      n === 0
+        ? 'New recovery code made. No other device was connected.'
+        : `New recovery code made. ${n} other ${n === 1 ? 'device was' : 'devices were'} signed out.`,
   },
 
   restore: {
@@ -85,7 +92,7 @@ export const settings = {
     withdrawTitle: 'Withdraw the Body and Mind consent',
     withdrawText: [
       'Standing stops accepting Body and Mind answers from you. The Daily Open closes.',
-      'From your next check on, BODY and MIND read "Not listed" and the overall price is the mean of the other three sectors.',
+      'From now on, BODY and MIND read "Not listed" on your market and in comparisons, and the overall price is the mean of the other three sectors. Results already recorded stay as they were.',
       'Nothing is deleted by this. Answers you already gave stay in your record until you delete your data.',
     ],
     withdrawConfirm: 'Withdraw consent',

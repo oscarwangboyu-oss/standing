@@ -111,7 +111,6 @@ describe('POST /api/daily', () => {
       daily({ state: '4' }),
       { localDate: DAY, sleep: null, exercise: null, state: null },
       { sleep: 3, exercise: 2, state: 4 },
-      daily({ localDate: '2026-03-09' }),
       daily({ localDate: 'today' }),
       daily({ day: '02/03/2026' }),
     ];
@@ -119,6 +118,10 @@ describe('POST /api/daily', () => {
       const res = await post(body);
       expect([JSON.stringify(body), res.status, res.body.error.code]).toEqual([JSON.stringify(body), 400, 'invalid_request']);
     }
+    // A device clock days off: nothing is stored, and the answer says why.
+    const skewed = await post(daily({ localDate: '2026-03-09' }));
+    expect([skewed.status, skewed.body.error.code]).toEqual([400, 'clock_skew']);
+    expect(skewed.body.error.details.serverDate).toBe(DAY);
     // Only today and yesterday are open.
     for (const day of ['2026-02-28', '2026-03-03']) {
       const res = await post(daily({ day }));
@@ -131,7 +134,8 @@ describe('POST /api/daily', () => {
     const first = await post(daily());
     expect(first.status).toBe(201);
     expect(first.body).toMatchObject({ stored: true, day: DAY });
-    expect(first.body.live.streak).toMatchObject({ current: 1, recordedToday: true, canBackfill: ['2026-03-01'] });
+    // The check was taken today, so yesterday is not offered; the server still takes it if sent.
+    expect(first.body.live.streak).toMatchObject({ current: 1, recordedToday: true, canBackfill: [] });
     expect(first.body.live.apps.dailyOpen).toMatchObject({ enabled: true, available: true, recordedToday: true, lastDay: DAY });
 
     // A second entry for the same day is not stored: the first one stands.
@@ -272,7 +276,6 @@ describe('POST /api/payday: bands only', () => {
       payday({ runway: 3 }), // a runway without its baseline
       payday({ runway: 3, baselineDay: '2026-02-01' }), // not a check of this person
       payday({ baselineDay: 'yesterday' }),
-      payday({ localDate: '2026-03-20' }),
       (() => {
         const { runway: _runway, ...rest } = payday();
         return rest;
@@ -282,6 +285,7 @@ describe('POST /api/payday: bands only', () => {
       const res = await post(body);
       expect([JSON.stringify(body), res.status, res.body.error.code]).toEqual([JSON.stringify(body), 400, 'invalid_request']);
     }
+    expect((await post(payday({ localDate: '2026-03-20' }))).body.error.code).toBe('clock_skew');
     expect(await countRows(api.db, 'payday_entries')).toBe(0);
 
     // A student is not offered the payday check.

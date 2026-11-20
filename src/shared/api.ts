@@ -20,7 +20,7 @@
  *   GET    /api/config                   -                          ConfigResponse
  *   POST   /api/users                    CreateUserRequest          CreateUserResponse      (201)
  *   POST   /api/restore                  RestoreRequest             RestoreResponse
- *   POST   /api/recovery/rotate          -                          RotateRecoveryResponse  (auth)
+ *   POST   /api/recovery/rotate          { disconnectOthers? }      RotateRecoveryResponse  (auth)
  *   POST   /api/signout                  -                          OkResponse              (auth)
  *   POST   /api/consent                  ConsentRequest             ConsentResponse         (auth)
  *   GET    /api/me?today=                -                          MeResponse              (auth)
@@ -36,7 +36,7 @@
  *   GET    /api/sessions/open            -                          OpenSessionResponse     (auth)
  *   GET    /api/sessions/:id             -                          SessionResponse         (auth)
  *   POST   /api/sessions/:id/events      PostEventsRequest          PostEventsResponse      (auth)
- *   POST   /api/sessions/:id/complete    -                          CompleteSessionResponse (auth)
+ *   POST   /api/sessions/:id/complete    { localDate? }             CompleteSessionResponse (auth)
  *   POST   /api/report-events            PostReportEventsRequest    PostReportEventsResponse (auth)
  *   POST   /api/visits                   VisitRequest               VisitResponse           (auth)
  *   POST   /api/compare/invites          -                          CreateInviteResponse    (auth, 201)
@@ -240,6 +240,8 @@ export const API_ERROR_CODES = [
   'payday_not_eligible',
   'amounts_not_accepted',
   'entry_limit',
+  /** The device's date is more than VISIT_MAX_SKEW_DAYS from the server's. details.serverDate. */
+  'clock_skew',
   'team_closed',
   'team_unauthorized',
   'internal_error',
@@ -339,9 +341,14 @@ export interface RestoreResponse {
   deviceToken: string;
 }
 
-/** POST /api/recovery/rotate. The old code stops working at once. */
+/**
+ * POST /api/recovery/rotate, body `{ disconnectOthers?: boolean }`. The old code stops working at
+ * once. With disconnectOthers every other device of the record is signed out as well.
+ */
 export interface RotateRecoveryResponse {
   recoveryCode: string;
+  /** How many other devices were signed out. 0 without disconnectOthers. */
+  disconnected: number;
 }
 
 /**
@@ -1019,7 +1026,15 @@ export interface TeamOverviewResponse extends TeamDemoMark {
   status: {
     completionRate: Rate & { met: boolean | null };
     /** Highest skip rate of any question version, over all roles. */
-    maxItemSkipRate: { value: number | null; itemId: string | null; versionKey: string | null; met: boolean | null };
+    /** count and of: the checks that skipped that version, of the checks shown it. A small `of` makes the share noisy. */
+    maxItemSkipRate: {
+      value: number | null;
+      itemId: string | null;
+      versionKey: string | null;
+      count: number | null;
+      of: number | null;
+      met: boolean | null;
+    };
     retestCorrelation: { value: number | null; pairs: number; met: boolean | null };
   };
   redLines: TeamRedLines;

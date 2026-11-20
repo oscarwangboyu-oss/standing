@@ -60,6 +60,8 @@ export const IconCare = make('M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10
 export const IconCompare = make('M2.5 20h19M4.5 20v-8h5.5v8M14 20V6h5.5v14');
 export const IconCalendar = make('M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 3v4M16 3v4M4 10.5h16');
 export const IconMinus = make('M6 12h12');
+/** An equals sign: a price that did not move. A minus would read as a small loss. */
+export const IconFlat = make('M6 9.5h12M6 14.5h12');
 /** Filled triangles for gains and losses: heavier than a line arrow, readable at 10px. */
 export const IconUp = make('M12 5.5l7.5 12.5h-15z', true);
 export const IconDown = make('M12 18.5L4.5 6h15z', true);

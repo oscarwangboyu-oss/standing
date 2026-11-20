@@ -315,3 +315,26 @@ describe('cost', () => {
     expect(each).toBeLessThan(100);
   });
 });
+
+describe('the day of a full check', () => {
+  it('starts from what the check gives on its own; that day\'s records move it at most the daily limit', () => {
+    // Four days of records by the check day: the body answers are replaced that same day.
+    expect(HIGH - LOW).toBeGreaterThan(LIMIT);
+    const series = timeline({ checks: [check], daily: active([-3, -2, -1, 0]), until: day(3) });
+    const [first, second] = series.points;
+    expect(first.fullCheck).toBe(true);
+    expect(first.check?.prices.B).toBe(LOW);
+    expect(first.check?.overall).toBe(base.overall);
+    expect(first.sectors.B.target).toBe(HIGH);
+    expect(first.sectors.B.price).toBeCloseTo(LOW + LIMIT, 9);
+    // The rest carries over to the next day, under the same limit.
+    expect(second.sectors.B.price).toBeCloseTo(Math.min(HIGH, LOW + 2 * LIMIT), 9);
+    expect(second.check).toBeNull();
+  });
+
+  it('without records that day, the price is the check price, as before', () => {
+    const series = timeline({ checks: [check], until: day(1) });
+    expect(series.points[0].check?.prices.B).toBe(LOW);
+    expect(series.points[0].sectors.B.price).toBe(LOW);
+  });
+});

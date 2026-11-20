@@ -44,8 +44,9 @@ function binColumns(): string {
 async function cohortRows(db: Db): Promise<CohortRow[]> {
   const rows = await db.query<CohortRow>(
     `with latest as (
-       select distinct on (s.user_id) s.id, s.role, s.age
-       from sessions s where s.completed_at is not null
+       select distinct on (s.user_id) s.id, s.role, s.age, u.health_consent_version is not null as health
+       from sessions s join users u on u.id = s.user_id
+       where s.completed_at is not null
        order by s.user_id, s.completed_at desc, s.id desc
      ), ${shownResultCte('$1', '$2')},
      long as (
@@ -55,6 +56,8 @@ async function cohortRows(db: Db): Promise<CohortRow[]> {
          ('C', r.price_c, r.raw_c), ('W', r.price_w, r.raw_w), ('N', r.price_n, r.raw_n),
          ('B', r.price_b, r.raw_b), ('M', r.price_m, r.raw_m)) as v(area, price, raw)
        where v.price is not null and v.raw is not null
+         -- Body and Mind of a person who withdrew that consent are left out from then on.
+         and (l.health or v.area not in ('B', 'M'))
      )
      select role, age, area, count(*)::int as n,
        (percentile_cont(0.5) within group (order by price))::float8 as price_median,

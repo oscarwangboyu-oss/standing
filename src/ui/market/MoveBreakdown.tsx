@@ -122,7 +122,9 @@ export function MoveBreakdown({ data, loading, error, onRetry, areas, limit, cat
   const shown = listed.filter((area) => !quiet.includes(area));
   return (
     <div className={cx(styles.breakdown, className)}>
-      <p className={styles.between}>{copy.between(formatDay(data.from), formatDay(data.to))}</p>
+      <p className={styles.between}>
+        {data.from === data.to ? copy.afterCheck(formatDay(data.to)) : copy.between(formatDay(data.from), formatDay(data.to))}
+      </p>
       {shown.map((area) => (
         <PriceLines key={area} area={area} part={parts[area]} catchUp={catchingUp?.has(area) ?? false} />
       ))}

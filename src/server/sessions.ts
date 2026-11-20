@@ -13,6 +13,8 @@ export interface SessionRow {
   user_id: string;
   created_at: string;
   completed_at: string | null;
+  /** The device's local date at completion (migration 0007). Null for older checks. */
+  completed_local_day: string | null;
   local_day: string;
   age: number;
   role: RoleId;
@@ -36,8 +38,8 @@ export interface EventRow {
   click_position: Where | null;
 }
 
-const SESSION_COLUMNS = `id, user_id, created_at, completed_at, local_day, age, role, extra, us_state, ticker,
-  lang, bank_version, health_consent`;
+const SESSION_COLUMNS = `id, user_id, created_at, completed_at, completed_local_day, local_day, age, role, extra,
+  us_state, ticker, lang, bank_version, health_consent`;
 
 /** The session, if it belongs to this user. Someone else's session reads as not found. */
 export async function loadSession(db: Db, userId: string, sessionId: string): Promise<SessionRow> {

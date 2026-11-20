@@ -8,8 +8,8 @@
  * versions of the results the user sees for them, so the prices in the breakdown are the
  * prices on the chart.
  */
-import type { BreakdownEnd, BreakdownResponse, DayBreakdownResponse } from '../../shared/api';
-import { AREA_IDS, BANKS, CURRENT, breakdown, dayNumber, explainDays, getBank, type ComputeInput, type TimelinePoint } from '../../engine';
+import type { BreakdownEnd, BreakdownResponse, DayBreakdownResponse, DayPrices } from '../../shared/api';
+import { AREA_IDS, BANKS, CURRENT, breakdown, dayNumber, explainCheckDay, explainDays, getBank, type ComputeInput, type TimelinePoint } from '../../engine';
 import { requireUser } from '../auth';
 import type { Db } from '../db';
 import { ApiError, invalid, isDay, json, type Deps } from '../http';
@@ -76,6 +76,29 @@ export async function getBreakdown(request: Request, deps: Deps): Promise<Respon
 }
 
 /** True when the data of two days gives different prices: a target or a status differs in some sector. */
+/** True when the micro-app records of a check day moved its targets away from what the check gave. */
+function checkDayMoved(point: TimelinePoint): boolean {
+  const check = point.check;
+  if (!check) return false;
+  return AREA_IDS.some((area) => {
+    const x = check.prices[area];
+    const y = point.sectors[area].target;
+    if (x === null || y === null) return x !== y;
+    return Math.abs(x - y) > 1e-9;
+  });
+}
+
+/** The prices of a check day as the check gave them on its own. */
+function checkPricesOf(point: TimelinePoint): DayPrices {
+  const check = point.check as NonNullable<TimelinePoint['check']>;
+  const sectors = {} as DayPrices['sectors'];
+  for (const area of AREA_IDS) {
+    const price = check.prices[area];
+    sectors[area] = { status: price === null ? point.sectors[area].status : 'listed', price, target: price };
+  }
+  return { overall: check.overall, overallTarget: check.overall, sectors };
+}
+
 function targetsDiffer(a: TimelinePoint, b: TimelinePoint): boolean {
   return AREA_IDS.some((area) => {
     const x = a.sectors[area];
@@ -96,7 +119,7 @@ export async function getDayBreakdown(request: Request, deps: Deps): Promise<Res
   const user = await requireUser(request, deps);
   const params = new URL(request.url).searchParams;
   const today = todayOf(request, deps.now());
-  const person = await loadPerson(deps.db, user.id, today);
+  const person = await loadPerson(deps.db, user.id, today, user.health_consent_version !== null);
   const nothing: DayBreakdownResponse = { from: null, to: null, breakdown: null, prices: null };
   if (person.checks.length === 0) return json(nothing);
   const points = timelineOf(person, today).points;
@@ -120,14 +143,27 @@ export async function getDayBreakdown(request: Request, deps: Deps): Promise<Res
   let from = indexOf('from');
   if (to === null) {
     if (from !== null) throw invalid('from needs day');
-    // The latest change: the last day on which the data gave another price than the day before.
+    // The latest change: the last day on which the data gave another price than the day before,
+    // or the first day when records made that day moved it from what the check gave.
     for (let i = points.length - 1; i >= 1 && to === null; i -= 1) {
       if (targetsDiffer(points[i - 1], points[i])) to = i;
     }
+    if (to === null && checkDayMoved(points[0])) to = 0;
     if (to === null) return json(nothing);
   }
   if (from === null) from = to - 1;
-  if (from < 0) return json({ ...nothing, to: points[to].day } satisfies DayBreakdownResponse);
+  if (from < 0) {
+    // The first day: what that day's records did to the check, if anything.
+    const point = points[to];
+    if (!checkDayMoved(point)) return json({ ...nothing, to: point.day } satisfies DayBreakdownResponse);
+    const response: DayBreakdownResponse = {
+      from: point.day,
+      to: point.day,
+      breakdown: explainCheckDay(person.history, point.day, person.options),
+      prices: { from: checkPricesOf(point), to: dayPricesOf(point) },
+    };
+    return json(response);
+  }
   if (from >= to) throw invalid('from must be before day');
 
   const response: DayBreakdownResponse = {

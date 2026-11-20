@@ -60,10 +60,12 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
 
   // Highest skip rate of any question version, over all roles.
   const items = await teamItems(db, now, null);
-  let worst: { value: number; itemId: string; versionKey: string } | null = null;
+  // On a tie the version seen by more checks wins: its share is the firmer one.
+  let worst: { value: number; itemId: string; versionKey: string; count: number; of: number } | null = null;
   for (const row of items.rows) {
-    if (row.skip.rate !== null && (worst === null || row.skip.rate > worst.value)) {
-      worst = { value: row.skip.rate, itemId: row.itemId, versionKey: row.versionKey };
+    if (row.skip.rate === null) continue;
+    if (worst === null || row.skip.rate > worst.value || (row.skip.rate === worst.value && row.skip.of > worst.of)) {
+      worst = { value: row.skip.rate, itemId: row.itemId, versionKey: row.versionKey, count: row.skip.count, of: row.skip.of };
     }
   }
 
@@ -83,6 +85,8 @@ export async function teamOverview(db: Db, now: Date): Promise<TeamOverviewRespo
         value: worst?.value ?? null,
         itemId: worst?.itemId ?? null,
         versionKey: worst?.versionKey ?? null,
+        count: worst?.count ?? null,
+        of: worst?.of ?? null,
         met: worst === null ? null : worst.value <= GO.maxItemSkipRate,
       },
       retestCorrelation: {
@@ -101,7 +105,7 @@ export function teamOverviewCsv(data: TeamOverviewResponse, table: string | null
     const s = data.status;
     const rows: CsvCell[][] = [
       ['completion_rate_people', s.completionRate.rate, s.completionRate.count, s.completionRate.of, data.goCriteria.completionRate, s.completionRate.met],
-      ['max_item_skip_rate', s.maxItemSkipRate.value, null, null, data.goCriteria.maxItemSkipRate, s.maxItemSkipRate.met],
+      ['max_item_skip_rate', s.maxItemSkipRate.value, s.maxItemSkipRate.count, s.maxItemSkipRate.of, data.goCriteria.maxItemSkipRate, s.maxItemSkipRate.met],
       ['retest_correlation', s.retestCorrelation.value, s.retestCorrelation.pairs, null, data.goCriteria.retestCorrelation, s.retestCorrelation.met],
     ];
     return csv('standing-go-criteria', ['metric', 'value', 'count', 'of', 'criterion', 'met'], rows);

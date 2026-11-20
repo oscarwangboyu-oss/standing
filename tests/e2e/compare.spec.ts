@@ -40,7 +40,7 @@ test('an invite is created, accepted on a second device, and both see the compar
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Side by side');
   await expect(page.getByRole('region', { name: /^ALFA, overall \d+\.\d\d/ })).toBeVisible();
   await expect(page.getByRole('region', { name: /^BRVO, overall \d+\.\d\d/ })).toBeVisible();
-  await expect(page.getByText('Solid: ALFA. Dashed: BRVO. The dashed ring is 100.')).toBeVisible();
+  await expect(page.getByText('Solid line: ALFA. Dotted line: BRVO. The dashed ring is 100.')).toBeVisible();
 
   // The link works once.
   const third = await secondDevice(browser, testInfo, watch);

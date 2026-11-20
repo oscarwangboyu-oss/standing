@@ -78,15 +78,30 @@ import {
 
 // ---------------------------------------------------------------- create
 
-/** The local date a client sent, checked against server time. Falls back to the UTC date. */
+/**
+ * The local date a client sent, checked against server time. Falls back to the UTC date when
+ * none was sent. A date further than VISIT_MAX_SKEW_DAYS from the server's is refused with
+ * clock_skew: used for records that are kept per day (micro-app entries, visits).
+ */
 export function checkedLocalDay(value: unknown, now: Date): string {
   const today = utcDay(now);
   if (value === undefined || value === null) return today;
   if (!isDay(value)) throw invalid('localDate must be a date written YYYY-MM-DD');
   if (Math.abs(daysBetween(today, value)) > VISIT_MAX_SKEW_DAYS) {
-    throw invalid('localDate is too far from the server date', { serverDate: today });
+    throw new ApiError(400, 'clock_skew', 'localDate is too far from the server date', { serverDate: today });
   }
   return value;
+}
+
+/**
+ * The same, for reads and for starting a check: a device whose clock is days off still sees its
+ * prices and can take the check. Its date is replaced by the server's UTC date.
+ */
+export function clampedLocalDay(value: unknown, now: Date): string {
+  const today = utcDay(now);
+  if (value === undefined || value === null) return today;
+  if (!isDay(value)) throw invalid('localDate must be a date written YYYY-MM-DD');
+  return Math.abs(daysBetween(today, value)) > VISIT_MAX_SKEW_DAYS ? today : value;
 }
 
 function checkedBackground(bank: Bank, value: unknown): Background {
@@ -143,7 +158,7 @@ export async function createSession(request: Request, deps: Deps): Promise<Respo
     throw invalid('id must be 16 to 64 URL-safe characters');
   }
   const now = deps.now();
-  const localDay = checkedLocalDay(body.localDate, now);
+  const localDay = clampedLocalDay(body.localDate, now);
   const at = now.toISOString();
   const id = typeof body.id === 'string' ? body.id : randomId();
 
@@ -159,11 +174,15 @@ export async function createSession(request: Request, deps: Deps): Promise<Respo
     }
   }
 
-  await deps.db.transaction(async (tx) => {
-    await tx.query(
+  const created = await deps.db.transaction(async (tx) => {
+    // Two requests with the same client id (a retried start) can both get past the read above.
+    // The second insert does nothing, and the existing check is returned.
+    const inserted = await tx.query<{ id: string }>(
       `insert into sessions (id, user_id, created_at, local_day, age, role, extra, us_state, ticker, lang,
          bank_version, health_consent)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       on conflict (id) do nothing
+       returning id`,
       [
         id,
         user.id,
@@ -179,6 +198,7 @@ export async function createSession(request: Request, deps: Deps): Promise<Respo
         body.healthConsent,
       ],
     );
+    if (inserted.length === 0) return false;
     await tx.query('update users set age = $1, role = $2, us_state = $3, ticker = $4, lang = $5 where id = $6', [
       background.age,
       background.role,
@@ -193,7 +213,14 @@ export async function createSession(request: Request, deps: Deps): Promise<Respo
       localDay,
       at,
     ]);
+    return true;
   });
+  if (!created) {
+    const owner = await first<{ user_id: string }>(deps.db, 'select user_id from sessions where id = $1', [id]);
+    if (owner?.user_id !== user.id) throw new ApiError(409, 'id_conflict', 'this session id is taken');
+    const response: CreateSessionResponse = { session: sessionInfo(await loadSession(deps.db, user.id, id)), created: false };
+    return json(response);
+  }
 
   deps.track?.({ name: 'check_started', userId: user.id, at, sessionId: id });
   const response: CreateSessionResponse = {
@@ -340,96 +367,108 @@ export async function postEvents(request: Request, deps: Deps, sessionId: string
   if (body.events.length > MAX_EVENTS_PER_REQUEST) {
     throw invalid(`at most ${MAX_EVENTS_PER_REQUEST} events per request`, { max: MAX_EVENTS_PER_REQUEST });
   }
-  const session = await loadSession(deps.db, user.id, sessionId);
-  if (!Object.hasOwn(BANKS, session.bank_version)) {
-    throw new ApiError(500, 'internal_error', 'the bank version of this session is no longer registered');
-  }
-  const bank = getBank(session.bank_version);
-  const incoming = body.events.map((raw, index) => checkedEvent(bank, raw, index));
+  const rawEvents: unknown[] = body.events;
+  // One request per check at a time. The path depends on earlier answers, so two devices or
+  // tabs sending the same check must not both validate against the same stored events. The row
+  // lock serializes them on hosted Postgres; PGlite has one connection and serializes anyway.
+  const work = await deps.db.transaction(async (tx) => {
+    await tx.query('select id from sessions where id = $1 and user_id = $2 for update', [sessionId, user.id]);
+    let inserted: Array<{ seq: number; action: string }> = [];
+    const session = await loadSession(tx, user.id, sessionId);
+    if (!Object.hasOwn(BANKS, session.bank_version)) {
+      throw new ApiError(500, 'internal_error', 'the bank version of this session is no longer registered');
+    }
+    const bank = getBank(session.bank_version);
+    const incoming = rawEvents.map((raw, index) => checkedEvent(bank, raw, index));
 
-  const stored = await loadEvents(deps.db, session.id);
-  const storedKeys = new Set(stored.map((e) => `${e.seq}:${e.action}`));
-  const steps: Step[] = stepsOf(stored);
-  const background = backgroundOf(session);
-  const excludedAreas = excludedAreasOf(session);
-  const healthAllowed = session.health_consent && user.health_consent_version !== null;
+    const stored = await loadEvents(tx, session.id);
+    const storedKeys = new Set(stored.map((e) => `${e.seq}:${e.action}`));
+    const steps: Step[] = stepsOf(stored);
+    const background = backgroundOf(session);
+    const excludedAreas = excludedAreasOf(session);
+    const healthAllowed = session.health_consent && user.health_consent_version !== null;
 
-  let next: NextQuestion | null | undefined;
-  const expected = (): NextQuestion | null => {
-    if (next === undefined) next = nextQuestion(bank, background, steps, { excludedAreas });
-    return next;
-  };
+    let next: NextQuestion | null | undefined;
+    const expected = (): NextQuestion | null => {
+      if (next === undefined) next = nextQuestion(bank, background, steps, { excludedAreas });
+      return next;
+    };
 
-  const results: PostEventsResponse['results'] = [];
-  const fresh: EventRow[] = [];
-  incoming.forEach((event, index) => {
-    const answer = event.action !== 'shown';
-    const key = `${event.seq}:${event.action}`;
-    // Sent before, or the question already has its answer: the first one wins.
-    if (storedKeys.has(key) || (answer && event.seq < steps.length)) {
-      results.push({ seq: event.seq, action: event.action, status: 'duplicate' });
-      return;
+    const results: PostEventsResponse['results'] = [];
+    const fresh: EventRow[] = [];
+    incoming.forEach((event, index) => {
+      const answer = event.action !== 'shown';
+      const key = `${event.seq}:${event.action}`;
+      // Sent before, or the question already has its answer: the first one wins.
+      if (storedKeys.has(key) || (answer && event.seq < steps.length)) {
+        results.push({ seq: event.seq, action: event.action, status: 'duplicate' });
+        return;
+      }
+      if (session.completed_at) {
+        throw new ApiError(409, 'session_completed', 'this check is completed and takes no new events', { index });
+      }
+      // Without the health consent the server takes nothing about body and mind.
+      const area = bank.items[event.item_id].area;
+      if ((HEALTH_AREAS as readonly string[]).includes(area) && !healthAllowed) {
+        throw new ApiError(403, 'health_consent_required', 'body and mind answers need the health consent', {
+          index,
+          seq: event.seq,
+          action: event.action,
+          itemId: event.item_id,
+        });
+      }
+      if (event.seq > steps.length) {
+        throw new ApiError(409, 'event_out_of_order', 'an earlier question has no answer yet', {
+          index,
+          seq: event.seq,
+          action: event.action,
+          expectedSeq: steps.length,
+        });
+      }
+      // The question at this position: an answered one (only "shown" gets here) or the next one.
+      const at =
+        event.seq < steps.length
+          ? { id: steps[event.seq].id, key: steps[event.seq].key }
+          : (() => {
+              const q = expected();
+              return q ? { id: q.id, key: q.key } : null;
+            })();
+      if (!at || at.id !== event.item_id || at.key !== event.version_key) {
+        throw new ApiError(422, 'event_not_on_path', 'this is not the question the path has at this position', {
+          index,
+          seq: event.seq,
+          action: event.action,
+          expected: at ? { itemId: at.id, versionKey: at.key } : null,
+        });
+      }
+      storedKeys.add(key);
+      fresh.push(event);
+      results.push({ seq: event.seq, action: event.action, status: 'stored' });
+      if (answer) {
+        steps.push(stepOf(event));
+        next = undefined;
+      }
+    });
+
+    if (fresh.length > 0) {
+      // Write budget: two rows per question (shown, then select, skip or na), so one full check
+      // writes at most 68 rows here. All rows of a request go in as one statement.
+      inserted = await tx.query<{ seq: number; action: string }>(
+        `insert into question_events (session_id, seq, action, user_id, item_id, version_key, lang, option_index,
+           seconds, display_direction, click_position, bank_version, source, at)
+         select $1, x.seq, x.action, $2, x.item_id, x.version_key, x.lang, x.option_index, x.seconds,
+           x.display_direction, x.click_position, $3, 'questionnaire', $4
+         from jsonb_to_recordset($5::jsonb) as x(seq integer, action text, item_id text, version_key text, lang text,
+           option_index integer, seconds double precision, display_direction text, click_position text)
+         on conflict do nothing
+         returning seq, action`,
+        [session.id, user.id, bank.bank_version, deps.now().toISOString(), JSON.stringify(fresh)],
+      );
     }
-    if (session.completed_at) {
-      throw new ApiError(409, 'session_completed', 'this check is completed and takes no new events', { index });
-    }
-    // Without the health consent the server takes nothing about body and mind.
-    const area = bank.items[event.item_id].area;
-    if ((HEALTH_AREAS as readonly string[]).includes(area) && !healthAllowed) {
-      throw new ApiError(403, 'health_consent_required', 'body and mind answers need the health consent', {
-        index,
-        seq: event.seq,
-        action: event.action,
-        itemId: event.item_id,
-      });
-    }
-    if (event.seq > steps.length) {
-      throw new ApiError(409, 'event_out_of_order', 'an earlier question has no answer yet', {
-        index,
-        seq: event.seq,
-        action: event.action,
-        expectedSeq: steps.length,
-      });
-    }
-    // The question at this position: an answered one (only "shown" gets here) or the next one.
-    const at =
-      event.seq < steps.length
-        ? { id: steps[event.seq].id, key: steps[event.seq].key }
-        : (() => {
-            const q = expected();
-            return q ? { id: q.id, key: q.key } : null;
-          })();
-    if (!at || at.id !== event.item_id || at.key !== event.version_key) {
-      throw new ApiError(422, 'event_not_on_path', 'this is not the question the path has at this position', {
-        index,
-        seq: event.seq,
-        action: event.action,
-        expected: at ? { itemId: at.id, versionKey: at.key } : null,
-      });
-    }
-    storedKeys.add(key);
-    fresh.push(event);
-    results.push({ seq: event.seq, action: event.action, status: 'stored' });
-    if (answer) {
-      steps.push(stepOf(event));
-      next = undefined;
-    }
+    return { session, bank, fresh, results, steps, expected, inserted };
   });
-
+  const { session, fresh, results, steps, expected, inserted } = work;
   if (fresh.length > 0) {
-    // Write budget: two rows per question (shown, then select, skip or na), so one full check
-    // writes at most 68 rows here. All rows of a request go in as one statement.
-    const inserted = await deps.db.query<{ seq: number; action: string }>(
-      `insert into question_events (session_id, seq, action, user_id, item_id, version_key, lang, option_index,
-         seconds, display_direction, click_position, bank_version, source, at)
-       select $1, x.seq, x.action, $2, x.item_id, x.version_key, x.lang, x.option_index, x.seconds,
-         x.display_direction, x.click_position, $3, 'questionnaire', $4
-       from jsonb_to_recordset($5::jsonb) as x(seq integer, action text, item_id text, version_key text, lang text,
-         option_index integer, seconds double precision, display_direction text, click_position text)
-       on conflict do nothing
-       returning seq, action`,
-      [session.id, user.id, bank.bank_version, deps.now().toISOString(), JSON.stringify(fresh)],
-    );
     // A parallel request may have stored some of them first. Report those as duplicates.
     const written = new Set(inserted.map((r) => `${r.seq}:${r.action}`));
     for (const r of results) {
@@ -477,6 +516,9 @@ export function overallChange(previous: ResultRow, overall: number | null): Over
 export async function completeSession(request: Request, deps: Deps, sessionId: string): Promise<Response> {
   const user = await requireUser(request, deps);
   const session = await loadSession(deps.db, user.id, sessionId);
+  // The device's local date at completion. Optional, for clients that predate it.
+  const body = await readBody(request);
+  const completedDay = body.localDate === undefined ? null : clampedLocalDay(body.localDate, deps.now());
 
   if (!session.completed_at) {
     const bank = getBank(session.bank_version);
@@ -497,12 +539,19 @@ export async function completeSession(request: Request, deps: Deps, sessionId: s
     const result = compute({ bank, background, steps, excludedAreas, previous });
     const at = deps.now().toISOString();
 
-    await deps.db.transaction(async (tx) => {
+    const firstTime = await deps.db.transaction(async (tx) => {
+      // Two completions at once: the first one sets completed_at, the second one changes nothing
+      // and is not counted again.
+      const marked = await tx.query<{ id: string }>(
+        'update sessions set completed_at = $1, completed_local_day = $2 where id = $3 and completed_at is null returning id',
+        [at, completedDay, session.id],
+      );
+      if (marked.length === 0) return false;
       // Derived record: the three versions are stored with it so it can be recomputed and compared.
       await insertResult(tx, session.id, user.id, at, result);
-      await tx.query('update sessions set completed_at = $1 where id = $2 and completed_at is null', [at, session.id]);
+      return true;
     });
-    deps.track?.({ name: 'check_completed', userId: user.id, at, sessionId: session.id });
+    if (firstTime) deps.track?.({ name: 'check_completed', userId: user.id, at, sessionId: session.id });
   }
 
   // Read back what is stored, so a first call and a repeated call answer the same.

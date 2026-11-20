@@ -41,6 +41,7 @@ Node lives in `~/.local/node/bin`. If `node` or `npm` is not found, run `export 
 | `npm run seed:demo` | Generate demo data, clearly marked as simulated. Local only |
 | `npm run recompute` | Re-score all history with a chosen algorithm version and print old against new |
 | `npm run eval` | The seven scoring tests |
+| `npm run shots -- --url <server>` | Screenshot every screen (390 light and dark, 1440 light) into `design/shots/final`. Needs a running local server |
 
 ## Layout and layering
 

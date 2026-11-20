@@ -221,7 +221,7 @@ Hand-written SVG in `src/ui/charts/`. The math is pure and tested (`scale.ts`). 
 
 - `PriceChart`: dated points, the 100 line, a soft area between the line and 100, an end dot, optional rings for full checks and a marker for a version change, spacing by record or by day. It draws in once, in step with the hero price.
 - `Sparkline`: recent records with the 100 line. Give all rows one `sharedDomain` so 100 means the same in each.
-- `Pentagon`: the five sectors; centre 70, rim 130, the dashed ring is 100; an optional second shape as a dashed outline for compare.
+- `Pentagon`: the five sectors; centre 70, rim 130, the dashed ring is 100; an optional second shape as a dotted outline for compare, so it never reads as the dashed 100 ring.
 - `Ruler`: the full scale, 55 to 145, with one marker.
 
 Inside `sectorStyle()` a chart takes that sector's colour; outside it is ink.
