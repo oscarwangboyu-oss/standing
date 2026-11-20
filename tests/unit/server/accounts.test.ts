@@ -30,6 +30,7 @@ describe('first save', () => {
       usState: null,
       age: null,
       role: null,
+      simulated: false,
     });
     expect(me.body.latest).toBeNull();
     expect(me.body.history).toEqual([]);

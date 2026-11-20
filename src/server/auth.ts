@@ -21,10 +21,11 @@ export interface UserRow {
   role: RoleId | null;
   us_state: UsState | null;
   ticker: string | null;
+  is_demo: boolean;
 }
 
 const USER_COLUMNS = `u.id, u.created_at, u.general_consent_version, u.general_consent_at,
-  u.health_consent_version, u.health_consent_at, u.lang, u.age, u.role, u.us_state, u.ticker`;
+  u.health_consent_version, u.health_consent_at, u.lang, u.age, u.role, u.us_state, u.ticker, u.is_demo`;
 
 /** The user the device token belongs to. One read. Throws 401 without a valid token. */
 export async function requireUser(request: Request, deps: Deps): Promise<UserRow> {
@@ -64,6 +65,7 @@ export function profileOf(user: UserRow): UserProfile {
     usState: user.us_state,
     age: user.age,
     role: user.role,
+    simulated: user.is_demo === true,
   };
 }
 

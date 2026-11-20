@@ -340,3 +340,68 @@ describe('seeding', () => {
     }
   });
 });
+
+describe('the demo viewer', () => {
+  it('is one more simulated person with two checks, steady daily records and a recovery code that works', async () => {
+    const db = await freshDb();
+    const summary = await seedDemo(db, { seed: 3, people: 11, now: NOW, viewer: true });
+    const viewer = summary.viewer;
+    expect(viewer).not.toBeNull();
+    if (!viewer) return;
+    // Not counted among the people, but flagged as simulated like them.
+    expect(summary.people).toBe(11);
+    expect(await count(db, 'users')).toBe(12);
+    expect(await count(db, 'users where not is_demo')).toBe(0);
+    expect(viewer.checks).toBe(2);
+    expect(await count(db, `sessions where user_id = '${viewer.id}' and completed_at is not null`)).toBe(2);
+    // Steady use over the 45 days: most days have a daily entry.
+    expect(viewer.dailyEntries).toBeGreaterThan(30);
+    expect(viewer.weeklyWins + viewer.peopleNudges).toBeGreaterThan(0);
+
+    // The printed code connects a device, and the record says it is simulated.
+    const env = readEnv({ STANDING_ENV: 'local' });
+    const handle = createApi({ db, env, now: () => NOW });
+    const restored = await handle(
+      new Request('http://test.local/api/restore', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ recoveryCode: viewer.recoveryCode }),
+      }),
+    );
+    expect(restored.status).toBe(200);
+    const { deviceToken, userId } = (await restored.json()) as { deviceToken: string; userId: string };
+    expect(userId).toBe(viewer.id);
+    const me = (await (
+      await handle(new Request('http://test.local/api/me?today=2026-06-15', { headers: { authorization: `Bearer ${deviceToken}` } }))
+    ).json()) as any;
+    expect(me.user.simulated).toBe(true);
+    expect(me.user.ticker).toBe('DEMO');
+    expect(me.history.length).toBe(2);
+    expect(me.live.series.length).toBeGreaterThan(40);
+
+    const text = formatSeedSummary(summary, bank.ages.map((a) => a.en));
+    expect(text).toContain(viewer.recoveryCode);
+    expect(text).toContain('/settings?restore=1');
+    // removeDemo takes the viewer as well.
+    expect(await removeDemo(db)).toBe(12);
+  }, 120_000);
+
+  it('a real person is never marked simulated', async () => {
+    const db = await freshDb();
+    const env = readEnv({ STANDING_ENV: 'local' });
+    const handle = createApi({ db, env, now: () => NOW });
+    const made = await handle(
+      new Request('http://test.local/api/users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ lang: 'en', consent: { general: 'general-1', health: null } }),
+      }),
+    );
+    const body = (await made.json()) as any;
+    expect(made.status, JSON.stringify(body)).toBeLessThan(300);
+    const me = (await (
+      await handle(new Request('http://test.local/api/me', { headers: { authorization: `Bearer ${body.deviceToken}` } }))
+    ).json()) as any;
+    expect(me.user.simulated).toBe(false);
+  });
+});

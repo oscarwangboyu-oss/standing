@@ -28,7 +28,8 @@ function checkConsentVersion(kind: 'general' | 'health', version: unknown): stri
   return version;
 }
 
-async function hashRecoveryCode(code: string): Promise<string> {
+/** The hash stored for a recovery code. Exported for the demo script, which gives one simulated person a real code. */
+export async function hashRecoveryCode(code: string): Promise<string> {
   const normalized = normalizeRecoveryCode(code);
   if (!normalized) throw new ApiError(400, 'recovery_code_invalid', 'this is not a recovery code');
   return sha256Hex(normalized);

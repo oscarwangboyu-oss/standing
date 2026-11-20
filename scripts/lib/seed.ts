@@ -2,8 +2,11 @@
  * Simulated people for the team dashboard and the chart, for local use only.
  *
  * Every person made here has users.is_demo = true, no device token and a recovery hash that no
- * code can match, so nobody can sign in as one of them. Every team response reports how many
- * such people it includes. Production never contains them: assertSeedAllowed refuses to run
+ * code can match, so nobody can sign in as one of them. The one exception is the demo viewer
+ * (`viewer: true`): one more simulated person with 45 days of steady use and a real recovery
+ * code, printed by the command, so the market home and the price chart can be looked at with
+ * history on this computer. The app shows "Simulated data" on every screen of that record.
+ * Every team response reports how many simulated people it includes. Production never contains them: assertSeedAllowed refuses to run
  * there, and against any database that is not on this machine.
  *
  * The data is built the way real data arrives: each check follows the path the engine gives
@@ -51,6 +54,8 @@ import {
 import type { Db } from '../../src/server/db';
 import { first } from '../../src/server/db';
 import type { Env } from '../../src/server/env';
+import { newRecoveryCode } from '../../src/server/crypto';
+import { hashRecoveryCode } from '../../src/server/handlers/accounts';
 import { checkDayOf } from '../../src/server/live';
 import { insertResult, stepsOf, type EventRow } from '../../src/server/sessions';
 import { isLocalUrl } from './db';
@@ -213,6 +218,22 @@ export interface SeedOptions {
   people?: number;
   days?: number;
   now: Date;
+  /** Also make the demo viewer: one simulated person with steady use and a real recovery code. */
+  viewer?: boolean;
+}
+
+/** The demo viewer, as the command prints it. */
+export interface DemoViewer {
+  id: string;
+  ticker: string;
+  /** Works in Settings, "Use a recovery code", on this computer only. */
+  recoveryCode: string;
+  checks: number;
+  dailyEntries: number;
+  weeklyWins: number;
+  peopleNudges: number;
+  paydayEntries: number;
+  firstDay: string;
 }
 
 export interface SeedSummary {
@@ -239,6 +260,8 @@ export interface SeedSummary {
   peopleNudges: number;
   firstDay: string;
   lastDay: string;
+  /** null unless `viewer` was asked for. Not counted in `people`. */
+  viewer: DemoViewer | null;
 }
 
 interface BuiltCheck {
@@ -498,13 +521,22 @@ interface LiveRows {
  * the end of the window. `firstDay` is the UTC midnight of that day, `lastOffset` the number
  * of days after it that the window still holds.
  */
-function buildLive(rng: Rng, bank: Bank, person: Person, checks: readonly BuiltCheck[], firstDay: number, lastOffset: number): LiveRows {
+function buildLive(
+  rng: Rng,
+  bank: Bank,
+  person: Person,
+  checks: readonly BuiltCheck[],
+  firstDay: number,
+  lastOffset: number,
+  /** The demo viewer always uses the apps, steadily. */
+  force?: 'steady',
+): LiveRows {
   const rows: LiveRows = { daily: [], paydays: [], wins: [], nudges: [], activeDays: new Set() };
-  if (!rng.chance(LIVE.useShare)) return rows;
+  if (!force && !rng.chance(LIVE.useShare)) return rows;
 
   // ---- which days the person opens the app
   const draw = rng.next();
-  const pattern = draw < LIVE.steadyShare ? 'steady' : draw < LIVE.steadyShare + LIVE.returnsShare ? 'returns' : 'fades';
+  const pattern = force ?? (draw < LIVE.steadyShare ? 'steady' : draw < LIVE.steadyShare + LIVE.returnsShare ? 'returns' : 'fades');
   const stretch = rng.int(LIVE.firstStretchDays.min, LIVE.firstStretchDays.max);
   const gap = rng.int(LIVE.gapDays.min, LIVE.gapDays.max);
   const chanceOn = (offset: number): number => {
@@ -704,6 +736,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
     peopleNudges: 0,
     firstDay: dayOf(new Date(windowStart)),
     lastDay: dayOf(new Date(end - DAY_MS)),
+    viewer: null,
   };
 
   const BATCH = 25;
@@ -791,7 +824,87 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
       }
     });
   }
+  if (options.viewer) summary.viewer = await db.transaction((tx) => seedViewer(tx, bank, seed, windowStart, days));
   return summary;
+}
+
+/** The demo viewer's levels: a little above the middle in most sectors, so the board has a leader and a laggard. */
+const VIEWER = {
+  role: 'emp' as RoleId,
+  /** 25 to 29. */
+  age: 2,
+  ticker: 'DEMO',
+  usState: 'GA',
+  level: { C: 0.62, W: 0.44, N: 0.56, B: 0.6, M: 0.52 } satisfies Record<AreaId, number>,
+  /** What changed between the two checks: a little more exercise and sleep, a little less worry. */
+  drift: { C: 0.02, W: 0.03, N: 0.0, B: 0.06, M: 0.04 } satisfies Record<AreaId, number>,
+  /** The second check, days after the first. Inside the retest window. */
+  secondCheckDay: 18,
+} as const;
+
+/**
+ * One more simulated person for looking at the app with history: two completed checks, steady
+ * use of the four micro apps for the whole window, and a real recovery code. Drawn from its own
+ * generator, so the other people are the same rows with and without it.
+ */
+async function seedViewer(db: Db, bank: Bank, seed: number, windowStart: number, days: number): Promise<DemoViewer> {
+  const rng = makeRng((Math.imul(seed + 3, 0x27d4eb2d) ^ 0x5bd1e995) >>> 0);
+  const extra: Record<string, number> = {};
+  for (const question of bank.extra[VIEWER.role]) extra[question.id] = rng.int(0, question.opts.length - 1);
+  const person: Person = {
+    id: `demo-${seed}-viewer`,
+    index: -1,
+    role: VIEWER.role,
+    age: VIEWER.age,
+    background: { age: VIEWER.age, role: VIEWER.role, extra },
+    healthConsent: true,
+    ticker: VIEWER.ticker,
+    usState: VIEWER.usState,
+    level: { ...VIEWER.level },
+    pace: 1,
+  };
+  const firstAt = new Date(windowStart + 15 * 3600 * 1000);
+  await insertPerson(db, person, firstAt.toISOString());
+
+  const checks: BuiltCheck[] = [];
+  const first = buildCheck(rng, bank, person, `${person.id}-s1`, firstAt, { complete: true, noise: SIM.answerNoise * 0.5, previous: null });
+  checks.push(first);
+  const secondDay = Math.min(VIEWER.secondCheckDay, days - 1);
+  if (first.result && secondDay > 0) {
+    for (const area of bank.order) person.level[area] = clamp01(person.level[area] + VIEWER.drift[area]);
+    const r = first.result;
+    checks.push(
+      buildCheck(rng, bank, person, `${person.id}-s2`, new Date(firstAt.getTime() + secondDay * DAY_MS + 3600 * 1000), {
+        complete: true,
+        noise: SIM.answerNoise * 0.4,
+        previous: { C: r.sectors.C.price, W: r.sectors.W.price, N: r.sectors.N.price, B: r.sectors.B.price, M: r.sectors.M.price },
+      }),
+    );
+  }
+  const visitDays = new Set<string>();
+  for (const check of checks) {
+    await insertCheck(db, bank, person, check);
+    await insertReportEvents(db, rng, person, check);
+    visitDays.add(dayOf(check.createdAt));
+  }
+  const live = buildLive(rng, bank, person, checks, windowStart, days - 1, 'steady');
+  await insertLive(db, person.id, live);
+  for (const day of live.activeDays) visitDays.add(day);
+  await insertVisits(db, person.id, visitDays);
+
+  const recoveryCode = newRecoveryCode();
+  await db.query('update users set recovery_hash = $1 where id = $2', [await hashRecoveryCode(recoveryCode), person.id]);
+  return {
+    id: person.id,
+    ticker: VIEWER.ticker,
+    recoveryCode,
+    checks: checks.filter((c) => c.result !== null).length,
+    dailyEntries: live.daily.length,
+    weeklyWins: live.wins.length,
+    peopleNudges: live.nudges.length,
+    paydayEntries: live.paydays.length,
+    firstDay: dayOf(firstAt),
+  };
 }
 
 /** The summary as the command prints it. */
@@ -810,5 +923,15 @@ export function formatSeedSummary(summary: SeedSummary, ageLabels: readonly stri
     `Micro apps: ${summary.microAppPeople} people. Daily entries ${summary.dailyEntries}, payday checks ${summary.paydayEntries} (bands only), weekly wins ${summary.weeklyWins}, people nudges ${summary.peopleNudges}`,
     `Days covered: ${summary.firstDay} to ${summary.lastDay}`,
   ];
+  const v = summary.viewer;
+  if (v) {
+    lines.push(
+      '',
+      `Demo viewer ${v.ticker} (simulated, one more person): ${v.checks} checks from ${v.firstDay}, ${v.dailyEntries} daily entries, ${v.weeklyWins} weekly wins, ${v.peopleNudges} people nudges, ${v.paydayEntries} payday checks.`,
+      'To look at the app with this history: start the app, open /settings?restore=1 and enter the recovery code',
+      `  ${v.recoveryCode}`,
+      'Every screen of that record says "Simulated data". Payday amounts stay on a device, so this record has none.',
+    );
+  }
   return lines.join('\n');
 }

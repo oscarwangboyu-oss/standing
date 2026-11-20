@@ -15,7 +15,7 @@ export interface UsefulProps {
   className?: string;
 }
 
-/** The small Yes / No control at the end of each section of the result. Two pills; the chosen one fills with ink. */
+/** The small Yes / No control at the end of each section of the result. Two quiet pills; the chosen one fills with ink. */
 export function Useful({ value, onChange, className }: UsefulProps) {
   const [own, setOwn] = useState<UsefulAnswer | null>(null);
   const controlled = value !== undefined;
@@ -33,10 +33,10 @@ export function Useful({ value, onChange, className }: UsefulProps) {
       </span>
       <span className={styles.buttons}>
         <button type="button" className={styles.button} aria-pressed={answer === 'yes'} onClick={() => choose('yes')}>
-          {copy.yes}
+          <span className={styles.pill}>{copy.yes}</span>
         </button>
         <button type="button" className={styles.button} aria-pressed={answer === 'no'} onClick={() => choose('no')}>
-          {copy.no}
+          <span className={styles.pill}>{copy.no}</span>
         </button>
       </span>
     </div>

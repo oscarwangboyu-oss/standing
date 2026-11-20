@@ -57,6 +57,9 @@ img { max-width: 100%; }
   border: 0;
 }
 
+/* The "Simulated data" notice above every app screen of a demo record (app/(app)/layout.tsx). */
+.simulated-note { margin-bottom: var(--s-6); }
+
 /* ---------- Type roles. Screens use these classes; components set their own. ---------- */
 
 /* The largest heading of a public page. */

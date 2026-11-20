@@ -1,5 +1,5 @@
 /**
- * npm run seed:demo -- [--seed N] [--people N] [--days N] [--reset] [--force-local-url]
+ * npm run seed:demo -- [--seed N] [--people N] [--days N] [--reset] [--no-viewer] [--force-local-url]
  *
  * Fills the local database with simulated people so the team dashboard and the chart can be
  * looked at with data in them: checks, retests, result page events, visits, and for part of
@@ -14,6 +14,10 @@
  *   --people N         How many people. Default 330: every role meets every age band five times.
  *   --days N           Days of activity before today. Default 45.
  *   --reset            Delete every simulated person first.
+ *   --no-viewer        Do not make the demo viewer. By default one more simulated person gets
+ *                      steady use of the micro apps and a real recovery code, which the command
+ *                      prints: enter it at /settings?restore=1 to see the market home and the
+ *                      price chart with history. Its screens say "Simulated data".
  *   --force-local-url  Allow a DATABASE_URL that points at localhost.
  *
  * Stop `npm run dev` before running this against the local database.
@@ -26,7 +30,7 @@ import { SEED_DEFAULTS, assertSeedAllowed, formatSeedSummary, removeDemo, seedDe
 
 await runCommand(async () => {
   const args = parseArgs(process.argv.slice(2));
-  rejectUnknown(args, ['seed', 'people', 'days', 'reset', 'force-local-url']);
+  rejectUnknown(args, ['seed', 'people', 'days', 'reset', 'no-viewer', 'force-local-url']);
   const env = readEnv();
   // Checked before the database is opened.
   assertSeedAllowed(env, { forceLocalUrl: args.has('force-local-url') });
@@ -48,6 +52,7 @@ await runCommand(async () => {
       people: number('people'),
       days: number('days'),
       now: new Date(),
+      viewer: !args.has('no-viewer'),
     });
     console.log(formatSeedSummary(summary, getBank(CURRENT.bank).ages.map((age) => age.en)));
   } finally {

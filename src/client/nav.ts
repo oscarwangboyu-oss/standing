@@ -25,6 +25,8 @@ export const ROUTES = {
   /** My comparisons, and making an invite. */
   compare: '/compare',
   settings: '/settings',
+  /** Settings with the recovery code sheet open, for a person on a new device. */
+  restore: '/settings?restore=1',
   team: '/team',
   about: '/about',
   method: '/method',

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { brand, notes, sectorNames } from '@/copy/common';
+import { brand, sectorNames } from '@/copy/common';
 import {
   START_HREF,
   after,
@@ -210,9 +210,6 @@ export default function Page() {
                 </p>
                 <Ruler value={sample.price} />
               </div>
-              <Note tone="info" title={notes.baselineTitle} className={s.onSunk}>
-                <p>{notes.baseline}</p>
-              </Note>
             </div>
           </div>
         </Band>
@@ -241,7 +238,7 @@ export default function Page() {
               <div className={s.sectorArt}>
                 <SectorScene code={sector.code} h={BAND_HEIGHT[sector.code]} />
               </div>
-              <div className={s.sectorText}>
+              <header className={s.sectorHead}>
                 <p className={s.sectorKicker}>
                   <SectorTag code={sector.code} />
                   <span>{sector.count}</span>
@@ -249,9 +246,11 @@ export default function Page() {
                 <h3 id={`sector-${sector.code}-title`} className={s.sectorName}>
                   {sectorNames[sector.code]}
                 </h3>
+              </header>
+              <div className={s.sectorText}>
                 <p className={s.sectorAbout}>{sector.about}</p>
                 <div className={s.sectorCols}>
-                  <div>
+                  <div className={s.asksCol}>
                     <p className={s.sectorLabel}>{sectors.asksLabel}</p>
                     <ul className={s.asks}>
                       {sector.asks.map((a) => (
@@ -427,18 +426,44 @@ export default function Page() {
                 <IconArrowRight size={18} />
               </Link>
             </div>
-            <dl className={s.ledger} aria-labelledby="data-title">
-              {data.rows.map((row) => (
-                <div key={row.item} className={row.kept ? s.kept : s.notKept}>
-                  <dt>
-                    <span className={s.ledgerMark}>{row.kept ? <IconCheck size={14} /> : <IconMinus size={14} />}</span>
-                    <span className="vh">{row.kept ? data.yesLabel : data.notLabel}: </span>
-                    {row.item}
-                  </dt>
-                  <dd>{row.value}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className={s.ledger}>
+              {/* What is never collected: a compact grid. What is kept: one row each, with how. */}
+              <p className={s.ledgerLabel}>{data.notLabel}</p>
+              <dl className={s.ledgerNot}>
+                {data.rows
+                  .filter((row) => !row.kept)
+                  .map((row) => (
+                    <div key={row.item}>
+                      <dt>
+                        <span className={s.ledgerMark}>
+                          <IconMinus size={14} />
+                        </span>
+                        <span className="vh">{data.notLabel}: </span>
+                        {row.item}
+                      </dt>
+                      {/* "Not collected" is already the label of the group. */}
+                      {row.value !== data.notLabel && <dd>{row.value}</dd>}
+                    </div>
+                  ))}
+              </dl>
+              <p className={`${s.ledgerLabel} ${s.ledgerLabelKept}`}>{data.yesLabel}</p>
+              <dl className={s.ledgerKept}>
+                {data.rows
+                  .filter((row) => row.kept)
+                  .map((row) => (
+                    <div key={row.item}>
+                      <dt>
+                        <span className={s.ledgerMark}>
+                          <IconCheck size={14} />
+                        </span>
+                        <span className="vh">{data.yesLabel}: </span>
+                        {row.item}
+                      </dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </div>
           </div>
         </Band>
 

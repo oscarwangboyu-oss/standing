@@ -33,6 +33,9 @@ export const start = {
     ],
     fact: '31 to 34 questions, one tap each. Every question can be skipped.',
     action: 'Begin',
+    /** For a person who took the check on another device. Opens the recovery code sheet in Settings. */
+    restoreText: 'Took the check on another device?',
+    restoreLink: 'Use your recovery code',
   },
   /** The same screen for a person who already has a check. */
   again: {

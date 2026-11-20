@@ -8,7 +8,7 @@
  * open to everyone (no route guard), so it also serves a device without a record: that person
  * can connect to an existing record with a recovery code.
  */
-import { useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { api, errorCodeOf, isRetryable, refreshMe, useConfig, useDevice, useMe } from '@/client/api';
 import { clearAllSlots, device, newClientId } from '@/client/device';
 import { flagsOf } from '@/client/flags';
@@ -197,8 +197,16 @@ function RecoveryBlock({ code, notify }: { code: string | null; notify: Notify }
 
 // ---------------------------------------------------------------- restore
 
+/** /settings?restore=1 (ROUTES.restore) opens the sheet at once: the link on the start screen goes there. */
+const askedToRestore = (): boolean =>
+  typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('restore') === '1';
+
 function RestoreBlock({ hasRecord }: { hasRecord: boolean }) {
   const [open, setOpen] = useState(false);
+  // After hydration, so the server markup and the first client render agree.
+  useEffect(() => {
+    if (askedToRestore()) setOpen(true);
+  }, []);
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);

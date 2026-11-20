@@ -25,6 +25,12 @@ export const placeholder = {
 
 export type PlaceholderScreen = keyof typeof placeholder.titles;
 
+/** Shown on every app screen while the device holds a record made by `npm run seed:demo`. Local only. */
+export const simulated = {
+  title: 'Simulated data',
+  text: 'This record was made by the demo script on this computer. It is not a real person, and none of its numbers are real.',
+} as const;
+
 export const dev = {
   open: 'Developer panel',
   title: 'Developer panel',

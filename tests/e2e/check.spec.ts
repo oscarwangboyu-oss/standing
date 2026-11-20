@@ -75,6 +75,28 @@ test('leaving in the middle resumes at the same question', async ({ page, contex
   expect((await questionOnScreen(page)).current).toBe(6);
 });
 
+test('a reload during /start comes back to the same step, with the answers given so far', async ({ page }) => {
+  const heading = page.getByRole('heading', { level: 1 });
+  await page.goto('/start');
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.getByRole('button', { name: 'Agree and continue' }).click();
+  await page.getByRole('radio', { name: 'Yes, I am 18 or older' }).click();
+  await page.getByRole('radio', { name: '21 to 24', exact: true }).click();
+  await expect(heading).toHaveText('Which best describes your main situation now?');
+
+  await page.reload();
+  await expect(heading).toHaveText('Which best describes your main situation now?');
+  // Back leads to the age band chosen before the reload.
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(page.getByRole('radio', { name: '21 to 24', exact: true })).toBeChecked();
+
+  // A new tab starts at the introduction.
+  const tab = await page.context().newPage();
+  await tab.goto('/start');
+  await expect(tab.getByRole('button', { name: 'Begin' })).toBeVisible();
+  await tab.close();
+});
+
 test('without the Body and Mind consent the check has three sectors and two are not listed', async ({ page }) => {
   test.setTimeout(120_000);
   await startCheck(page, { role: 'free', health: false });

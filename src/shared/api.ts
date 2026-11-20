@@ -526,6 +526,11 @@ export interface UserProfile {
   /** Index into bank.ages. */
   age: number | null;
   role: RoleId | null;
+  /**
+   * Made by the local demo script (users.is_demo). The app shows a "Simulated data" notice.
+   * Never true in production: the script refuses to run there.
+   */
+  simulated: boolean;
 }
 
 /** One completed check, for the chart. */

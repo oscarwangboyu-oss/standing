@@ -15,6 +15,7 @@ import { errorCodeOf } from '@/client/api';
 import { device } from '@/client/device';
 import { ROUTES } from '@/client/nav';
 import { StartError, check, normalizeTicker } from '@/client/session';
+import { clearStartDraft, readStartDraft, writeStartDraft } from '@/client/startDraft';
 import { useShell } from '@/client/shell';
 import { start as copy, stateNames } from '@/copy/check';
 import { ROLE_IDS, getBank, type RoleId } from '@/engine';
@@ -103,6 +104,25 @@ export function StartFlow() {
   const steps = stepsFor(role);
   const last = steps[steps.length - 1];
 
+  // A tab the phone reloaded comes back to the step it was on (src/client/startDraft.ts).
+  useEffect(() => {
+    const draft = readStartDraft();
+    if (!draft) return;
+    const valid = stepsFor(draft.role) as string[];
+    if (!valid.includes(draft.at)) return;
+    if (draft.age !== null && draft.age < bank.ages.length) setAge(draft.age);
+    if (draft.role) setRole(draft.role);
+    setExtra(draft.extra);
+    setUsState(draft.usState);
+    if (draft.ticker) setTicker(draft.ticker);
+    setAt(draft.at as StepId);
+    // Once, when the screen opens.
+  }, []);
+  useEffect(() => {
+    if (at === 'intro' || under) clearStartDraft();
+    else writeStartDraft({ at, age, role, extra, usState, ticker });
+  }, [at, under, age, role, extra, usState, ticker]);
+
   useShell({ aside: <PlotCard lots={under ? 0 : lotsAt(at)} />, footer: at === 'intro' || under });
 
   // A new step starts at the top, and a keyboard continues from its heading.
@@ -130,6 +150,7 @@ export function StartFlow() {
     setProblem(null);
     try {
       await check().start({ background: { age, role, extra }, healthConsent, usState: usState || null, ticker: ticker.trim() || null });
+      clearStartDraft();
       // The guard of the layout sends the person on as well; this is the same destination.
       router.replace(ROUTES.check);
     } catch (error) {
@@ -233,6 +254,11 @@ export function StartFlow() {
             {text.action}
           </Button>
         </div>
+        {!plan.again && (
+          <p className={styles.restore}>
+            {copy.intro.restoreText} <Link href={ROUTES.restore}>{copy.intro.restoreLink}</Link>
+          </p>
+        )}
       </>
     );
   } else if (at === 'notice') {
